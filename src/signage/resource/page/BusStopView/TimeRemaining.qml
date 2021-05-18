@@ -1,0 +1,92 @@
+import QtQuick 2.9
+import QtQuick.Controls 2.2
+
+Rectangle {
+    id: emergencyStopView
+    width: 1920
+    height: 360
+    color: "#ffffff"
+    Text {
+        id: emergencyStopText
+        x: 288
+        y: 207
+        color: "#000000"
+        text: qsTr("このバスはあと")
+        anchors.bottom: remainingTimeText.bottom
+        anchors.bottomMargin: 0
+        anchors.right: remainingTimeText.left
+        anchors.rightMargin: 5
+        font.bold: true
+        verticalAlignment: Text.AlignVCenter
+        horizontalAlignment: Text.AlignHCenter
+        font.pointSize: 48
+    }
+
+    Text {
+        id: element
+        x: 651
+        width: 568
+        height: 42
+        color: "#ffffff"
+        text: qsTr("Emergency Stop")
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: emergencyStopText.bottom
+        anchors.topMargin: 10
+        font.bold: true
+        verticalAlignment: Text.AlignVCenter
+        horizontalAlignment: Text.AlignHCenter
+        font.pixelSize: 36
+    }
+
+    Text {
+        id: emergencyStopText1
+        y: 207
+        color: "#000000"
+        text: qsTr("程で発射します")
+        anchors.bottom: remainingTimeText.bottom
+        anchors.bottomMargin: 0
+        anchors.left: remainingTimeText.right
+        anchors.leftMargin: 15
+        horizontalAlignment: Text.AlignHCenter
+        font.bold: true
+        font.pointSize: 48
+        verticalAlignment: Text.AlignVCenter
+    }
+
+    Text {
+        id: remainingTimeText
+        x: 295
+        y: 216
+        width: 211
+        height: 156
+        color: "#000000"
+        text: qsTr("３分")
+        anchors.verticalCenterOffset: -40
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.horizontalCenter: parent.horizontalCenter
+        horizontalAlignment: Text.AlignHCenter
+        font.bold: true
+        font.pointSize: 80
+        verticalAlignment: Text.AlignVCenter
+    }
+
+    Text {
+        id: emergencyStopText2
+        x: 645
+        color: "#000000"
+        text: qsTr("This bus will be leaving in 3 minutes.")
+        anchors.top: remainingTimeText.bottom
+        anchors.topMargin: 20
+        anchors.horizontalCenter: parent.horizontalCenter
+        horizontalAlignment: Text.AlignHCenter
+        font.bold: true
+        font.pointSize: 32
+        verticalAlignment: Text.AlignVCenter
+    }
+}
+
+/*##^## Designer {
+    D{i:0;autoSize:true;height:480;width:640}
+}
+ ##^##*/
+
