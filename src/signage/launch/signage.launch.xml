@@ -1,4 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-  <node pkg="signage" exec="signage"  output="screen"/>
-</launch>

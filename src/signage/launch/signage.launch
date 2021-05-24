@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="signage" type="signage.py" name="signage_view"  output="screen"/>
+</launch>

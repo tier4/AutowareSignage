@@ -1,6 +1,5 @@
 import QtQuick 2.9
 import QtQuick.Controls 2.2
-import QtQuick.Shapes 1.12
 
 Rectangle {
     id: busRouteName
@@ -154,98 +153,6 @@ Rectangle {
             }
         }
 
-        Item {
-            id: element
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.horizontalCenter: parent.horizontalCenter
-            Shape {
-                id: middleTriangle
-                width: 30
-                height: 44
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.verticalCenter: parent.verticalCenter
-                ShapePath {
-                    fillColor: "white"
-                    fillRule: ShapePath.WindingFill
-                    strokeWidth: 0
-                    strokeColor: "white"
-                    startX: 0
-                    startY: 0
-                    PathLine {
-                        x: 30
-                        y: 22
-                    }
-                    PathLine {
-                        x: 0
-                        y: 44
-                    }
-                    PathLine {
-                        x: 0
-                        y: 0
-                    }
-                }
-            }
-
-            Shape {
-                id: leftTriangle
-                width: 30
-                height: 44
-                anchors.right: middleTriangle.left
-                anchors.rightMargin: 0
-                anchors.verticalCenter: parent.verticalCenter
-                ShapePath {
-                    fillColor: "white"
-                    fillRule: ShapePath.WindingFill
-                    strokeWidth: 0
-                    strokeColor: "white"
-                    startX: 0
-                    startY: 0
-                    PathLine {
-                        x: 30
-                        y: 22
-                    }
-                    PathLine {
-                        x: 0
-                        y: 44
-                    }
-                    PathLine {
-                        x: 0
-                        y: 0
-                    }
-                }
-            }
-
-            Shape {
-                id: rightTriangle
-                x: 15
-                y: -68
-                width: 30
-                height: 44
-                anchors.left: middleTriangle.right
-                anchors.leftMargin: 0
-                anchors.verticalCenter: parent.verticalCenter
-                ShapePath {
-                    fillColor: "white"
-                    fillRule: ShapePath.WindingFill
-                    strokeWidth: 0
-                    strokeColor: "white"
-                    startX: 0
-                    startY: 0
-                    PathLine {
-                        x: 30
-                        y: 22
-                    }
-                    PathLine {
-                        x: 0
-                        y: 44
-                    }
-                    PathLine {
-                        x: 0
-                        y: 0
-                    }
-                }
-            }
-        }
 
         Text {
             id: remainingTime

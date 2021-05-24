@@ -1,6 +1,5 @@
 import QtQuick 2.9
 import QtQuick.Controls 2.2
-import QtQuick.Shapes 1.12
 
 Rectangle {
     id: busStopName
@@ -349,34 +348,6 @@ Rectangle {
                 font.pixelSize: 14
                 anchors.topMargin: 5
                 anchors.top: beforeBusStopName2.bottom
-            }
-        }
-
-        Shape {
-            width: 30
-            height: 44
-            anchors.left: currentBusStopMarker.right
-            anchors.leftMargin: 75
-            anchors.verticalCenter: parent.verticalCenter
-            ShapePath {
-                fillColor: "white"
-                fillRule: ShapePath.WindingFill
-                strokeWidth: 0
-                strokeColor: "white"
-                startX: 0
-                startY: 0
-                PathLine {
-                    x: 30
-                    y: 22
-                }
-                PathLine {
-                    x: 0
-                    y: 44
-                }
-                PathLine {
-                    x: 0
-                    y: 0
-                }
             }
         }
     }

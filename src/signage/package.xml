@@ -7,26 +7,23 @@
 <maintainer email="makoto.yabuta@tier4.jp">yabuta</maintainer>
 
 <license>TODO</license>
-  <exec_depend>ament_index_python</exec_depend>
-  <exec_depend>rclpy</exec_depend>
-  <exec_depend>rqt_gui</exec_depend>
-  <exec_depend>rqt_gui_py</exec_depend>
-  <exec_depend>autoware_api_msgs</exec_depend>
-  <exec_depend>autoware_perception_msgs</exec_depend>
-  <exec_depend>autoware_vehicle_msgs</exec_depend>
-  <exec_depend>autoware_system_msgs</exec_depend>
-  <exec_depend>python3-pip</exec_depend>
-  <exec_depend>pynput-pip</exec_depend>
-  <exec_depend>qtbase5-dev</exec_depend>
-  <exec_depend>qttools5-dev-tools</exec_depend>
-  <exec_depend>python-qt5-bindings-quick</exec_depend>
-  <exec_depend>qml-module-qtquick-controls</exec_depend>
-  <exec_depend>qml-module-qtquick-controls2</exec_depend>
-  <exec_depend>qml-module-qtmultimedia</exec_depend>
-  <exec_depend>qml-module-qtquick-dialogs</exec_depend>
-  <exec_depend>python3-pygame</exec_depend>
-
-  <export>
-    <build_type>ament_python</build_type>
-  </export>
+    <buildtool_depend>catkin</buildtool_depend>
+    <build_depend>rospy</build_depend>
+    <build_export_depend>rospy</build_export_depend>
+    <build_export_depend>autoware_system_msgs</build_export_depend>
+    <build_export_depend>foa_msgs</build_export_depend>
+    <exec_depend>rospy</exec_depend>
+    <exec_depend>autoware_perception_msgs</exec_depend>
+    <exec_depend>autoware_vehicle_msgs</exec_depend>
+    <exec_depend>autoware_system_msgs</exec_depend>
+    <exec_depend>foa_msgs</exec_depend>
+    <exec_depend>python-pip</exec_depend>
+    <exec_depend>qtbase5-dev</exec_depend>
+    <exec_depend>qttools5-dev-tools</exec_depend>
+    <exec_depend>python-qt5-bindings-quick</exec_depend>
+    <exec_depend>qml-module-qtquick-controls</exec_depend>
+    <exec_depend>qml-module-qtquick-controls2</exec_depend>
+    <exec_depend>qml-module-qtmultimedia</exec_depend>
+    <exec_depend>qml-module-qtquick-dialogs</exec_depend>
+    <exec_depend>python-pygame</exec_depend>
 </package>
