@@ -105,7 +105,7 @@ Rectangle {
                 width: 294
                 height: 49
                 color: "#717171"
-                text: qsTr("前のバス停名")
+                text: viewController.previous_station_list[0]
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2

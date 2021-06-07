@@ -47,7 +47,7 @@ Rectangle {
                 width: 150
                 height: 35
                 color: "#717171"
-                text: qsTr("前のバス停名2")
+                text: viewController.previous_station_list[2]
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
@@ -94,7 +94,7 @@ Rectangle {
                 y: 62
                 width: 150
                 height: 35
-                text: qsTr("次のバス停名2")
+                text: viewController.next_station_list[2]
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
@@ -230,7 +230,7 @@ Rectangle {
                 y: 62
                 width: 150
                 height: 35
-                text: qsTr("次のバス停名3")
+                text: viewController.next_station_list[1]
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -277,7 +277,7 @@ Rectangle {
                 width: 150
                 height: 35
                 color: "#717171"
-                text: qsTr("前のバス停名3")
+                text: viewController.previous_station_list[0]
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -324,7 +324,7 @@ Rectangle {
                 width: 150
                 height: 35
                 color: "#717171"
-                text: qsTr("前のバス停名4")
+                text: viewController.previous_station_list[1]
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
