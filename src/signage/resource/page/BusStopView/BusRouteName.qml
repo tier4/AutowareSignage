@@ -153,7 +153,7 @@ Rectangle {
                 y: 62
                 width: 294
                 height: 49
-                text: qsTr("次のバス停名")
+                text: getArrivalStationName()
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
@@ -186,7 +186,7 @@ Rectangle {
             width: 216
             height: 49
             color: "#000000"
-            text: qsTr("バス停名")
+            text: getDepatureStationName()
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.left: beforeAndAfterBar.left
             anchors.leftMargin: 742
@@ -224,6 +224,24 @@ Rectangle {
             routeName = qsTr("バスルート名")
         }
         return routeName
+    }
+
+    function getDepatureStationName() {
+        var station_name = viewController.departure_station_name
+        if(!station_name || station_name.length === 0)
+        {
+            station_name = qsTr("バス停名")
+        }
+        return station_name
+    }
+
+    function getArrivalStationName() {
+        var station_name = viewController.arrival_station_name
+        if(!station_name || station_name.length === 0)
+        {
+            station_name = qsTr("次のバス停名")
+        }
+        return station_name
     }
 }
 

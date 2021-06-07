@@ -14,6 +14,8 @@ from dummy_msgs.msg import ApiDummyStation, RouteStation
 class ViewControllerProperty(QObject):
     _view_mode_changed_signal = pyqtSignal(str)
     _route_name_signal = pyqtSignal(str)
+    _get_departure_station_name_signal = pyqtSignal(str)
+    _get_arrival_station_name_signal = pyqtSignal(str)
     def __init__(self):
         super(ViewControllerProperty, self).__init__()
         rospy.Subscriber("/awapi/autoware/get/status", AwapiAutowareStatus, self.sub_autoware_status)
@@ -28,8 +30,11 @@ class ViewControllerProperty(QObject):
         self._route_id = ""
         self._route_name = ""
         self._stations = {}
+        self._staion_arrangement = []
         self._departure_station_id = ""
         self._arrival_station_id = ""
+        self._departure_station_name = ""
+        self._arrival_station_name = ""
 
         rospy.Timer(rospy.Duration(0.1), self.update_view_state)
 
@@ -74,13 +79,16 @@ class ViewControllerProperty(QObject):
             station_data["name"] = station.name
             station_data["eta"] = station.eta
             station_data["etd"] = station.eta
+            self._staion_arrangement.append(station.id)
             self._stations[station.id] = station_data
 
     def sub_route(self, topic):
         if not topic:
             return True
         self._departure_station_id = topic.departure_station_id
+        self.departure_station_name = self._stations[self._departure_station_id]["name"]
         self._arrival_station_id = topic.arrival_station_id
+        self.arrival_station_name = self._stations[self._arrival_station_id]["name"]
 
     # QMLへroute_nameを反映させる
     @pyqtProperty("QString", notify=_route_name_signal)
@@ -91,3 +99,23 @@ class ViewControllerProperty(QObject):
     def route_name(self, route_name):
         self._route_name = route_name
         self._route_name_signal.emit(route_name)
+
+    # QMLへroute_nameを反映させる
+    @pyqtProperty("QString", notify=_get_departure_station_name_signal)
+    def departure_station_name(self):
+        return self._departure_station_name
+
+    @departure_station_name.setter
+    def departure_station_name(self, departure_station_name):
+        self._departure_station_name = departure_station_name
+        self._get_departure_station_name_signal.emit(departure_station_name)
+
+    # QMLへroute_nameを反映させる
+    @pyqtProperty("QString", notify=_get_arrival_station_name_signal)
+    def arrival_station_name(self):
+        return self._arrival_station_name
+
+    @arrival_station_name.setter
+    def arrival_station_name(self, arrival_station_name):
+        self._arrival_station_name = arrival_station_name
+        self._get_arrival_station_name_signal.emit(arrival_station_name)

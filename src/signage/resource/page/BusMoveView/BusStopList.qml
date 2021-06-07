@@ -47,7 +47,7 @@ Rectangle {
                 width: 150
                 height: 35
                 color: "#717171"
-                text: qsTr("前のバス停名")
+                text: qsTr("前のバス停名2")
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
@@ -64,7 +64,7 @@ Rectangle {
                 width: 100
                 height: 20
                 color: "#717171"
-                text: qsTr("Last Bus Stop")
+                text: qsTr("Last Bus Stop2")
                 anchors.top: beforeBusStopName.bottom
                 anchors.topMargin: 5
                 anchors.horizontalCenter: beforeBusStopName.horizontalCenter
@@ -94,7 +94,7 @@ Rectangle {
                 y: 62
                 width: 150
                 height: 35
-                text: qsTr("次のバス停名")
+                text: qsTr("次のバス停名2")
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
@@ -111,7 +111,7 @@ Rectangle {
                 width: 100
                 height: 20
                 color: "#000000"
-                text: qsTr("Next Bus Stop")
+                text: qsTr("Next Bus Stop2")
                 anchors.horizontalCenter: nextBusStopName.horizontalCenter
                 anchors.top: nextBusStopName.bottom
                 anchors.topMargin: 5
@@ -140,7 +140,7 @@ Rectangle {
                 y: 62
                 width: 150
                 height: 35
-                text: qsTr("次のバス停名")
+                text: getDepatureStationName()
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -156,7 +156,7 @@ Rectangle {
                 width: 100
                 height: 20
                 color: "#000000"
-                text: qsTr("Next Bus Stop")
+                text: qsTr("Next Bus Stop1")
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -185,7 +185,7 @@ Rectangle {
                 y: 62
                 width: 150
                 height: 35
-                text: qsTr("次のバス停名")
+                text: getArrivalStationName()
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -201,7 +201,7 @@ Rectangle {
                 width: 100
                 height: 20
                 color: "#000000"
-                text: qsTr("Next Bus Stop")
+                text: qsTr("Next Bus Stop1")
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -230,7 +230,7 @@ Rectangle {
                 y: 62
                 width: 150
                 height: 35
-                text: qsTr("次のバス停名")
+                text: qsTr("次のバス停名3")
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -246,7 +246,7 @@ Rectangle {
                 width: 100
                 height: 20
                 color: "#000000"
-                text: qsTr("Next Bus Stop")
+                text: qsTr("Next Bus Stop3")
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -277,7 +277,7 @@ Rectangle {
                 width: 150
                 height: 35
                 color: "#717171"
-                text: qsTr("前のバス停名")
+                text: qsTr("前のバス停名3")
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -293,7 +293,7 @@ Rectangle {
                 width: 100
                 height: 20
                 color: "#717171"
-                text: qsTr("Last Bus Stop")
+                text: qsTr("Last Bus Stop3")
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -324,7 +324,7 @@ Rectangle {
                 width: 150
                 height: 35
                 color: "#717171"
-                text: qsTr("前のバス停名")
+                text: qsTr("前のバス停名4")
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -340,7 +340,7 @@ Rectangle {
                 width: 100
                 height: 20
                 color: "#717171"
-                text: qsTr("Last Bus Stop")
+                text: qsTr("Last Bus Stop4")
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -350,6 +350,24 @@ Rectangle {
                 anchors.top: beforeBusStopName2.bottom
             }
         }
+    }
+
+    function getDepatureStationName() {
+        var station_name = viewController.departure_station_name
+        if(!station_name || station_name.length === 0)
+        {
+            station_name = qsTr("前のバス停名")
+        }
+        return station_name
+    }
+
+    function getArrivalStationName() {
+        var station_name = viewController.arrival_station_name
+        if(!station_name || station_name.length === 0)
+        {
+            station_name = qsTr("次のバス停名")
+        }
+        return station_name
     }
 }
 
