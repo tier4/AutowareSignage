@@ -9,7 +9,7 @@ from PyQt5.QtCore import pyqtSlot
 import rospy
 
 from autoware_api_msgs.msg import AwapiAutowareStatus
-from dummy_msgs.msg import ApiDummyStation
+from dummy_msgs.msg import ApiDummyStation, RouteStation
 
 class ViewControllerProperty(QObject):
     _view_mode_changed_signal = pyqtSignal(str)
@@ -17,6 +17,7 @@ class ViewControllerProperty(QObject):
         super(ViewControllerProperty, self).__init__()
         rospy.Subscriber("/awapi/autoware/get/status", AwapiAutowareStatus, self.sub_autoware_status)
         rospy.Subscriber("/api/get/stations", ApiDummyStation, self.sub_route_station)
+        rospy.Subscriber("/api/get/route", RouteStation, self.sub_route)
 
         self.is_auto_mode = False
         self.is_emergency_mode = False
@@ -26,6 +27,8 @@ class ViewControllerProperty(QObject):
         self._route_id = ""
         self._route_name = ""
         self._stations = {}
+        self._departure_station_id = ""
+        self._arrival_station_id = ""
 
 
         rospy.Timer(rospy.Duration(0.1), self.update_view_state)
@@ -72,3 +75,9 @@ class ViewControllerProperty(QObject):
             station_data["eta"] = station.eta
             station_data["etd"] = station.eta
             self._stations[station.id] = station_data
+
+    def sub_route(self, topic):
+        if not topic:
+            return True
+        self._departure_station_id = topic.departure_station_id
+        self._arrival_station_id = topic.arrival_station_id

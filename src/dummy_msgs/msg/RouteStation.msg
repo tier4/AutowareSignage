@@ -1,0 +1,2 @@
+string departure_station_id
+string arrival_station_id

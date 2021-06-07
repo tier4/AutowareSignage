@@ -13,6 +13,7 @@ add_message_files(
   DIRECTORY msg
   FILES
     ApiDummyStation.msg
+    RouteStation.msg
     Station.msg
 )
 
