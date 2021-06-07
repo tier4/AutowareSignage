@@ -11,7 +11,7 @@ Rectangle {
         x: 288
         y: 207
         color: "#000000"
-        text: qsTr("バスルート名")
+        text: getRouteName()
         anchors.verticalCenterOffset: -100
         font.bold: true
         verticalAlignment: Text.AlignVCenter
@@ -215,6 +215,15 @@ Rectangle {
             font.bold: true
             verticalAlignment: Text.AlignVCenter
         }
+    }
+
+    function getRouteName() {
+        var routeName = viewController.route_name
+        if(!routeName || routeName.length === 0)
+        {
+            routeName = qsTr("バスルート名")
+        }
+        return routeName
     }
 }
 

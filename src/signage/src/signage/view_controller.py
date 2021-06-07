@@ -13,6 +13,7 @@ from dummy_msgs.msg import ApiDummyStation, RouteStation
 
 class ViewControllerProperty(QObject):
     _view_mode_changed_signal = pyqtSignal(str)
+    _route_name_signal = pyqtSignal(str)
     def __init__(self):
         super(ViewControllerProperty, self).__init__()
         rospy.Subscriber("/awapi/autoware/get/status", AwapiAutowareStatus, self.sub_autoware_status)
@@ -29,7 +30,6 @@ class ViewControllerProperty(QObject):
         self._stations = {}
         self._departure_station_id = ""
         self._arrival_station_id = ""
-
 
         rospy.Timer(rospy.Duration(0.1), self.update_view_state)
 
@@ -67,7 +67,7 @@ class ViewControllerProperty(QObject):
         if not topic:
             return True
         self._route_id = topic.id
-        self._route_name = topic.name
+        self.route_name = topic.name
         stations = topic.stations
         for station in stations:
             station_data = {}
@@ -81,3 +81,13 @@ class ViewControllerProperty(QObject):
             return True
         self._departure_station_id = topic.departure_station_id
         self._arrival_station_id = topic.arrival_station_id
+
+    # QMLへroute_nameを反映させる
+    @pyqtProperty("QString", notify=_route_name_signal)
+    def route_name(self):
+        return self._route_name
+
+    @route_name.setter
+    def route_name(self, route_name):
+        self._route_name = route_name
+        self._route_name_signal.emit(route_name)
