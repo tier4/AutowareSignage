@@ -53,6 +53,8 @@ class ViewControllerProperty(QObject):
 
     @view_mode.setter
     def view_mode(self, view_mode):
+        if self._view_mode == view_mode:
+            return
         self._view_mode = view_mode
         self._view_mode_changed_signal.emit(view_mode)
 
@@ -120,6 +122,8 @@ class ViewControllerProperty(QObject):
 
     @route_name.setter
     def route_name(self, route_name):
+        if self._route_name == route_name:
+            return
         self._route_name = route_name
         self._route_name_signal.emit(route_name)
 
@@ -130,6 +134,8 @@ class ViewControllerProperty(QObject):
 
     @departure_station_name.setter
     def departure_station_name(self, departure_station_name):
+        if self._departure_station_name == departure_station_name:
+            return
         self._departure_station_name = departure_station_name
         self._get_departure_station_name_signal.emit(departure_station_name)
 
@@ -140,6 +146,8 @@ class ViewControllerProperty(QObject):
 
     @arrival_station_name.setter
     def arrival_station_name(self, arrival_station_name):
+        if self._arrival_station_name == arrival_station_name:
+            return
         self._arrival_station_name = arrival_station_name
         self._get_arrival_station_name_signal.emit(arrival_station_name)
 
@@ -150,6 +158,8 @@ class ViewControllerProperty(QObject):
 
     @next_station_list.setter
     def next_station_list(self, next_station_list):
+        if self._next_station_list == next_station_list:
+            return
         self._next_station_list = next_station_list
         self._get_next_station_list_signal.emit(next_station_list)
 
@@ -160,6 +170,8 @@ class ViewControllerProperty(QObject):
 
     @previous_station_list.setter
     def previous_station_list(self, previous_station_list):
+        if self._previous_station_list == previous_station_list:
+            return
         self._previous_station_list = previous_station_list
         self._get_previous_station_list_signal.emit(previous_station_list)
 
@@ -192,5 +204,7 @@ class ViewControllerProperty(QObject):
 
     @remain_time_text.setter
     def remain_time_text(self, remain_time_text):
+        if self._remain_time_text == remain_time_text:
+            return
         self._remain_time_text = remain_time_text
         self._get_remain_time_text_signal.emit(remain_time_text)
