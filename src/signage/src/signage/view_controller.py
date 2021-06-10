@@ -18,6 +18,7 @@ class ViewControllerProperty(QObject):
     _get_arrival_station_name_signal = pyqtSignal(str)
     _get_next_station_list_signal = pyqtSignal(list)
     _get_previous_station_list_signal = pyqtSignal(list)
+    _get_remain_time_text_signal = pyqtSignal(str)
     def __init__(self):
         super(ViewControllerProperty, self).__init__()
         rospy.Subscriber("/awapi/autoware/get/status", AwapiAutowareStatus, self.sub_autoware_status)
@@ -39,8 +40,10 @@ class ViewControllerProperty(QObject):
         self._arrival_station_name = ""
         self._next_station_list = ["", "", ""]
         self._previous_station_list = ["", "", ""]
+        self._remain_time_text = "間もなく出発します"
 
         rospy.Timer(rospy.Duration(0.1), self.update_view_state)
+        rospy.Timer(rospy.Duration(10), self.calculate_time)
 
 
     # view mode
@@ -89,11 +92,14 @@ class ViewControllerProperty(QObject):
     def sub_route(self, topic):
         if not topic:
             return True
-        self._departure_station_id = topic.departure_station_id
-        self.generate_next_previous_station_list(self._departure_station_id)
-        self.departure_station_name = self._stations[self._departure_station_id]["name"]
-        self._arrival_station_id = topic.arrival_station_id
-        self.arrival_station_name = self._stations[self._arrival_station_id]["name"]
+        try:
+            self._departure_station_id = topic.departure_station_id
+            self.generate_next_previous_station_list(self._departure_station_id)
+            self.departure_station_name = self._stations[self._departure_station_id]["name"]
+            self._arrival_station_id = topic.arrival_station_id
+            self.arrival_station_name = self._stations[self._arrival_station_id]["name"]
+        except Exception as e:
+            rospy.logerr(str(e))
 
     def generate_next_previous_station_list(self, station_id):
         list_index = self._staion_arrangement.index(station_id)
@@ -156,3 +162,35 @@ class ViewControllerProperty(QObject):
     def previous_station_list(self, previous_station_list):
         self._previous_station_list = previous_station_list
         self._get_previous_station_list_signal.emit(previous_station_list)
+
+    def calculate_time(self, _):
+        if self._arrival_station_id and self._departure_station_id:
+            current_time = rospy.get_time()
+            try:
+                if self.is_driving:
+                    remain_minute = int((int(self._stations[self._arrival_station_id]["eta"].secs) - current_time)/60)
+                    rospy.logerr(remain_minute)
+                    if remain_minute > 0:
+                        self.remain_time_text = "あと{}分で到着します".format(str(remain_minute))
+                    else:
+                        self.remain_time_text = "間もなく到着します"
+                else:
+                    remain_minute = int((int(self._stations[self._departure_station_id]["etd"].secs) - current_time)/60)
+                    if remain_minute > 0:
+                        self.remain_time_text = "このバスはあと{}分程で発射します".format(str(remain_minute))
+                    else:
+                        self.remain_time_text = "間もなく出発します"
+                rospy.logerr(self.remain_time_text)
+            except Exception as e:
+                self.remain_time_text = "間もなく出発します"
+                rospy.logerr(str(e))
+
+    # QMLへroute_nameを反映させる
+    @pyqtProperty("QString", notify=_get_remain_time_text_signal)
+    def remain_time_text(self):
+        return self._remain_time_text
+
+    @remain_time_text.setter
+    def remain_time_text(self, remain_time_text):
+        self._remain_time_text = remain_time_text
+        self._get_remain_time_text_signal.emit(remain_time_text)

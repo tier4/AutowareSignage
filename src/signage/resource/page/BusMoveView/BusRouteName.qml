@@ -157,7 +157,7 @@ Rectangle {
         Text {
             id: remainingTime
             x: 912
-            text: qsTr("00分")
+            text: viewController.remain_time_text
             anchors.top: beforeAndAfterBar.bottom
             anchors.topMargin: 10
             anchors.horizontalCenter: parent.horizontalCenter
