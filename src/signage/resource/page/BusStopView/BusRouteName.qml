@@ -131,7 +131,7 @@ Rectangle {
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
             }
-            visible : (viewController.previous_station_list[0] || viewController.previous_station_list[0].length != 0)
+            visible : (viewController.previous_station_list[0] || viewController.previous_station_list[0].length !== 0)
         }
 
         Rectangle {
@@ -180,7 +180,7 @@ Rectangle {
                 font.pixelSize: 24
                 verticalAlignment: Text.AlignVCenter
             }
-            visible : (viewController.arrival_station_name || viewController.arrival_station_name.length != 0)
+            visible : (viewController.arrival_station_name || viewController.arrival_station_name.length !== 0)
         }
 
         Text {

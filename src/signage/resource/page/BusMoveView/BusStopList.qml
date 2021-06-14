@@ -73,7 +73,7 @@ Rectangle {
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
             }
-            visible : (viewController.previous_station_list[2] || viewController.previous_station_list[2].length != 0)
+            visible : (viewController.previous_station_list[2] || viewController.previous_station_list[2].length !== 0)
         }
 
         Rectangle {
@@ -121,7 +121,7 @@ Rectangle {
                 font.pixelSize: 14
                 verticalAlignment: Text.AlignVCenter
             }
-            visible : (viewController.next_station_list[2] || viewController.next_station_list[2].length != 0)
+            visible : (viewController.next_station_list[2] || viewController.next_station_list[2].length !== 0)
         }
 
         Rectangle {
@@ -167,7 +167,7 @@ Rectangle {
                 anchors.topMargin: 5
                 anchors.top: nextBusStopName1.bottom
             }
-            visible : (viewController.departure_station_name || viewController.departure_station_name.length != 0)
+            visible : (viewController.departure_station_name || viewController.departure_station_name.length !== 0)
         }
 
         Rectangle {
@@ -213,7 +213,7 @@ Rectangle {
                 anchors.topMargin: 5
                 anchors.top: nextBusStopName2.bottom
             }
-            visible : (viewController.arrival_station_name || viewController.arrival_station_name.length != 0)
+            visible : (viewController.arrival_station_name || viewController.arrival_station_name.length !== 0)
         }
 
         Rectangle {
@@ -259,7 +259,7 @@ Rectangle {
                 anchors.topMargin: 5
                 anchors.top: nextBusStopName3.bottom
             }
-            visible : (viewController.next_station_list[1] || viewController.next_station_list[1].length != 0)
+            visible : (viewController.next_station_list[1] || viewController.next_station_list[1].length !== 0)
         }
 
         Rectangle {
@@ -307,7 +307,7 @@ Rectangle {
                 anchors.topMargin: 5
                 anchors.top: beforeBusStopName1.bottom
             }
-            visible : (viewController.previous_station_list[0] || viewController.previous_station_list[0].length != 0)
+            visible : (viewController.previous_station_list[0] || viewController.previous_station_list[0].length !== 0)
         }
 
         Rectangle {
@@ -355,7 +355,7 @@ Rectangle {
                 anchors.topMargin: 5
                 anchors.top: beforeBusStopName2.bottom
             }
-            visible : (viewController.previous_station_list[1] || viewController.previous_station_list[1].length != 0)
+            visible : (viewController.previous_station_list[1] || viewController.previous_station_list[1].length !== 0)
         }
     }
 }

@@ -104,7 +104,7 @@ Rectangle {
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
             }
-            visible : (viewController.departure_station_name || viewController.departure_station_name.length != 0)
+            visible : (viewController.departure_station_name || viewController.departure_station_name.length !== 0)
         }
 
         Rectangle {
@@ -152,7 +152,7 @@ Rectangle {
                 font.pixelSize: 24
                 verticalAlignment: Text.AlignVCenter
             }
-            visible : (viewController.arrival_station_name || viewController.arrival_station_name.length != 0)
+            visible : (viewController.arrival_station_name || viewController.arrival_station_name.length !== 0)
         }
 
 
