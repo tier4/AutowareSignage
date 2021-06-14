@@ -34,7 +34,7 @@ class ViewControllerProperty(QObject):
         self._route_id = ""
         self._route_name = ""
         self._stations = {}
-        self._staion_arrangement = []
+        self._station_arrangement = []
         self._departure_station_id = ""
         self._arrival_station_id = ""
         self._departure_station_name = ""
@@ -90,7 +90,7 @@ class ViewControllerProperty(QObject):
             station_data["name"] = station.name
             station_data["eta"] = station.eta
             station_data["etd"] = station.eta
-            self._staion_arrangement.append(station.id)
+            self._station_arrangement.append(station.id)
             self._stations[station.id] = station_data
         if self._departure_station_id:
             self.generate_next_previous_station_list(self._departure_station_id)
@@ -103,7 +103,7 @@ class ViewControllerProperty(QObject):
         try:
             self._departure_station_id = topic.departure_station_id
             self._arrival_station_id = topic.arrival_station_id
-            if self._staion_arrangement:
+            if self._station_arrangement:
                 self.generate_next_previous_station_list(self._departure_station_id)
                 self.departure_station_name = self._stations[self._departure_station_id]["name"]
                 self.arrival_station_name = self._stations[self._arrival_station_id]["name"]
@@ -111,14 +111,14 @@ class ViewControllerProperty(QObject):
             rospy.logerr(str(e))
 
     def generate_next_previous_station_list(self, station_id):
-        list_index = self._staion_arrangement.index(station_id)
+        list_index = self._station_arrangement.index(station_id)
         station_list = []
-        for next_station in self._staion_arrangement[list_index:][1:4]:
+        for next_station in self._station_arrangement[list_index:][1:4]:
             station_list.append(self._stations[next_station]["name"])
         self.next_station_list = list(station_list)
 
         station_list = []
-        for next_station in self._staion_arrangement[:list_index][-3:][::-1]:
+        for next_station in self._station_arrangement[:list_index][-3:][::-1]:
             station_list.append(self._stations[next_station]["name"])
         self.previous_station_list = list(station_list)
 
