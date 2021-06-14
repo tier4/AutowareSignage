@@ -112,14 +112,18 @@ class ViewControllerProperty(QObject):
 
     def generate_next_previous_station_list(self, station_id):
         list_index = self._station_arrangement.index(station_id)
-        station_list = []
+        station_list = ["", "", ""]
+        n = 0
         for next_station in self._station_arrangement[list_index:][1:4]:
-            station_list.append(self._stations[next_station]["name"])
+            station_list[n] = self._stations[next_station]["name"]
+            n += 1
         self.next_station_list = list(station_list)
 
-        station_list = []
+        station_list = ["", "", ""]
+        n = 0
         for next_station in self._station_arrangement[:list_index][-3:][::-1]:
-            station_list.append(self._stations[next_station]["name"])
+            station_list[n] = self._stations[next_station]["name"]
+            n += 1
         self.previous_station_list = list(station_list)
 
     # QMLへroute_nameを反映させる
