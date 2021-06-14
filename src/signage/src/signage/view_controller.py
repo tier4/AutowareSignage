@@ -63,9 +63,9 @@ class ViewControllerProperty(QObject):
             self.view_mode = "emergency_stopped"
         elif not self.is_auto_mode:
             self.view_mode = "manual_driving"
-        elif self.is_stopping:
+        elif self.is_stopping and self._departure_station_name:
             self.view_mode = "stopping"
-        elif self.is_driving:
+        elif self.is_driving and self._departure_station_name:
             self.view_mode = "driving"
         else:
             self.view_mode = "out_of_service"
