@@ -131,6 +131,7 @@ Rectangle {
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
             }
+            visible : (viewController.previous_station_list[0] || viewController.previous_station_list[0].length != 0)
         }
 
         Rectangle {
@@ -153,7 +154,7 @@ Rectangle {
                 y: 62
                 width: 294
                 height: 49
-                text: getArrivalStationName()
+                text: viewController.arrival_station_name
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
@@ -179,6 +180,7 @@ Rectangle {
                 font.pixelSize: 24
                 verticalAlignment: Text.AlignVCenter
             }
+            visible : (viewController.arrival_station_name || viewController.arrival_station_name.length != 0)
         }
 
         Text {
@@ -231,15 +233,6 @@ Rectangle {
         if(!station_name || station_name.length === 0)
         {
             station_name = qsTr("バス停名")
-        }
-        return station_name
-    }
-
-    function getArrivalStationName() {
-        var station_name = viewController.arrival_station_name
-        if(!station_name || station_name.length === 0)
-        {
-            station_name = qsTr("次のバス停名")
         }
         return station_name
     }
