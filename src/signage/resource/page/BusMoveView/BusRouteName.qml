@@ -36,6 +36,7 @@ Rectangle {
         font.pixelSize: 36
         font.bold: true
         verticalAlignment: Text.AlignVCenter
+        visible: false
     }
 
     Item {
@@ -103,6 +104,7 @@ Rectangle {
                 font.pixelSize: 24
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
+                visible: false
             }
             visible : (viewController.departure_station_name || viewController.departure_station_name.length !== 0)
         }
@@ -151,6 +153,7 @@ Rectangle {
                 font.bold: true
                 font.pixelSize: 24
                 verticalAlignment: Text.AlignVCenter
+                visible: false
             }
             visible : (viewController.arrival_station_name || viewController.arrival_station_name.length !== 0)
         }
