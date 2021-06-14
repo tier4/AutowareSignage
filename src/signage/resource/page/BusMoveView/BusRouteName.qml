@@ -78,7 +78,7 @@ Rectangle {
                 width: 294
                 height: 49
                 color: "#717171"
-                text: getDepatureStationName()
+                text: viewController.departure_station_name
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
@@ -104,6 +104,7 @@ Rectangle {
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
             }
+            visible : (viewController.departure_station_name || viewController.departure_station_name.length != 0)
         }
 
         Rectangle {
@@ -125,7 +126,7 @@ Rectangle {
                 x: -117
                 width: 294
                 height: 49
-                text: getArrivalStationName()
+                text: viewController.arrival_station_name
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
@@ -151,6 +152,7 @@ Rectangle {
                 font.pixelSize: 24
                 verticalAlignment: Text.AlignVCenter
             }
+            visible : (viewController.arrival_station_name || viewController.arrival_station_name.length != 0)
         }
 
 
@@ -173,24 +175,6 @@ Rectangle {
             routeName = qsTr("バスルート名")
         }
         return routeName
-    }
-
-    function getDepatureStationName() {
-        var station_name = viewController.departure_station_name
-        if(!station_name || station_name.length === 0)
-        {
-            station_name = qsTr("前のバス停名")
-        }
-        return station_name
-    }
-
-    function getArrivalStationName() {
-        var station_name = viewController.arrival_station_name
-        if(!station_name || station_name.length === 0)
-        {
-            station_name = qsTr("次のバス停名")
-        }
-        return station_name
     }
 }
 
