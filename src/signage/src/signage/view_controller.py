@@ -90,16 +90,21 @@ class ViewControllerProperty(QObject):
             station_data["etd"] = station.eta
             self._staion_arrangement.append(station.id)
             self._stations[station.id] = station_data
+        if self._departure_station_id:
+            self.generate_next_previous_station_list(self._departure_station_id)
+            self.departure_station_name = self._stations[self._departure_station_id]["name"]
+            self.arrival_station_name = self._stations[self._arrival_station_id]["name"]
 
     def sub_route(self, topic):
         if not topic:
             return True
         try:
             self._departure_station_id = topic.departure_station_id
-            self.generate_next_previous_station_list(self._departure_station_id)
-            self.departure_station_name = self._stations[self._departure_station_id]["name"]
             self._arrival_station_id = topic.arrival_station_id
-            self.arrival_station_name = self._stations[self._arrival_station_id]["name"]
+            if self._staion_arrangement:
+                self.generate_next_previous_station_list(self._departure_station_id)
+                self.departure_station_name = self._stations[self._departure_station_id]["name"]
+                self.arrival_station_name = self._stations[self._arrival_station_id]["name"]
         except Exception as e:
             rospy.logerr(str(e))
 
