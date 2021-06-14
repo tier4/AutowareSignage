@@ -19,6 +19,7 @@ class ViewControllerProperty(QObject):
     _get_next_station_list_signal = pyqtSignal(list)
     _get_previous_station_list_signal = pyqtSignal(list)
     _get_remain_time_text_signal = pyqtSignal(str)
+    _get_display_time_signal = pyqtSignal(bool)
     def __init__(self):
         super(ViewControllerProperty, self).__init__()
         rospy.Subscriber("/awapi/autoware/get/status", AwapiAutowareStatus, self.sub_autoware_status)
@@ -41,6 +42,7 @@ class ViewControllerProperty(QObject):
         self._next_station_list = ["", "", ""]
         self._previous_station_list = ["", "", ""]
         self._remain_time_text = "間もなく出発します"
+        self._display_time = False
 
         rospy.Timer(rospy.Duration(0.1), self.update_view_state)
         rospy.Timer(rospy.Duration(10), self.calculate_time)
@@ -186,7 +188,6 @@ class ViewControllerProperty(QObject):
             try:
                 if self.is_driving:
                     remain_minute = int((int(self._stations[self._arrival_station_id]["eta"].secs) - current_time)/60)
-                    rospy.logerr(remain_minute)
                     if remain_minute > 0:
                         self.remain_time_text = "あと{}分で到着します".format(str(remain_minute))
                     else:
@@ -197,7 +198,10 @@ class ViewControllerProperty(QObject):
                         self.remain_time_text = "このバスはあと{}分程で発射します".format(str(remain_minute))
                     else:
                         self.remain_time_text = "間もなく出発します"
-                rospy.logerr(self.remain_time_text)
+                if remain_minute < 5:
+                    self.display_time = True
+                else:
+                    self.display_time = False
             except Exception as e:
                 self.remain_time_text = "間もなく出発します"
                 rospy.logerr(str(e))
@@ -213,3 +217,15 @@ class ViewControllerProperty(QObject):
             return
         self._remain_time_text = remain_time_text
         self._get_remain_time_text_signal.emit(remain_time_text)
+
+    # QMLへのsignal
+    @pyqtProperty(bool, notify=_get_display_time_signal)
+    def display_time(self):
+        return self._display_time
+
+    @display_time.setter
+    def display_time(self, display_time):
+        if self._display_time == display_time:
+            return
+        self._ndisplay_time = display_time
+        self._get_display_time_signal.emit(display_time)
