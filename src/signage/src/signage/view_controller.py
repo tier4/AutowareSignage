@@ -198,7 +198,7 @@ class ViewControllerProperty(QObject):
                         self.remain_time_text = "このバスはあと{}分程で発射します".format(str(remain_minute))
                     else:
                         self.remain_time_text = "間もなく出発します"
-                if remain_minute < 5:
+                if remain_minute <= 5:
                     self.display_time = True
                 else:
                     self.display_time = False
@@ -227,5 +227,5 @@ class ViewControllerProperty(QObject):
     def display_time(self, display_time):
         if self._display_time == display_time:
             return
-        self._ndisplay_time = display_time
+        self._display_time = display_time
         self._get_display_time_signal.emit(display_time)
