@@ -147,7 +147,7 @@ Rectangle {
             anchors.right: parent.right
             anchors.rightMargin: 300
             anchors.verticalCenter: beforeAndAfterBar.verticalCenter
-            border.color: "#717171"
+            border.color: "#0068b6"
             border.width: 10
 
             Text {
@@ -242,9 +242,11 @@ Rectangle {
     }
 }
 
+
+
+
 /*##^## Designer {
     D{i:2;anchors_x:179;anchors_y:"-45"}D{i:8;anchors_x:179;anchors_y:82}D{i:9;anchors_x:179;anchors_y:82}
 D{i:7;anchors_y:89}D{i:10;anchors_x:179;anchors_y:82}
 }
  ##^##*/
-

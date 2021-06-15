@@ -87,7 +87,7 @@ Rectangle {
             anchors.left: nextBusStopMarker2.right
             anchors.leftMargin: 180
             anchors.verticalCenter: beforeAndAfterBar.verticalCenter
-            border.color: "#717171"
+            border.color: "#0068b6"
             border.width: 10
 
             Text {
@@ -132,10 +132,10 @@ Rectangle {
             y: 20
             width: 60
             height: 60
-            color: "#ffffff"
+            color: "#0068b6"
             radius: 30
             border.width: 10
-            border.color: "#717171"
+            border.color: "#ffffff"
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
             Text {
@@ -184,7 +184,7 @@ Rectangle {
             anchors.left: currentBusStopMarker.right
             anchors.leftMargin: 180
             border.width: 10
-            border.color: "#717171"
+            border.color: "#0068b6"
             Text {
                 id: nextBusStopName2
                 x: 8
@@ -230,7 +230,7 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             border.width: 10
             anchors.leftMargin: 180
-            border.color: "#717171"
+            border.color: "#0068b6"
             anchors.left: nextBusStopMarker1.right
             Text {
                 id: nextBusStopName3
@@ -366,6 +366,8 @@ Rectangle {
         }
     }
 }
+
+
 
 
 

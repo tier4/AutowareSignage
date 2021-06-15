@@ -64,12 +64,12 @@ Rectangle {
             y: -26
             width: 60
             height: 60
-            color: "#ffffff"
+            color: "#0068b6"
             radius: 30
             anchors.left: parent.left
             anchors.leftMargin: 300
             anchors.verticalCenter: beforeAndAfterBar.verticalCenter
-            border.color: "#717171"
+            border.color: "#ffffff"
             border.width: 10
 
             Text {
@@ -120,7 +120,7 @@ Rectangle {
             anchors.right: parent.right
             anchors.rightMargin: 300
             anchors.verticalCenter: beforeAndAfterBar.verticalCenter
-            border.color: "#717171"
+            border.color: "#0068b6"
             border.width: 10
 
             Text {
@@ -182,9 +182,13 @@ Rectangle {
     }
 }
 
+
+
+
+
+
 /*##^## Designer {
     D{i:2;anchors_x:179;anchors_y:"-45"}D{i:6;anchors_x:179;anchors_y:82}D{i:7;anchors_x:179;anchors_y:82}
-D{i:5;anchors_x:1507}D{i:9;anchors_y:89}D{i:10;anchors_x:179;anchors_y:82}D{i:27;anchors_y:106}
+D{i:5;anchors_x:1507}D{i:9;anchors_y:89}D{i:10;anchors_x:179;anchors_y:82}
 }
  ##^##*/
-
