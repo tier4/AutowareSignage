@@ -20,6 +20,7 @@ class ViewControllerProperty(QObject):
     _get_previous_station_list_signal = pyqtSignal(list)
     _get_remain_time_text_signal = pyqtSignal(str)
     _get_display_time_signal = pyqtSignal(bool)
+    _announce_signal = pyqtSignal(str)
     def __init__(self):
         super(ViewControllerProperty, self).__init__()
         rospy.Subscriber("/awapi/autoware/get/status", AwapiAutowareStatus, self.sub_autoware_status)
@@ -43,9 +44,12 @@ class ViewControllerProperty(QObject):
         self._previous_station_list = ["", "", ""]
         self._remain_time_text = "間もなく出発します"
         self._display_time = False
-
+        self._previous_emergency_stopped = False
+        self._previous_autoware_state = ""
+        self._arrived_state = True
+        self._departed_state = True
         rospy.Timer(rospy.Duration(0.1), self.update_view_state)
-        rospy.Timer(rospy.Duration(10), self.calculate_time)
+        rospy.Timer(rospy.Duration(1), self.calculate_time)
 
 
     # view mode
@@ -78,6 +82,21 @@ class ViewControllerProperty(QObject):
         self.is_auto_mode = message.control_mode == 1
         self.is_stopping = message.autoware_state != "Driving" and message.autoware_state != "InitializingVehicle"
         self.is_driving = message.autoware_state == "Driving"
+
+
+        if self.is_driving and self._previous_autoware_state == "WaitingForEngage":
+            self._announce_signal.emit("engage")
+            self._departed_state = True
+        elif message.autoware_state == "ArrivedGoal" and self._previous_autoware_state == "Driving":
+            self._announce_signal.emit("arrived")
+            self._arrived_state = True
+        elif self.is_emergency_mode and not self._previous_emergency_stopped:
+            self._announce_signal.emit("emergency")
+        elif not self.is_emergency_mode and self._previous_emergency_stopped:
+            self._announce_signal.emit("emergency_cancel")
+
+        self._previous_emergency_stopped = self.is_emergency_mode
+        self._previous_autoware_state = message.autoware_state
 
     def sub_route_station(self, topic):
         if not topic:
@@ -196,12 +215,20 @@ class ViewControllerProperty(QObject):
                         self.remain_time_text = "あと{}分で到着します".format(str(remain_minute))
                     else:
                         self.remain_time_text = "間もなく到着します"
+
+                    if remain_minute < 1 and self._arrived_state:
+                        self._arrived_state = False
+                        self._announce_signal.emit("going_to_arrive")
                 else:
                     remain_minute = int((int(self._stations[self._departure_station_id]["etd"].secs) - current_time)/60)
                     if remain_minute > 0:
                         self.remain_time_text = "このバスはあと{}分程で発射します".format(str(remain_minute))
                     else:
                         self.remain_time_text = "間もなく出発します"
+
+                    if remain_minute < 1 and self._departed_state:
+                        self._departed_state = False
+                        self._announce_signal.emit("going_to_depart")
                 if remain_minute <= 5:
                     self.display_time = True
                 else:
