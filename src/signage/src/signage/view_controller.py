@@ -46,11 +46,10 @@ class ViewControllerProperty(QObject):
         self._display_time = False
         self._previous_emergency_stopped = False
         self._previous_autoware_state = ""
-        self._arrived_state = True
-        self._departed_state = True
+        self._ready_arrive = True
+        self._ready_depart = True
         rospy.Timer(rospy.Duration(0.1), self.update_view_state)
         rospy.Timer(rospy.Duration(1), self.calculate_time)
-
 
     # view mode
     @pyqtProperty(str, notify=_view_mode_changed_signal)
@@ -83,13 +82,12 @@ class ViewControllerProperty(QObject):
         self.is_stopping = message.autoware_state != "Driving" and message.autoware_state != "InitializingVehicle"
         self.is_driving = message.autoware_state == "Driving"
 
-
         if self.is_driving and self._previous_autoware_state == "WaitingForEngage":
             self._announce_signal.emit("engage")
-            self._departed_state = True
+            self._ready_arrive = True
         elif message.autoware_state == "ArrivedGoal" and self._previous_autoware_state == "Driving":
             self._announce_signal.emit("arrived")
-            self._arrived_state = True
+            self._ready_depart = True
         elif self.is_emergency_mode and not self._previous_emergency_stopped:
             self._announce_signal.emit("emergency")
         elif not self.is_emergency_mode and self._previous_emergency_stopped:
@@ -216,9 +214,9 @@ class ViewControllerProperty(QObject):
                     else:
                         self.remain_time_text = "間もなく到着します"
 
-                    if remain_minute < 1 and self._arrived_state:
-                        self._arrived_state = False
+                    if remain_minute < 1 and self._ready_arrive:
                         self._announce_signal.emit("going_to_arrive")
+                        self._ready_arrive = False
                 else:
                     remain_minute = int((int(self._stations[self._departure_station_id]["etd"].secs) - current_time)/60)
                     if remain_minute > 0:
@@ -226,16 +224,16 @@ class ViewControllerProperty(QObject):
                     else:
                         self.remain_time_text = "間もなく出発します"
 
-                    if remain_minute < 1 and self._departed_state:
-                        self._departed_state = False
+                    if remain_minute < 1 and self._ready_depart:
                         self._announce_signal.emit("going_to_depart")
+                        self._ready_depart = False
                 if remain_minute <= 5:
                     self.display_time = True
                 else:
                     self.display_time = False
             except Exception as e:
                 self.remain_time_text = "間もなく出発します"
-                rospy.logerr(str(e))
+                rospy.logerr("Error in getting calculate the time: " + str(e))
 
     # QMLへroute_nameを反映させる
     @pyqtProperty("QString", notify=_get_remain_time_text_signal)
