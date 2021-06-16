@@ -48,6 +48,7 @@ class ViewControllerProperty(QObject):
         self._previous_autoware_state = ""
         self._ready_arrive = True
         self._ready_depart = True
+        self._delay_count = 0
         rospy.Timer(rospy.Duration(0.1), self.update_view_state)
         rospy.Timer(rospy.Duration(1), self.calculate_time)
 
@@ -215,8 +216,11 @@ class ViewControllerProperty(QObject):
                         self.remain_time_text = "間もなく到着します"
 
                     if remain_minute < 1 and self._ready_arrive:
-                        self._announce_signal.emit("going_to_arrive")
-                        self._ready_arrive = False
+                        self._delay_count += 1
+                        if self._delay_count > 5:
+                            self._announce_signal.emit("going_to_arrive")
+                            self._ready_arrive = False
+                            self._delay_count = 0
                 else:
                     remain_minute = int((int(self._stations[self._departure_station_id]["etd"].secs) - current_time)/60)
                     if remain_minute > 0:
@@ -225,8 +229,11 @@ class ViewControllerProperty(QObject):
                         self.remain_time_text = "間もなく出発します"
 
                     if remain_minute < 1 and self._ready_depart:
-                        self._announce_signal.emit("going_to_depart")
-                        self._ready_depart = False
+                        self._delay_count += 1
+                        if self._delay_count > 5:
+                            self._announce_signal.emit("going_to_depart")
+                            self._ready_depart = False
+                            self._delay_count = 0
                 if remain_minute <= 5:
                     self.display_time = True
                 else:
