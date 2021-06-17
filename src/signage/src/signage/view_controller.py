@@ -8,7 +8,7 @@ from PyQt5.QtCore import pyqtSlot
 
 import rospy
 
-from autoware_api_msgs.msg import AwapiAutowareStatus
+from autoware_api_msgs.msg import AwapiAutowareStatus, AwapiVehicleStatus
 from dummy_msgs.msg import ApiDummyStation, RouteStation
 
 class ViewControllerProperty(QObject):
@@ -24,6 +24,7 @@ class ViewControllerProperty(QObject):
     def __init__(self):
         super(ViewControllerProperty, self).__init__()
         rospy.Subscriber("/awapi/autoware/get/status", AwapiAutowareStatus, self.sub_autoware_status)
+        rospy.Subscriber("/awapi/vehicle/get/status", AwapiVehicleStatus, self.sub_vehicle_status)
         rospy.Subscriber("/api/get/stations", ApiDummyStation, self.sub_route_station)
         rospy.Subscriber("/api/get/route", RouteStation, self.sub_route)
 
@@ -44,8 +45,9 @@ class ViewControllerProperty(QObject):
         self._previous_station_list = ["", "", ""]
         self._remain_time_text = "間もなく出発します"
         self._display_time = False
-        self._previous_emergency_stopped = False
         self._previous_autoware_state = ""
+        self._velocity = 0
+        self._in_emergency_state = False
         self._ready_arrive = True
         self._ready_depart = True
         self._delay_count = 0
@@ -76,6 +78,9 @@ class ViewControllerProperty(QObject):
         else:
             self.view_mode = "out_of_service"
 
+    def sub_vehicle_status(self, message):
+        self._velocity = message.velocity
+        rospy.logerr(self._velocity)
 
     def sub_autoware_status(self, message):
         self.is_emergency_mode = message.emergency_stopped
@@ -89,12 +94,13 @@ class ViewControllerProperty(QObject):
         elif message.autoware_state == "ArrivedGoal" and self._previous_autoware_state == "Driving":
             self._announce_signal.emit("arrived")
             self._ready_depart = True
-        elif self.is_emergency_mode and not self._previous_emergency_stopped:
+        elif self.is_emergency_mode and not self._in_emergency_state:
             self._announce_signal.emit("emergency")
-        elif not self.is_emergency_mode and self._previous_emergency_stopped:
+            self._in_emergency_state = True
+        elif not self.is_emergency_mode and self._in_emergency_state:
             self._announce_signal.emit("emergency_cancel")
+            self._in_emergency_state = False
 
-        self._previous_emergency_stopped = self.is_emergency_mode
         self._previous_autoware_state = message.autoware_state
 
     def sub_route_station(self, topic):
