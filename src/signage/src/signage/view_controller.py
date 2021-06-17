@@ -7,8 +7,8 @@ from PyQt5.QtCore import QObject
 from PyQt5.QtCore import pyqtSlot
 
 import rospy
+from std_msgs.msg import String
 
-from autoware_api_msgs.msg import AwapiAutowareStatus, AwapiVehicleStatus
 from dummy_msgs.msg import ApiDummyStation, RouteStation
 
 class ViewControllerProperty(QObject):
@@ -20,7 +20,6 @@ class ViewControllerProperty(QObject):
     _get_previous_station_list_signal = pyqtSignal(list)
     _get_remain_time_text_signal = pyqtSignal(str)
     _get_display_time_signal = pyqtSignal(bool)
-    _announce_signal = pyqtSignal(str)
     def __init__(self, autoware_state_interface=None):
         super(ViewControllerProperty, self).__init__()
 
@@ -30,6 +29,7 @@ class ViewControllerProperty(QObject):
 
         rospy.Subscriber("/api/get/stations", ApiDummyStation, self.sub_route_station)
         rospy.Subscriber("/api/get/route", RouteStation, self.sub_route)
+        self._pub_announce = rospy.Publisher('/signage/put/announce', String, queue_size=1)
 
         self.is_auto_mode = False
         self.is_emergency_mode = False
@@ -45,15 +45,9 @@ class ViewControllerProperty(QObject):
         self._arrival_station_name = ""
         self._next_station_list = ["", "", ""]
         self._previous_station_list = ["", "", ""]
-        self._remain_time_text = "間もなく出発します"
+        self._remain_time_text = ""
         self._display_time = False
-        self._velocity = 0
-        self._in_emergency_state = False
-        self._ready_arrive = True
-        self._ready_depart = True
-        self._delay_count = 0
-        self._in_driving_state = False
-        self._in_emergency_state = False
+        self._announce_depart_arrive = False
         rospy.Timer(rospy.Duration(0.1), self.update_view_state)
         rospy.Timer(rospy.Duration(1), self.calculate_time)
 
@@ -208,12 +202,9 @@ class ViewControllerProperty(QObject):
                     else:
                         self.remain_time_text = "間もなく到着します"
 
-                    if remain_minute < 1 and self._ready_arrive:
-                        self._delay_count += 1
-                        if self._delay_count > 5:
-                            self._announce_signal.emit("going_to_arrive")
-                            self._ready_arrive = False
-                            self._delay_count = 0
+                    if remain_minute < 1 and self._announce_depart_arrive:
+                        self._pub_announce.publish("going_to_arrive")
+                        self._announce_depart_arrive = False
                 else:
                     remain_minute = int((int(self._stations[self._departure_station_id]["etd"].secs) - current_time)/60)
                     if remain_minute > 0:
@@ -221,12 +212,9 @@ class ViewControllerProperty(QObject):
                     else:
                         self.remain_time_text = "間もなく出発します"
 
-                    if remain_minute < 1 and self._ready_depart:
-                        self._delay_count += 1
-                        if self._delay_count > 5:
-                            self._announce_signal.emit("going_to_depart")
-                            self._ready_depart = False
-                            self._delay_count = 0
+                    if remain_minute < 1 and not self._announce_depart_arrive:
+                        self._pub_announce.publish("going_to_depart")
+                        self._announce_depart_arrive = True
                 if remain_minute <= 5:
                     self.display_time = True
                 else:

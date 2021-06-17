@@ -6,6 +6,7 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QObject
 
 import rospy
+from std_msgs.msg import String
 
 class AnnounceControllerProperty(QObject):
     _announce_signal = pyqtSignal(str)
@@ -13,6 +14,8 @@ class AnnounceControllerProperty(QObject):
         super(AnnounceControllerProperty, self).__init__()
         autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
         autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
+
+        rospy.Subscriber("/signage/put/announce", String, self.sub_announce)
 
         self._in_driving_state = False
         self._in_emergency_state = False
@@ -32,3 +35,11 @@ class AnnounceControllerProperty(QObject):
         elif not emergency_stopped and self._in_emergency_state:
             self._announce_signal.emit("emergency_cancel")
             self._in_emergency_state = False
+
+    def sub_announce(self, message):
+        msgs = message.data
+        if msgs == "going_to_depart":
+            rospy.sleep(10)
+            self._announce_signal.emit("going_to_depart")
+        elif msgs == "going_to_arrive":
+            self._announce_signal.emit("going_to_arrive")
