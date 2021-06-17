@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtQml import QQmlApplicationEngine
 
 from signage.view_controller import ViewControllerProperty
+from signage.autoware_state_interface import AutowareStateInterface
 
 def main(args=None):
     rospy.init_node('signage', anonymous=True)
@@ -16,7 +17,8 @@ def main(args=None):
     app = QApplication(sys.argv)
     engine = QQmlApplicationEngine()
 
-    viewController = ViewControllerProperty()
+    autoware_state_interface = AutowareStateInterface()
+    viewController = ViewControllerProperty(autoware_state_interface)
 
     ctx = engine.rootContext()
     ctx.setContextProperty("viewController", viewController)

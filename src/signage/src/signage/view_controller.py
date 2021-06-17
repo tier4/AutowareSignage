@@ -21,10 +21,13 @@ class ViewControllerProperty(QObject):
     _get_remain_time_text_signal = pyqtSignal(str)
     _get_display_time_signal = pyqtSignal(bool)
     _announce_signal = pyqtSignal(str)
-    def __init__(self):
+    def __init__(self, autoware_state_interface=None):
         super(ViewControllerProperty, self).__init__()
-        rospy.Subscriber("/awapi/autoware/get/status", AwapiAutowareStatus, self.sub_autoware_status)
-        rospy.Subscriber("/awapi/vehicle/get/status", AwapiVehicleStatus, self.sub_vehicle_status)
+
+        autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
+        autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
+        autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
+
         rospy.Subscriber("/api/get/stations", ApiDummyStation, self.sub_route_station)
         rospy.Subscriber("/api/get/route", RouteStation, self.sub_route)
 
@@ -33,7 +36,6 @@ class ViewControllerProperty(QObject):
         self.is_stopping = False
         self.is_driving = False
         self._view_mode = ""
-        self._route_id = ""
         self._route_name = ""
         self._stations = {}
         self._station_arrangement = []
@@ -45,12 +47,13 @@ class ViewControllerProperty(QObject):
         self._previous_station_list = ["", "", ""]
         self._remain_time_text = "間もなく出発します"
         self._display_time = False
-        self._previous_autoware_state = ""
         self._velocity = 0
         self._in_emergency_state = False
         self._ready_arrive = True
         self._ready_depart = True
         self._delay_count = 0
+        self._in_driving_state = False
+        self._in_emergency_state = False
         rospy.Timer(rospy.Duration(0.1), self.update_view_state)
         rospy.Timer(rospy.Duration(1), self.calculate_time)
 
@@ -78,35 +81,35 @@ class ViewControllerProperty(QObject):
         else:
             self.view_mode = "out_of_service"
 
-    def sub_vehicle_status(self, message):
-        self._velocity = message.velocity
-        rospy.logerr(self._velocity)
+    def sub_autoware_state(self, autoware_state):
+        self.is_stopping = autoware_state != "Driving" and autoware_state != "InitializingVehicle"
+        self.is_driving = autoware_state == "Driving"
 
-    def sub_autoware_status(self, message):
-        self.is_emergency_mode = message.emergency_stopped
-        self.is_auto_mode = message.control_mode == 1
-        self.is_stopping = message.autoware_state != "Driving" and message.autoware_state != "InitializingVehicle"
-        self.is_driving = message.autoware_state == "Driving"
 
-        if self.is_driving and self._previous_autoware_state == "WaitingForEngage":
+        if autoware_state == "Driving" and not self._in_driving_state:
             self._announce_signal.emit("engage")
-            self._ready_arrive = True
-        elif message.autoware_state == "ArrivedGoal" and self._previous_autoware_state == "Driving":
+            self._in_driving_state = True
+        elif autoware_state == "ArrivedGoal" and self._in_driving_state:
             self._announce_signal.emit("arrived")
-            self._ready_depart = True
-        elif self.is_emergency_mode and not self._in_emergency_state:
+            self._in_driving_state = False
+
+    def sub_control_mode(self, control_mode):
+        self.is_auto_mode = control_mode == 1
+
+    def sub_emergency(self, emergency_stopped):
+        self.is_emergency_mode = emergency_stopped
+
+        if emergency_stopped and not self._in_emergency_state:
             self._announce_signal.emit("emergency")
             self._in_emergency_state = True
-        elif not self.is_emergency_mode and self._in_emergency_state:
+        elif not emergency_stopped and self._in_emergency_state:
             self._announce_signal.emit("emergency_cancel")
             self._in_emergency_state = False
 
-        self._previous_autoware_state = message.autoware_state
 
     def sub_route_station(self, topic):
         if not topic:
             return True
-        self._route_id = topic.id
         self.route_name = topic.name
         stations = topic.stations
         for station in stations:
