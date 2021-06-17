@@ -42,6 +42,11 @@ Item {
         source: "../sound/emergency_cancel.mp3"
     }
 
+    Audio {
+        id: inEmergencyRemovedAnnounce
+        source: "../sound/in_emergency.mp3"
+    }
+
     Component.onCompleted: {
         // announce
         announceController._announce_signal.connect(announceExecutor)
@@ -60,6 +65,8 @@ Item {
             preDepartAnnounce.play()
         } else if (type === "emergency_cancel") {
             emergencyRemovedAnnounce.play()
+        } else if (type === "in_emergency") {
+            inEmergencyRemovedAnnounce.play()
         }
     } 
 }
