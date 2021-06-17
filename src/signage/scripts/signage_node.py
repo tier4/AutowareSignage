@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtQml import QQmlApplicationEngine
 
 from signage.view_controller import ViewControllerProperty
+from signage.announce_controller import AnnounceControllerProperty
 from signage.autoware_state_interface import AutowareStateInterface
 
 def main(args=None):
@@ -19,9 +20,11 @@ def main(args=None):
 
     autoware_state_interface = AutowareStateInterface()
     viewController = ViewControllerProperty(autoware_state_interface)
+    announceController = AnnounceControllerProperty(autoware_state_interface)
 
     ctx = engine.rootContext()
     ctx.setContextProperty("viewController", viewController)
+    ctx.setContextProperty("announceController", announceController)
     engine.load(os.path.join(rospkg.RosPack().get_path('signage'), 'resource', 'page', 'main.qml'))
 
     sys.exit(app.exec_())

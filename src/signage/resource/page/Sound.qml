@@ -44,7 +44,7 @@ Item {
 
     Component.onCompleted: {
         // announce
-        viewController._announce_signal.connect(announceExecutor)
+        announceController._announce_signal.connect(announceExecutor)
     }
 
     function announceExecutor(type) {

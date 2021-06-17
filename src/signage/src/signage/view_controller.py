@@ -85,27 +85,11 @@ class ViewControllerProperty(QObject):
         self.is_stopping = autoware_state != "Driving" and autoware_state != "InitializingVehicle"
         self.is_driving = autoware_state == "Driving"
 
-
-        if autoware_state == "Driving" and not self._in_driving_state:
-            self._announce_signal.emit("engage")
-            self._in_driving_state = True
-        elif autoware_state == "ArrivedGoal" and self._in_driving_state:
-            self._announce_signal.emit("arrived")
-            self._in_driving_state = False
-
     def sub_control_mode(self, control_mode):
         self.is_auto_mode = control_mode == 1
 
     def sub_emergency(self, emergency_stopped):
         self.is_emergency_mode = emergency_stopped
-
-        if emergency_stopped and not self._in_emergency_state:
-            self._announce_signal.emit("emergency")
-            self._in_emergency_state = True
-        elif not emergency_stopped and self._in_emergency_state:
-            self._announce_signal.emit("emergency_cancel")
-            self._in_emergency_state = False
-
 
     def sub_route_station(self, topic):
         if not topic:
