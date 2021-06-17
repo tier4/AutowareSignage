@@ -230,7 +230,7 @@ class ViewControllerProperty(QObject):
                 else:
                     remain_minute = int((int(self._stations[self._departure_station_id]["etd"].secs) - current_time)/60)
                     if remain_minute > 0:
-                        self.remain_time_text = "このバスはあと{}分程で発射します".format(str(remain_minute))
+                        self.remain_time_text = "このバスはあと{}分程で出発します".format(str(remain_minute))
                     else:
                         self.remain_time_text = "間もなく出発します"
 
@@ -245,7 +245,6 @@ class ViewControllerProperty(QObject):
                 else:
                     self.display_time = False
             except Exception as e:
-                self.remain_time_text = "間もなく出発します"
                 rospy.logerr("Error in getting calculate the time: " + str(e))
 
     # QMLへroute_nameを反映させる
