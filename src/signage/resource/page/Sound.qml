@@ -6,20 +6,12 @@ Item {
 
     Audio {
         id: engageAnnounce
-        playlist: Playlist {
-            id: engagePlaylist
-            PlaylistItem { source: "../sound/door_close.mp3"; }
-            PlaylistItem { source: "../sound/engage.mp3"; }
-        }
+        source: "../sound/engage.mp3"
     }
 
     Audio {
         id: arriveAnnounce
-        playlist: Playlist {
-            id: arrivePlaylist
-            PlaylistItem { source: "../sound/arrived.mp3"; }
-            PlaylistItem { source: "../sound/door_open.mp3"; }
-        }
+        source: "../sound/arrived.mp3"
     }
 
     Audio {
