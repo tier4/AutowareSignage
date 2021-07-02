@@ -192,6 +192,9 @@ class ViewControllerProperty(QObject):
         self._get_previous_station_list_signal.emit(previous_station_list)
 
     def calculate_time(self, _):
+        if not self.is_auto_mode and self.is_emergency_mode:
+            return
+
         if self._arrival_station_id and self._departure_station_id:
             current_time = rospy.get_time()
             try:
@@ -205,7 +208,7 @@ class ViewControllerProperty(QObject):
                     if remain_minute < 1 and self._announce_depart_arrive:
                         self._pub_announce.publish("going_to_arrive")
                         self._announce_depart_arrive = False
-                else:
+                elif self.is_stopping:
                     remain_minute = int((int(self._stations[self._departure_station_id]["etd"].secs) - current_time)/60)
                     if remain_minute > 0:
                         self.remain_time_text = "このバスはあと{}分程で出発します".format(str(remain_minute))
