@@ -45,6 +45,13 @@ Item {
     }
 
     function announceExecutor(type) {
+        engageAnnounce.stop()
+        arriveAnnounce.stop()
+        emergencyAnnounce.stop()
+        preArriveAnnounce.stop()
+        preDepartAnnounce.stop()
+        emergencyRemovedAnnounce.stop()
+        inEmergencyRemovedAnnounce.stop()
         if (type === "engage") {
             engageAnnounce.play()
         } else if (type === "arrived") {
