@@ -19,7 +19,6 @@ class AnnounceControllerProperty(QObject):
         self._in_emergency_state = False
         self._delay_count = 0
         self._autoware_state = ""
-        self.is_auto_mode = False
 
     def sub_autoware_state(self, autoware_state):
         self._autoware_state = autoware_state
@@ -32,14 +31,14 @@ class AnnounceControllerProperty(QObject):
 
     def sub_emergency(self, emergency_stopped):
         if emergency_stopped and not self._in_emergency_state:
-            # self._announce_signal.emit("emergency")
+            self._announce_signal.emit("emergency")
             self._in_emergency_state = True
         elif not emergency_stopped and self._in_emergency_state:
-            # self._announce_signal.emit("emergency_cancel")
+            self._announce_signal.emit("emergency_cancel")
             self._in_emergency_state = False
         elif emergency_stopped and self._in_emergency_state:
             if self._delay_count > 200:
-                # self._announce_signal.emit("in_emergency")
+                self._announce_signal.emit("in_emergency")
                 self._delay_count = 0
             self._delay_count += 1
 
