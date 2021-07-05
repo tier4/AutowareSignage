@@ -17,8 +17,8 @@ class AnnounceControllerProperty(QObject):
 
         self._in_driving_state = False
         self._in_emergency_state = False
-        self._delay_count = 0
         self._autoware_state = ""
+        self._emergency_trigger_time = 0
 
     def sub_autoware_state(self, autoware_state):
         self._autoware_state = autoware_state
@@ -37,10 +37,11 @@ class AnnounceControllerProperty(QObject):
             self._announce_signal.emit("emergency_cancel")
             self._in_emergency_state = False
         elif emergency_stopped and self._in_emergency_state:
-            if self._delay_count > 200:
+            if not self._emergency_trigger_time:
+                self._emergency_trigger_time = rospy.get_time()
+            elif rospy.get_time() - self._emergency_trigger_time > 180:
                 self._announce_signal.emit("in_emergency")
-                self._delay_count = 0
-            self._delay_count += 1
+                self._emergency_trigger_time = 0
 
     def announce_going_to_depart_and_arrive(self, message):
         if message == "going_to_depart":
