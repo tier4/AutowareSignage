@@ -14,8 +14,22 @@ class AutowareStateInterface():
         self.turn_signal_callback_list = []
         self.velocity_callback_list = []
 
-        rospy.Subscriber("/awapi/autoware/get/status", AwapiAutowareStatus, self.sub_autoware_state)
-        rospy.Subscriber("/awapi/vehicle/get/status", AwapiVehicleStatus, self.sub_vehicle_state)
+        self._status_sub = rospy.Subscriber("/awapi/autoware/get/status", AwapiAutowareStatus, self.sub_autoware_state)
+        self._vehicle_status_sub = rospy.Subscriber("/awapi/vehicle/get/status", AwapiVehicleStatus, self.sub_vehicle_state)
+        rospy.Timer(rospy.Duration(1), self.check_sub)
+
+    def check_sub(self, event):
+        # Reconnect to the subcriber if the roscore is down
+        try:
+            if self._status_sub.get_num_connections() <= 0:
+                self._status_sub.unregister()
+                self._status_sub = rospy.Subscriber("/awapi/autoware/get/status", AwapiAutowareStatus, self.sub_autoware_state)
+
+            if self._vehicle_status_sub.get_num_connections() <= 0:
+                self._vehicle_status_sub.unregister()
+                self._vehicle_status_sub = rospy.Subscriber("/awapi/vehicle/get/status", AwapiVehicleStatus, self.sub_vehicle_state)
+        except Exception as e:
+            rospy.logerr("Unable to reset the subcriber, ERROR: {}".format(str(e)))
 
     # set callback
     def set_autoware_state_callback(self, callback):
