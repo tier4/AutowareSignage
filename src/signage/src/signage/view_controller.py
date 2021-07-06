@@ -143,7 +143,7 @@ class ViewControllerProperty(QObject):
         self._route_name = route_name
         self._route_name_signal.emit(route_name)
 
-    # QMLへroute_nameを反映させる
+    # QMLへ出発地バス停名を反映させる
     @pyqtProperty("QString", notify=_get_departure_station_name_signal)
     def departure_station_name(self):
         return self._departure_station_name
@@ -155,7 +155,7 @@ class ViewControllerProperty(QObject):
         self._departure_station_name = departure_station_name
         self._get_departure_station_name_signal.emit(departure_station_name)
 
-    # QMLへroute_nameを反映させる
+    # QMLへ到着地バス停名を反映させる
     @pyqtProperty("QString", notify=_get_arrival_station_name_signal)
     def arrival_station_name(self):
         return self._arrival_station_name

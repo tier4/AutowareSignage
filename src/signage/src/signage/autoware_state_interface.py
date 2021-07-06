@@ -36,26 +36,32 @@ class AutowareStateInterface():
     # ros subscriber
     # autoware stateをsubしたときの処理
     def sub_autoware_state(self, topic):
-        autoware_state = topic.autoware_state
-        control_mode = topic.control_mode
-        emergency_stopped = topic.emergency_stopped
+        try:
+            autoware_state = topic.autoware_state
+            control_mode = topic.control_mode
+            emergency_stopped = topic.emergency_stopped
 
-        for callback in self.autoware_state_callback_list:
-            callback(autoware_state)
+            for callback in self.autoware_state_callback_list:
+                callback(autoware_state)
 
-        for callback in self.control_mode_callback_list:
-            callback(control_mode)
+            for callback in self.control_mode_callback_list:
+                callback(control_mode)
 
-        for callback in self.emergency_stopped_callback_list:
-            callback(emergency_stopped)
+            for callback in self.emergency_stopped_callback_list:
+                callback(emergency_stopped)
+        except Exception as e:
+            rospy.logerr("Unable to get the autoware state, ERROR: " + str(e))
 
     # vehicle stateをsubしたときの処理
     def sub_vehicle_state(self, topic):
-        turn_signal = topic.turn_signal
-        velocity = topic.velocity
-        steering = topic.steering
+        try:
+            turn_signal = topic.turn_signal
+            velocity = topic.velocity
+            steering = topic.steering
 
-        for callback in self.turn_signal_callback_list:
-            callback(turn_signal)
-        for callback in self.velocity_callback_list:
-            callback(velocity)
+            for callback in self.turn_signal_callback_list:
+                callback(turn_signal)
+            for callback in self.velocity_callback_list:
+                callback(velocity)
+        except Exception as e:
+            rospy.logerr("Unable to get the vehicle state, ERROR: " + str(e))
