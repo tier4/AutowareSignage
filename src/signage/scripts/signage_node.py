@@ -19,8 +19,8 @@ def main(args=None):
     engine = QQmlApplicationEngine()
 
     autoware_state_interface = AutowareStateInterface()
-    viewController = ViewControllerProperty(autoware_state_interface)
     announceController = AnnounceControllerProperty(autoware_state_interface)
+    viewController = ViewControllerProperty(autoware_state_interface, announceController)
 
     ctx = engine.rootContext()
     ctx.setContextProperty("viewController", viewController)

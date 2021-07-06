@@ -20,16 +20,16 @@ class ViewControllerProperty(QObject):
     _get_previous_station_list_signal = pyqtSignal(list)
     _get_remain_time_text_signal = pyqtSignal(str)
     _get_display_time_signal = pyqtSignal(bool)
-    def __init__(self, autoware_state_interface=None):
+    def __init__(self, autoware_state_interface=None, announce_interface=None):
         super(ViewControllerProperty, self).__init__()
 
         autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
         autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
         autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
+        self._announce_interface = announce_interface
 
         rospy.Subscriber("/api/get/stations", ApiDummyStation, self.sub_route_station)
         rospy.Subscriber("/api/get/route", RouteStation, self.sub_route)
-        self._pub_announce = rospy.Publisher('/signage/put/announce', String, queue_size=1)
 
         self.is_auto_mode = False
         self.is_emergency_mode = False
@@ -192,7 +192,7 @@ class ViewControllerProperty(QObject):
         self._get_previous_station_list_signal.emit(previous_station_list)
 
     def calculate_time(self, _):
-        if not self.is_auto_mode and self.is_emergency_mode:
+        if not self.is_auto_mode or self.is_emergency_mode:
             return
 
         if self._arrival_station_id and self._departure_station_id:
@@ -206,7 +206,7 @@ class ViewControllerProperty(QObject):
                         self.remain_time_text = "間もなく到着します"
 
                     if remain_minute < 1 and self._announce_depart_arrive:
-                        self._pub_announce.publish("going_to_arrive")
+                        self._announce_interface.set_announce("going_to_arrive")
                         self._announce_depart_arrive = False
                 elif self.is_stopping:
                     remain_minute = int((int(self._stations[self._departure_station_id]["etd"].secs) - current_time)/60)
@@ -216,7 +216,7 @@ class ViewControllerProperty(QObject):
                         self.remain_time_text = "間もなく出発します"
 
                     if remain_minute < 1 and not self._announce_depart_arrive:
-                        self._pub_announce.publish("going_to_depart")
+                        self._announce_interface.set_announce("going_to_depart")
                         self._announce_depart_arrive = True
                 if remain_minute <= 5:
                     self.display_time = True
