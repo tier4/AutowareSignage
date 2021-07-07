@@ -43,7 +43,7 @@ class AnnounceControllerProperty(QObject):
                 self._delay_count = 0
             self._delay_count += 1
 
-    def set_announce(self, message):
+    def announce_going_to_depart_and_arrive(self, message):
         if message == "going_to_depart":
             rospy.sleep(5)
             self._announce_signal.emit("going_to_depart")

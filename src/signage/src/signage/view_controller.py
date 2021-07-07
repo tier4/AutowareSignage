@@ -206,7 +206,7 @@ class ViewControllerProperty(QObject):
                         self.remain_time_text = "間もなく到着します"
 
                     if remain_minute < 1 and self._announce_depart_arrive:
-                        self._announce_interface.set_announce("going_to_arrive")
+                        self._announce_interface.announce_going_to_depart_and_arrive("going_to_arrive")
                         self._announce_depart_arrive = False
                 elif self.is_stopping:
                     remain_minute = int((int(self._stations[self._departure_station_id]["etd"].secs) - current_time)/60)
@@ -216,7 +216,7 @@ class ViewControllerProperty(QObject):
                         self.remain_time_text = "間もなく出発します"
 
                     if remain_minute < 1 and not self._announce_depart_arrive:
-                        self._announce_interface.set_announce("going_to_depart")
+                        self._announce_interface.announce_going_to_depart_and_arrive("going_to_depart")
                         self._announce_depart_arrive = True
                 if remain_minute <= 5:
                     self.display_time = True
