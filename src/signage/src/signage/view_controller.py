@@ -198,6 +198,7 @@ class ViewControllerProperty(QObject):
         if self._arrival_station_id and self._departure_station_id:
             current_time = rospy.get_time()
             try:
+                remain_minute = 100
                 if self.is_driving:
                     remain_minute = int((int(self._stations[self._arrival_station_id]["eta"].secs) - current_time)/60)
                     if remain_minute > 0:

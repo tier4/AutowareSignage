@@ -45,7 +45,6 @@ class AnnounceControllerProperty(QObject):
 
     def announce_going_to_depart_and_arrive(self, message):
         if message == "going_to_depart":
-            rospy.sleep(5)
             self._announce_signal.emit("going_to_depart")
         elif message == "going_to_arrive" and self._autoware_state == "Driving":
             self._announce_signal.emit("going_to_arrive")

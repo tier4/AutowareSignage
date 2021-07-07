@@ -24,10 +24,11 @@ class AutowareStateInterface():
             if self._status_sub.get_num_connections() <= 0:
                 self._status_sub.unregister()
                 self._status_sub = rospy.Subscriber("/awapi/autoware/get/status", AwapiAutowareStatus, self.sub_autoware_state)
-
+                rospy.logwarn("Trying to reset the status sub, connect: " + str(self._status_sub.get_num_connections()))
             if self._vehicle_status_sub.get_num_connections() <= 0:
                 self._vehicle_status_sub.unregister()
                 self._vehicle_status_sub = rospy.Subscriber("/awapi/vehicle/get/status", AwapiVehicleStatus, self.sub_vehicle_state)
+                rospy.logwarn("Trying to reset the vehicle status sub, connect: " + str(self._vehicle_status_sub.get_num_connections()))
         except Exception as e:
             rospy.logerr("Unable to reset the subcriber, ERROR: {}".format(str(e)))
 
