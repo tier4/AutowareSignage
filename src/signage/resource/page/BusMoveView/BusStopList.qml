@@ -47,7 +47,7 @@ Rectangle {
                 width: 150
                 height: 35
                 color: "#717171"
-                text: qsTr("前のバス停名")
+                text: viewController.previous_station_list[2]
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
@@ -64,7 +64,7 @@ Rectangle {
                 width: 100
                 height: 20
                 color: "#717171"
-                text: qsTr("Last Bus Stop")
+                text: qsTr("Last Bus Stop2")
                 anchors.top: beforeBusStopName.bottom
                 anchors.topMargin: 5
                 anchors.horizontalCenter: beforeBusStopName.horizontalCenter
@@ -72,7 +72,9 @@ Rectangle {
                 font.pixelSize: 14
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
+                visible: false
             }
+            visible : (viewController.previous_station_list[2] || viewController.previous_station_list[2].length !== 0)
         }
 
         Rectangle {
@@ -85,7 +87,7 @@ Rectangle {
             anchors.left: nextBusStopMarker2.right
             anchors.leftMargin: 180
             anchors.verticalCenter: beforeAndAfterBar.verticalCenter
-            border.color: "#717171"
+            border.color: "#0068b6"
             border.width: 10
 
             Text {
@@ -94,7 +96,7 @@ Rectangle {
                 y: 62
                 width: 150
                 height: 35
-                text: qsTr("次のバス停名")
+                text: viewController.next_station_list[2]
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
@@ -111,7 +113,7 @@ Rectangle {
                 width: 100
                 height: 20
                 color: "#000000"
-                text: qsTr("Next Bus Stop")
+                text: qsTr("Next Bus Stop2")
                 anchors.horizontalCenter: nextBusStopName.horizontalCenter
                 anchors.top: nextBusStopName.bottom
                 anchors.topMargin: 5
@@ -119,7 +121,9 @@ Rectangle {
                 font.bold: true
                 font.pixelSize: 14
                 verticalAlignment: Text.AlignVCenter
+                visible: false
             }
+            visible : (viewController.next_station_list[2] || viewController.next_station_list[2].length !== 0)
         }
 
         Rectangle {
@@ -128,10 +132,10 @@ Rectangle {
             y: 20
             width: 60
             height: 60
-            color: "#ffffff"
+            color: "#0068b6"
             radius: 30
             border.width: 10
-            border.color: "#717171"
+            border.color: "#ffffff"
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
             Text {
@@ -140,7 +144,7 @@ Rectangle {
                 y: 62
                 width: 150
                 height: 35
-                text: qsTr("次のバス停名")
+                text: viewController.departure_station_name
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -156,7 +160,7 @@ Rectangle {
                 width: 100
                 height: 20
                 color: "#000000"
-                text: qsTr("Next Bus Stop")
+                text: qsTr("Next Bus Stop1")
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -164,7 +168,9 @@ Rectangle {
                 font.pixelSize: 14
                 anchors.topMargin: 5
                 anchors.top: nextBusStopName1.bottom
+                visible: false
             }
+            visible : (viewController.departure_station_name || viewController.departure_station_name.length !== 0)
         }
 
         Rectangle {
@@ -178,14 +184,14 @@ Rectangle {
             anchors.left: currentBusStopMarker.right
             anchors.leftMargin: 180
             border.width: 10
-            border.color: "#717171"
+            border.color: "#0068b6"
             Text {
                 id: nextBusStopName2
                 x: 8
                 y: 62
                 width: 150
                 height: 35
-                text: qsTr("次のバス停名")
+                text: viewController.arrival_station_name
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -201,7 +207,7 @@ Rectangle {
                 width: 100
                 height: 20
                 color: "#000000"
-                text: qsTr("Next Bus Stop")
+                text: qsTr("Next Bus Stop1")
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -209,7 +215,9 @@ Rectangle {
                 font.bold: true
                 anchors.topMargin: 5
                 anchors.top: nextBusStopName2.bottom
+                visible: false
             }
+            visible : (viewController.arrival_station_name || viewController.arrival_station_name.length !== 0)
         }
 
         Rectangle {
@@ -222,7 +230,7 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             border.width: 10
             anchors.leftMargin: 180
-            border.color: "#717171"
+            border.color: "#0068b6"
             anchors.left: nextBusStopMarker1.right
             Text {
                 id: nextBusStopName3
@@ -230,7 +238,7 @@ Rectangle {
                 y: 62
                 width: 150
                 height: 35
-                text: qsTr("次のバス停名")
+                text: viewController.next_station_list[1]
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -246,7 +254,7 @@ Rectangle {
                 width: 100
                 height: 20
                 color: "#000000"
-                text: qsTr("Next Bus Stop")
+                text: qsTr("Next Bus Stop3")
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -254,7 +262,9 @@ Rectangle {
                 font.pixelSize: 14
                 anchors.topMargin: 5
                 anchors.top: nextBusStopName3.bottom
+                visible: false
             }
+            visible : (viewController.next_station_list[1] || viewController.next_station_list[1].length !== 0)
         }
 
         Rectangle {
@@ -277,7 +287,7 @@ Rectangle {
                 width: 150
                 height: 35
                 color: "#717171"
-                text: qsTr("前のバス停名")
+                text: viewController.previous_station_list[0]
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -293,7 +303,7 @@ Rectangle {
                 width: 100
                 height: 20
                 color: "#717171"
-                text: qsTr("Last Bus Stop")
+                text: qsTr("Last Bus Stop3")
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -301,7 +311,9 @@ Rectangle {
                 font.bold: true
                 anchors.topMargin: 5
                 anchors.top: beforeBusStopName1.bottom
+                visible: false
             }
+            visible : (viewController.previous_station_list[0] || viewController.previous_station_list[0].length !== 0)
         }
 
         Rectangle {
@@ -324,7 +336,7 @@ Rectangle {
                 width: 150
                 height: 35
                 color: "#717171"
-                text: qsTr("前のバス停名")
+                text: viewController.previous_station_list[1]
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -340,7 +352,7 @@ Rectangle {
                 width: 100
                 height: 20
                 color: "#717171"
-                text: qsTr("Last Bus Stop")
+                text: qsTr("Last Bus Stop4")
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -348,10 +360,14 @@ Rectangle {
                 font.pixelSize: 14
                 anchors.topMargin: 5
                 anchors.top: beforeBusStopName2.bottom
+                visible: false
             }
+            visible : (viewController.previous_station_list[1] || viewController.previous_station_list[1].length !== 0)
         }
     }
 }
+
+
 
 
 

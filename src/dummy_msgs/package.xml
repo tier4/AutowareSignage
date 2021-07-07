@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>dummy_msgs</name>
+  <version>0.1.0</version>
+  <description>The dummy_msgs package</description>
+  <maintainer email="kahhooita.tan@tier4.jp">Kah Hooi Tan</maintainer>
+  <author email="kahhooita.tan@tier4.jp">Kah Hooi Tan</author>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>message_generation</depend>
+  <depend>message_runtime</depend>
+  <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
+  <export></export>
+</package>

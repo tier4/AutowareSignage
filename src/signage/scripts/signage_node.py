@@ -3,19 +3,14 @@
 # This Python file uses the following encoding: utf-8
 import sys
 import os
-from PyQt5.QtWidgets import QApplication, QWidget
-from PyQt5.QtQml import QQmlApplicationEngine
-
-from PyQt5.QtCore import pyqtProperty
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtCore import QObject
-from PyQt5.QtCore import pyqtSlot
 
 import rospy, rospkg
-
-from autoware_system_msgs.msg import AutowareState
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtQml import QQmlApplicationEngine
 
 from signage.view_controller import ViewControllerProperty
+from signage.announce_controller import AnnounceControllerProperty
+from signage.autoware_state_interface import AutowareStateInterface
 
 def main(args=None):
     rospy.init_node('signage', anonymous=True)
@@ -23,10 +18,13 @@ def main(args=None):
     app = QApplication(sys.argv)
     engine = QQmlApplicationEngine()
 
-    viewController = ViewControllerProperty()
+    autoware_state_interface = AutowareStateInterface()
+    announceController = AnnounceControllerProperty(autoware_state_interface)
+    viewController = ViewControllerProperty(autoware_state_interface, announceController)
 
     ctx = engine.rootContext()
     ctx.setContextProperty("viewController", viewController)
+    ctx.setContextProperty("announceController", announceController)
     engine.load(os.path.join(rospkg.RosPack().get_path('signage'), 'resource', 'page', 'main.qml'))
 
     sys.exit(app.exec_())
