@@ -6,37 +6,37 @@ Item {
 
     Audio {
         id: engageAnnounce
-        source: "../sound/engage.mp3"
+        source: "../sound/engage.wav"
     }
 
     Audio {
         id: arriveAnnounce
-        source: "../sound/arrived.mp3"
+        source: "../sound/arrived.wav"
     }
 
     Audio {
         id: emergencyAnnounce
-        source: "../sound/emergency.mp3"
+        source: "../sound/emergency.wav"
     }
 
     Audio {
         id: preArriveAnnounce
-        source: "../sound/going_to_arrive.mp3"
+        source: "../sound/going_to_arrive.wav"
     }
 
     Audio {
         id: preDepartAnnounce
-        source: "../sound/going_to_depart.mp3"
+        source: "../sound/going_to_depart.wav"
     }
 
     Audio {
         id: emergencyRemovedAnnounce
-        source: "../sound/emergency_cancel.mp3"
+        source: "../sound/emergency_cancel.wav"
     }
 
     Audio {
         id: inEmergencyRemovedAnnounce
-        source: "../sound/in_emergency.mp3"
+        source: "../sound/in_emergency.wav"
     }
 
     Component.onCompleted: {
