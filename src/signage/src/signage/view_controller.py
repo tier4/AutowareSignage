@@ -8,6 +8,9 @@ from PyQt5.QtCore import pyqtSlot
 import rclpy
 from rclpy.node import Node
 
+import requests
+import json
+
 from autoware_api_msgs.msg import AwapiAutowareStatus
 from autoware_api_msgs.msg import AwapiVehicleStatus
 
@@ -41,10 +44,6 @@ class ViewControllerProperty(QObject):
         self.is_driving = False
         self._view_mode = ""
         self._route_name = ""
-        self._stations = {}
-        self._station_arrangement = []
-        self._departure_station_id = ""
-        self._arrival_station_id = ""
         self._departure_station_name = ""
         self._arrival_station_name = ""
         self._next_station_list = ["", "", ""]
@@ -52,13 +51,24 @@ class ViewControllerProperty(QObject):
         self._remain_time_text = ""
         self._display_time = False
         self._announce_depart_arrive = False
-
+        self._current_task_list = {}
+        self._FMS_payload = {
+             "method": "get",
+             "url": "https://fms.dev.web.auto/v1/projects/{project_id}/environments/{environment_id}/vehicles/{vehicle_id}/active_schedule",
+             "body": {}
+            }
         self._cycle_view_control_timer = self._node.create_timer(
             0.1,
             self.update_view_state)
-        self._calculate_route_time_timer = self._node.create_timer(
-            1,
-            self.calculate_time)
+        # TODO: fix timer
+        # self._calculate_route_time_timer = self._node.create_timer(
+        #     1,
+        #     self.calculate_time)
+        # TODO: change to only call when in needed
+        self.post_request()
+        self._FMS_request_timer = self._node.create_timer(
+            60,
+            self.post_request)
 
     # view mode
     @pyqtProperty(str, notify=_view_mode_changed_signal)
@@ -95,36 +105,6 @@ class ViewControllerProperty(QObject):
 
     def sub_emergency(self, emergency_stopped):
         self.is_emergency_mode = emergency_stopped
-
-    def sub_route_station(self, topic):
-        if not topic:
-            return True
-        self.route_name = topic.name
-        stations = topic.stations
-        for station in stations:
-            station_data = {}
-            station_data["name"] = station.name
-            station_data["eta"] = station.eta
-            station_data["etd"] = station.eta
-            self._station_arrangement.append(station.id)
-            self._stations[station.id] = station_data
-        if self._departure_station_id:
-            self.generate_next_previous_station_list(self._departure_station_id)
-            self.departure_station_name = self._stations[self._departure_station_id]["name"]
-            self.arrival_station_name = self._stations[self._arrival_station_id]["name"]
-
-    def sub_route(self, topic):
-        if not topic:
-            return True
-        try:
-            self._departure_station_id = topic.departure_station_id
-            self._arrival_station_id = topic.arrival_station_id
-            if self._station_arrangement:
-                self.generate_next_previous_station_list(self._departure_station_id)
-                self.departure_station_name = self._stations[self._departure_station_id]["name"]
-                self.arrival_station_name = self._stations[self._arrival_station_id]["name"]
-        except Exception as e:
-            rospy.logerr(str(e))
 
     def generate_next_previous_station_list(self, station_id):
         list_index = self._station_arrangement.index(station_id)
@@ -259,3 +239,33 @@ class ViewControllerProperty(QObject):
             return
         self._display_time = display_time
         self._get_display_time_signal.emit(display_time)
+
+    def post_request(self):
+        # TODO: change to use os env
+        try:
+            respond = requests.post("http://localhost:4711/v1/services/order", json=self._FMS_payload)
+            data = json.loads(respond.text)
+            self._node.get_logger().info('view mode: ' + str(data))
+            schedule_type = data.get("schedule_type", "")
+            self._current_task_list = data.get("tasks", self._current_task_list)
+            station_list = []
+            for task in self._current_task_list:
+                if task["task_type"] == "move" and task["status"] == "doing":
+                    self.departure_station_name = task["origin_point_name"]
+                    self.arrival_station_name = task["destination_point_name"]
+                ## Generate next station list
+                elif task["task_type"] == "move" and task["status"] == "todo":
+                    station_list.append(task["destination_point_name"])
+
+            if len(station_list) < 3:
+                if schedule_type == "loop":
+                    # Auto fill in the lopp
+                    station_list = station_list
+
+            # limit to 3
+            self.next_station_list = list(station_list[:3])
+            self._node.get_logger().info('view mode: ' + str(self.arrival_station_name))
+            self._node.get_logger().info('view mode: ' + str(self.departure_station_name))
+            self._node.get_logger().info('view mode: ' + str(self.next_station_list))
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the task from FMS, ERROR: " + str(e))

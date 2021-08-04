@@ -12,6 +12,7 @@ class AutowareStateInterface():
 
         self.turn_signal_callback_list = []
         self.velocity_callback_list = []
+        self._node = node
 
         self._sub_autoware_state = node.create_subscription(
             AwapiAutowareStatus,
@@ -59,7 +60,7 @@ class AutowareStateInterface():
             for callback in self.emergency_stopped_callback_list:
                 callback(emergency_stopped)
         except Exception as e:
-            rospy.logerr("Unable to get the autoware state, ERROR: " + str(e))
+            self._node.get_logger().error("Unable to get the autoware state, ERROR: " + str(e))
 
     # vehicle stateをsubしたときの処理
     def vehicle_state_callback(self, topic):
@@ -73,4 +74,4 @@ class AutowareStateInterface():
             for callback in self.velocity_callback_list:
                 callback(velocity)
         except Exception as e:
-            rospy.logerr("Unable to get the vehicle state, ERROR: " + str(e))
+            self._node.get_logger().error("Unable to get the vehicle state, ERROR: " + str(e))

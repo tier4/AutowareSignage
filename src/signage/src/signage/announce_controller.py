@@ -15,6 +15,7 @@ class AnnounceControllerProperty(QObject):
         autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
         autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
 
+        self._node = node
         self._in_driving_state = False
         self._in_emergency_state = False
         self._autoware_state = ""
@@ -39,8 +40,8 @@ class AnnounceControllerProperty(QObject):
             self._in_emergency_state = False
         elif emergency_stopped and self._in_emergency_state:
             if not self._emergency_trigger_time:
-                self._emergency_trigger_time = node.get_time()
-            elif node.get_time() - self._emergency_trigger_time > 180:
+                self._emergency_trigger_time = self._node.get_clock()
+            elif self._node.get_clock() - self._emergency_trigger_time > 180:
                 self._announce_signal.emit("in_emergency")
                 self._emergency_trigger_time = 0
 
