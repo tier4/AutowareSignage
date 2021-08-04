@@ -247,12 +247,14 @@ class ViewControllerProperty(QObject):
             data = json.loads(respond.text)
             self._node.get_logger().info('view mode: ' + str(data))
             schedule_type = data.get("schedule_type", "")
+            self.route_name  = data.get("schedule_id", "")
             self._current_task_list = data.get("tasks", self._current_task_list)
             station_list = []
             for task in self._current_task_list:
                 if task["task_type"] == "move" and task["status"] == "doing":
                     self.departure_station_name = task["origin_point_name"]
                     self.arrival_station_name = task["destination_point_name"]
+                    station_list.append(self.arrival_station_name)
                 ## Generate next station list
                 elif task["task_type"] == "move" and task["status"] == "todo":
                     station_list.append(task["destination_point_name"])
@@ -264,8 +266,5 @@ class ViewControllerProperty(QObject):
 
             # limit to 3
             self.next_station_list = list(station_list[:3])
-            self._node.get_logger().info('view mode: ' + str(self.arrival_station_name))
-            self._node.get_logger().info('view mode: ' + str(self.departure_station_name))
-            self._node.get_logger().info('view mode: ' + str(self.next_station_list))
         except Exception as e:
             self._node.get_logger().error("Unable to get the task from FMS, ERROR: " + str(e))

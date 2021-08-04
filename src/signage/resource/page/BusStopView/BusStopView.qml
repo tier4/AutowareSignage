@@ -18,15 +18,15 @@ Rectangle {
     }
 
     BusStopName {
-        visible: busStopView.counter % 3 === 0
+        visible: busStopView.counter % 2 === 0
     }
 
     BusRouteName {
-        visible: busStopView.counter % 3 === 1
+        visible: busStopView.counter % 2 === 1
     }
 
     TimeRemaining {
-        visible: busStopView.counter % 3 === 2
+        visible: false
     }
 
     states: [
