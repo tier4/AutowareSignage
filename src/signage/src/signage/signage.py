@@ -23,7 +23,7 @@ def main(args=None):
 
     autoware_state_interface = AutowareStateInterface(node)
     announceController = AnnounceControllerProperty(node, autoware_state_interface)
-    viewController = ViewControllerProperty(node, autoware_state_interface)
+    viewController = ViewControllerProperty(node, autoware_state_interface, announceController)
 
     ctx = engine.rootContext()
     ctx.setContextProperty("viewController", viewController)

@@ -261,7 +261,7 @@ Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             font.bold: true
             font.pixelSize: 48
-            visible: viewController.display_time
+            visible: false
         }
     }
 
