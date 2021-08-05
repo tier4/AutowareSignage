@@ -12,6 +12,7 @@ import requests
 import json
 from datetime import datetime
 from pytz import timezone
+from itertools import cycle
 
 from autoware_api_msgs.msg import AwapiAutowareStatus
 from autoware_api_msgs.msg import AwapiVehicleStatus
@@ -39,7 +40,6 @@ class ViewControllerProperty(QObject):
         self.is_emergency_mode = False
         self.is_stopping = False
         self.is_driving = False
-        self.checked_route = False
         self._view_mode = ""
         self._route_name = ""
         self._departure_station_name = ""
@@ -48,9 +48,12 @@ class ViewControllerProperty(QObject):
         self._previous_station_list = ["", "", ""]
         self._remain_time_text = ""
         self._announce_depart = False
-        self._current_task_list = {}
+        self._previous_driving_status = False
+        self._checked_route_fms = False
+        self._checked_route_local = False
+        self._current_task_list = []
         self._depart_time = 0
-        self._FMS_payload = {
+        self._fms_payload = {
              "method": "get",
              "url": "https://fms.dev.web.auto/v1/projects/{project_id}/environments/{environment_id}/vehicles/{vehicle_id}/active_schedule",
              "body": {}
@@ -58,7 +61,7 @@ class ViewControllerProperty(QObject):
         self._cycle_view_control_timer = self._node.create_timer(
             0.1,
             self.update_view_state)
-
+        self.process_station_list_from_fms()
         self._route_checker = self._calculate_route_time_timer = self._node.create_timer(
             1,
             self.route_checker_callback)
@@ -70,8 +73,8 @@ class ViewControllerProperty(QObject):
 
     @view_mode.setter
     def view_mode(self, view_mode):
-        # if self._view_mode == view_mode:
-        #     return
+        if self._view_mode == view_mode:
+            return
         self._view_mode = view_mode
         self._view_mode_changed_signal.emit(view_mode)
 
@@ -80,9 +83,10 @@ class ViewControllerProperty(QObject):
             self.view_mode = "emergency_stopped"
         elif not self.is_auto_mode:
             self.view_mode = "manual_driving"
-        elif self.is_stopping and self._departure_station_name:
+        elif self.is_stopping:
             self.view_mode = "stopping"
-        elif self.is_driving and self._departure_station_name:
+        elif self.is_driving:
+            self._previous_driving_status = True
             self.view_mode = "driving"
         else:
             self.view_mode = "out_of_service"
@@ -90,7 +94,7 @@ class ViewControllerProperty(QObject):
         # self._node.get_logger().info('view mode %r' % (self._view_mode))
 
     def sub_autoware_state(self, autoware_state):
-        self.is_stopping = autoware_state != "Driving" and autoware_state != "InitializingVehicle"
+        self.is_stopping = autoware_state != "Driving" and  autoware_state != "InitializingVehicle"
         self.is_driving = autoware_state == "Driving"
 
     def sub_control_mode(self, control_mode):
@@ -172,11 +176,14 @@ class ViewControllerProperty(QObject):
         self._get_remain_time_text_signal.emit(remain_time_text)
 
     def route_checker_callback(self):
-        if self.is_stopping and not self.checked_route:
-            self.post_request()
-            self.checked_route = True
-        elif self.is_driving:
-            self.checked_route = False
+        if self.is_stopping and not self._checked_route_local and self._previous_driving_status:
+            self.process_station_list_from_local()
+            self._checked_route_local = True
+            self._checked_route_fms = False
+        elif self.is_driving and not self._checked_route_fms:
+            self.process_station_list_from_fms()
+            self._checked_route_local = False
+            self._checked_route_fms = True
 
         if not self.is_auto_mode or self.is_emergency_mode:
             return
@@ -197,32 +204,62 @@ class ViewControllerProperty(QObject):
         except Exception as e:
             self._node.get_logger().error("Error in getting calculate the time: " + str(e))
 
-    def post_request(self):
-        # TODO: change to use os env
+    def process_depart_arrive_station_details(self, task):
+        if task["origin_point_name"]:
+            self.departure_station_name = task["origin_point_name"]
+        else:
+            self.departure_station_name = "start"
+        self.arrival_station_name = task["destination_point_name"]
+        date_time_obj = datetime.strptime(task["plan_start_time"], '%Y-%m-%dT%H:%M:%S.%f%z')
+        self._depart_time = datetime.timestamp(date_time_obj)
+
+    def create_next_station_list(self, call_type):
+        station_list = []
+
+        for task in self._current_task_list:
+            if task["task_type"] == "move":
+                station_list.append(task["destination_point_name"])
+
+        if self.departure_station_name != "start" and call_type == "local":
+            station_list.append(self.departure_station_name)
+
+        if len(station_list) < 4 and self._schedule_type == "loop":
+            station_cycle = cycle(station_list)
+            for _ in range(4 - len(station_list)):
+                station_list.append(next(station_cycle))
+
+        self.next_station_list = list(station_list[:3])
+
+    def process_station_list_from_local(self):
         try:
-            respond = requests.post("http://localhost:4711/v1/services/order", json=self._FMS_payload)
+            if not self._current_task_list:
+                # empty current task list
+                return
+
+            # remove the first task
+            self._current_task_list.pop(0)
+
+            for task in self._current_task_list:
+                if task["task_type"] == "move" and task["status"] == "todo":
+                    self.process_depart_arrive_station_details(task)
+                    break
+
+            self.create_next_station_list("local")
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the task from local, ERROR: " + str(e))
+
+    def process_station_list_from_fms(self):
+        try:
+            # TODO: change to use os env
+            respond = requests.post("http://localhost:4711/v1/services/order", json=self._fms_payload)
             data = json.loads(respond.text)
-            schedule_type = data.get("schedule_type", "")
-            self.route_name  = data.get("schedule_id", "")
+            self._schedule_type = data.get("schedule_type", "")
+            self.route_name  = data.get("project_id", "")
             self._current_task_list = data.get("tasks", self._current_task_list)
-            station_list = []
             for task in self._current_task_list:
                 if task["task_type"] == "move" and task["status"] == "doing":
-                    self.departure_station_name = task["origin_point_name"]
-                    self.arrival_station_name = task["destination_point_name"]
-                    date_time_obj = datetime.strptime(task["plan_start_time"], '%Y-%m-%dT%H:%M:%S.%f%z')
-                    self._depart_time = datetime.timestamp(date_time_obj)
-                    station_list.append(self.arrival_station_name)
-                ## Generate next station list
-                elif task["task_type"] == "move" and task["status"] == "todo":
-                    station_list.append(task["destination_point_name"])
+                    self.process_depart_arrive_station_details(task)
 
-            if len(station_list) < 3:
-                if schedule_type == "loop":
-                    # Auto fill in the lopp
-                    station_list = station_list
-
-            # limit to 3
-            self.next_station_list = list(station_list[:3])
+            self.create_next_station_list("fms")
         except Exception as e:
             self._node.get_logger().error("Unable to get the task from FMS, ERROR: " + str(e))

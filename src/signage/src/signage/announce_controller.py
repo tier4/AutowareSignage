@@ -40,8 +40,8 @@ class AnnounceControllerProperty(QObject):
             self._in_emergency_state = False
         elif emergency_stopped and self._in_emergency_state:
             if not self._emergency_trigger_time:
-                self._emergency_trigger_time = self._node.get_clock()
-            elif self._node.get_clock() - self._emergency_trigger_time > 180:
+                self._emergency_trigger_time = self._node.get_clock().now().to_msg().sec
+            elif self._node.get_clock().now().to_msg().sec - self._emergency_trigger_time > 180:
                 self._announce_signal.emit("in_emergency")
                 self._emergency_trigger_time = 0
 
