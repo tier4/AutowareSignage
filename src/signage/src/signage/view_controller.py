@@ -13,6 +13,7 @@ import json
 from datetime import datetime
 from pytz import timezone
 from itertools import cycle
+import collections
 
 from autoware_api_msgs.msg import AwapiAutowareStatus
 from autoware_api_msgs.msg import AwapiVehicleStatus
@@ -45,6 +46,7 @@ class ViewControllerProperty(QObject):
         self._departure_station_name = ""
         self._arrival_station_name = ""
         self._next_station_list = ["", "", ""]
+        self._previous_station_deque = collections.deque(3*[""], 3)
         self._previous_station_list = ["", "", ""]
         self._remain_time_text = ""
         self._announce_depart = False
@@ -176,6 +178,9 @@ class ViewControllerProperty(QObject):
         self._get_remain_time_text_signal.emit(remain_time_text)
 
     def route_checker_callback(self):
+        if not self.is_auto_mode or self.is_emergency_mode:
+            return
+
         if self.is_stopping and not self._checked_route_local and self._previous_driving_status:
             self.process_station_list_from_local()
             self._checked_route_local = True
@@ -184,9 +189,6 @@ class ViewControllerProperty(QObject):
             self.process_station_list_from_fms()
             self._checked_route_local = False
             self._checked_route_fms = True
-
-        if not self.is_auto_mode or self.is_emergency_mode:
-            return
 
         ## TODO: use time?
         current_time = self._node.get_clock().now().to_msg().sec
@@ -213,6 +215,10 @@ class ViewControllerProperty(QObject):
         date_time_obj = datetime.strptime(task["plan_start_time"], '%Y-%m-%dT%H:%M:%S.%f%z')
         self._depart_time = datetime.timestamp(date_time_obj)
 
+    def process_previous_station_list(self):
+        self._previous_station_deque.appendleft(self.departure_station_name)
+        self.previous_station_list = list(self._previous_station_deque)
+
     def create_next_station_list(self, call_type):
         station_list = []
 
@@ -232,6 +238,7 @@ class ViewControllerProperty(QObject):
 
     def process_station_list_from_local(self):
         try:
+            self.process_previous_station_list()
             if not self._current_task_list:
                 # empty current task list
                 return
