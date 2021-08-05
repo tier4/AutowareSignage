@@ -38,10 +38,6 @@ Window {
         visible: viewController.view_mode === "driving"
     }
 
-    Sound {
-        id: announceItem
-    }
-
     Item {
         focus: true
         Keys.onPressed: {
