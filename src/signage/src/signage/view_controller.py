@@ -3,7 +3,6 @@
 from PyQt5.QtCore import pyqtProperty
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QObject
-from PyQt5.QtCore import pyqtSlot
 
 import rclpy
 from rclpy.node import Node
@@ -14,9 +13,6 @@ from datetime import datetime
 from pytz import timezone
 from itertools import cycle
 import collections
-
-from autoware_api_msgs.msg import AwapiAutowareStatus
-from autoware_api_msgs.msg import AwapiVehicleStatus
 
 class ViewControllerProperty(QObject):
     _view_mode_changed_signal = pyqtSignal(str)

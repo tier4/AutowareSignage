@@ -32,7 +32,6 @@ class AnnounceControllerProperty(QObject):
         self._in_driving_state = False
         self._in_emergency_state = False
         self._autoware_state = ""
-        self.is_auto_mode = False
         self._current_announce = ""
         self._emergency_trigger_time = 0
         self._sound = QSound("")
