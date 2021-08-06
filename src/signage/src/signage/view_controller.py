@@ -6,6 +6,7 @@ from PyQt5.QtCore import QObject
 
 import rclpy
 from rclpy.node import Node
+import os
 
 import requests
 import json
@@ -189,6 +190,9 @@ class ViewControllerProperty(QObject):
         ## TODO: use time?
         current_time = self._node.get_clock().now().to_msg().sec
         try:
+            if self.is_driving:
+                self._announce_depart = False
+
             if self.is_stopping:
                 remain_minute = int((self._depart_time - current_time)/60)
                 if remain_minute > 0:
@@ -253,8 +257,11 @@ class ViewControllerProperty(QObject):
 
     def process_station_list_from_fms(self):
         try:
-            # TODO: change to use os env
-            respond = requests.post("http://localhost:4711/v1/services/order", json=self._fms_payload)
+            ip_address = os.getenv('AUTOWARE_IP')
+            if not ip_address:
+                ip_address = "localhost"
+
+            respond = requests.post("http://{}:4711/v1/services/order".format(ip_address), json=self._fms_payload)
             data = json.loads(respond.text)
             self._schedule_type = data.get("schedule_type", "")
             self.route_name  = data.get("project_id", "")
