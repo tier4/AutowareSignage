@@ -3,7 +3,7 @@ import QtQuick.Controls 2.2
 import QtQuick.Shapes 1.12
 
 Rectangle {
-    id: busRouteName
+    id: remainTimeText
     width: 1920
     height: 360
     color: "#ffffff"
@@ -12,7 +12,7 @@ Rectangle {
         x: 288
         y: 207
         color: "#000000"
-        text: qsTr("間もなく次のバス停です")
+        text: viewController.route_name
         anchors.verticalCenterOffset: -100
         font.bold: true
         verticalAlignment: Text.AlignVCenter
@@ -20,23 +20,6 @@ Rectangle {
         font.pointSize: 68
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-    }
-
-    Text {
-        id: busRouteTextEn
-        x: 853
-        y: 131
-        width: 567
-        height: 39
-        color: "#000000"
-        text: qsTr("We're almost at the next stop.")
-        anchors.top: busRouteText.bottom
-        anchors.topMargin: -5
-        anchors.horizontalCenter: parent.horizontalCenter
-        horizontalAlignment: Text.AlignHCenter
-        font.pixelSize: 36
-        font.bold: true
-        verticalAlignment: Text.AlignVCenter
     }
 
     Item {
@@ -79,29 +62,12 @@ Rectangle {
                 width: 294
                 height: 49
                 color: "#717171"
-                text: qsTr("前のバス停名")
+                text: viewController.previous_station_list[0]
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
                 horizontalAlignment: Text.AlignHCenter
                 font.pixelSize: 48
-                font.bold: true
-                verticalAlignment: Text.AlignVCenter
-            }
-
-            Text {
-                id: beforeBusStopNameEn
-                x: 179
-                y: 116
-                width: 213
-                height: 39
-                color: "#717171"
-                text: qsTr("Last Bus Stop")
-                anchors.top: beforeBusStopName.bottom
-                anchors.topMargin: 5
-                anchors.horizontalCenter: beforeBusStopName.horizontalCenter
-                horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: 24
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
             }
@@ -123,10 +89,9 @@ Rectangle {
 
             Text {
                 id: nextBusStopName
-                x: -117
                 width: 294
                 height: 49
-                text: qsTr("次のバス停名")
+                text: viewController.departure_station_name
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
@@ -134,23 +99,6 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
                 font.pixelSize: 48
-            }
-
-            Text {
-                id: nextBusStopNameEn
-                x: -77
-                y: 116
-                width: 213
-                height: 39
-                color: "#000000"
-                text: qsTr("Next Bus Stop")
-                anchors.horizontalCenter: nextBusStopName.horizontalCenter
-                anchors.top: nextBusStopName.bottom
-                anchors.topMargin: 5
-                horizontalAlignment: Text.AlignHCenter
-                font.bold: true
-                font.pixelSize: 24
-                verticalAlignment: Text.AlignVCenter
             }
         }
 
@@ -250,7 +198,7 @@ Rectangle {
         Text {
             id: remainingTime
             x: 912
-            text: qsTr("00分")
+            text: viewController.remain_time_text
             anchors.top: beforeAndAfterBar.bottom
             anchors.topMargin: 10
             anchors.horizontalCenter: parent.horizontalCenter

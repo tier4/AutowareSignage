@@ -17,16 +17,24 @@ Rectangle {
         }
     }
 
+    function getCount() {
+        if (viewController.display_time) {
+            return 3
+        } else {
+            return 2
+        }
+    }
+
     BusStopName {
-        visible: busStopView.counter % 3 === 0
+        visible: busStopView.counter % getCount() === 0
     }
 
     BusRouteName {
-        visible: busStopView.counter % 3 === 1
+        visible: busStopView.counter % getCount() === 1
     }
 
     TimeRemaining {
-        visible: busStopView.counter % 3 === 2
+        visible: viewController.display_time && busStopView.counter % getCount() === 2
     }
 
     states: [

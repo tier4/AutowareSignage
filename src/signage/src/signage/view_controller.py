@@ -25,6 +25,7 @@ class ViewControllerProperty(QObject):
     _get_next_station_list_signal = pyqtSignal(list)
     _get_previous_station_list_signal = pyqtSignal(list)
     _get_remain_time_text_signal = pyqtSignal(str)
+    _get_display_time_signal = pyqtSignal(bool)
 
     def __init__(self, node=None, autoware_state_interface=None, announce_interface=None):
         super(ViewControllerProperty, self).__init__()
@@ -48,6 +49,8 @@ class ViewControllerProperty(QObject):
         self._previous_station_deque = collections.deque(3*[""], 3)
         self._previous_station_list = ["", "", ""]
         self._remain_time_text = ""
+        self._distance = 1000
+        self._display_time = False
         self._announced_going_to_depart = False
         self._announced_going_to_arrive = False
         self._previous_driving_status = False
@@ -189,6 +192,18 @@ class ViewControllerProperty(QObject):
         self._remain_time_text = remain_time_text
         self._get_remain_time_text_signal.emit(remain_time_text)
 
+    # QMLへのsignal
+    @pyqtProperty(bool, notify=_get_display_time_signal)
+    def display_time(self):
+        return self._display_time
+
+    @display_time.setter
+    def display_time(self, display_time):
+        if self._display_time == display_time:
+            return
+        self._display_time = display_time
+        self._get_display_time_signal.emit(display_time)
+
     def route_checker_callback(self):
         if not self.is_auto_mode or self.is_emergency_mode:
             return
@@ -219,8 +234,13 @@ class ViewControllerProperty(QObject):
         ## TODO: use time?
         current_time = self._node.get_clock().now().to_msg().sec
         try:
+            remain_minute = 100
             if self.is_driving:
-                self._announce_depart = False
+                self._announced_going_to_depart = False
+                if self._distance < 100 and not self._announced_going_to_arrive:
+                    self._announce_interface.announce_going_to_depart_and_arrive("going_to_arrive")
+                    self._announced_going_to_arrive = True
+                    self.remain_time_text = "間もなく到着します"
 
             if self.is_stopping:
                 self._announced_going_to_arrive = False
@@ -234,12 +254,10 @@ class ViewControllerProperty(QObject):
                     self._announce_interface.announce_going_to_depart_and_arrive("going_to_depart")
                     self._announced_going_to_depart = True
 
-            if self.is_driving:
-                self._announced_going_to_depart = False
-                if self._distance < 100 and not self._announced_going_to_arrive:
-                    self._announce_interface.announce_going_to_depart_and_arrive("going_to_arrive")
-                    self._announced_going_to_arrive = True
-
+            if remain_minute < 5 or self._distance < 100 :
+                self.display_time = True
+            else:
+                self.display_time = False
         except Exception as e:
             self._node.get_logger().error("Error in getting calculate the time: " + str(e))
 

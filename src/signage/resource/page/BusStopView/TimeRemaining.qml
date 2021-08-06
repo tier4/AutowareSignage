@@ -22,21 +22,6 @@ Rectangle {
         font.pointSize: 80
         verticalAlignment: Text.AlignVCenter
     }
-
-    Text {
-        id: emergencyStopText2
-        x: 645
-        color: "#000000"
-        text: qsTr("This bus will be leaving in ") + viewController.remain_time + qsTr(" minutes.")
-        anchors.top: remainingTimeText.bottom
-        anchors.topMargin: 20
-        anchors.horizontalCenter: parent.horizontalCenter
-        horizontalAlignment: Text.AlignHCenter
-        font.bold: true
-        font.pointSize: 32
-        verticalAlignment: Text.AlignVCenter
-        visible: false
-    }
 }
 
 /*##^## Designer {

@@ -18,15 +18,23 @@ Rectangle {
     }
 
     BusRouteName {
-        visible: busStopView.counter % 2 === 0
+        visible: busStopView.counter % getCount() === 0
     }
 
     BusStopList {
-        visible: busStopView.counter % 2 === 1
+        visible: busStopView.counter % getCount() === 1
     }
 
     TimeRemaining {
-        visible: false
+        visible: viewController.display_time && busStopView.counter % getCount() === 2
+    }
+
+    function getCount() {
+        if (viewController.display_time) {
+            return 3
+        } else {
+            return 2
+        }
     }
 
     states: [
