@@ -12,15 +12,12 @@ from ament_index_python.packages import get_package_share_directory
 PRIORITY_DICT = {
     "emergency" : 3,
     "emergency_cancel" : 3,
-    "door_open" : 2,
-    "door_close" : 2,
     "engage" : 2,
     "arrived" : 2,
     "in_emergency" : 2,
     "going_to_depart" : 1,
     "going_to_arrive" : 1
 }
-SPECIAL_CASE_LIST = ["door_open", "door_close"]
 
 class AnnounceControllerProperty(QObject):
     def __init__(self, node, autoware_state_interface=None):
@@ -33,12 +30,25 @@ class AnnounceControllerProperty(QObject):
         self._in_emergency_state = False
         self._autoware_state = ""
         self._current_announce = ""
+        self._pending_announce_list = []
         self._emergency_trigger_time = 0
         self._sound = QSound("")
         self._package_path = get_package_share_directory('signage') + "/resource/sound/"
         self._check_playing_timer = self._node.create_timer(
             1,
             self.check_playing_callback)
+
+    def process_pending_announce(self):
+        try:
+            for play_sound in self._pending_announce_list:
+                self._pending_announce_list.remove(play_sound)
+                current_time = self._node.get_clock().now().to_msg().sec
+                if current_time - play_sound["requested_time"] <= 10:
+                    self.send_announce(play_sound["message"])
+                    break
+        except Exception as e:
+            self._node.get_logger().error("not able to check the pending playing list: " + str(e))
+
 
     def check_playing_callback(self):
         try:
@@ -47,6 +57,7 @@ class AnnounceControllerProperty(QObject):
 
             if self._sound.isFinished():
                 self._current_announce = ""
+                self.process_pending_announce()
         except Exception as e:
             self._node.get_logger().error("not able to check the current playing: " + str(e))
 
@@ -58,9 +69,7 @@ class AnnounceControllerProperty(QObject):
         priority = PRIORITY_DICT.get(message, 0)
         previous_priority = PRIORITY_DICT.get(self._current_announce, 0)
 
-        if message in SPECIAL_CASE_LIST or not previous_priority:
-            self.play_sound(message)
-        elif priority == 3:
+        if priority == 3:
             self._sound.stop()
             self.play_sound(message)
         elif priority == 2:
@@ -70,9 +79,14 @@ class AnnounceControllerProperty(QObject):
             elif priority == previous_priority:
                 self.play_sound(message)
         elif priority == 1:
-            if previous_priority in [2,1]:
-                time.sleep(10)
+            if not previous_priority:
                 self.play_sound(message)
+            elif previous_priority in [2,1]:
+                self._pending_announce_list.append(
+                    {
+                        "message":message,
+                        "requested_time":self._node.get_clock().now().to_msg().sec
+                    })
         self._current_announce = message
 
     def sub_autoware_state(self, autoware_state):
