@@ -61,7 +61,7 @@ class ViewControllerProperty(QObject):
             0.1,
             self.update_view_state)
         self.process_station_list_from_fms()
-        self._route_checker = self._calculate_route_time_timer = self._node.create_timer(
+        self._route_checker = self._node.create_timer(
             1,
             self.route_checker_callback)
 
@@ -183,7 +183,10 @@ class ViewControllerProperty(QObject):
             self._checked_route_local = True
             self._checked_route_fms = False
         elif self.is_driving and not self._checked_route_fms:
-            self.process_station_list_from_fms()
+            try:
+                self.process_station_list_from_fms()
+            except:
+                return
             self._checked_route_local = False
             self._checked_route_fms = True
 
@@ -261,10 +264,10 @@ class ViewControllerProperty(QObject):
             if not ip_address:
                 ip_address = "localhost"
 
-            respond = requests.post("http://{}:4711/v1/services/order".format(ip_address), json=self._fms_payload)
+            respond = requests.post("http://{}:4711/v1/services/order".format(ip_address), json=self._fms_payload, timeout=5)
             data = json.loads(respond.text)
-            self._schedule_type = data.get("schedule_type", "")
-            self.route_name  = data.get("project_id", "")
+            self._schedule_type = data["schedule_type"]
+            self.route_name  = data["project_id"]
             self._current_task_list = data.get("tasks", self._current_task_list)
             for task in self._current_task_list:
                 if task["task_type"] == "move" and task["status"] == "doing":
@@ -273,3 +276,4 @@ class ViewControllerProperty(QObject):
             self.create_next_station_list("fms")
         except Exception as e:
             self._node.get_logger().error("Unable to get the task from FMS, ERROR: " + str(e))
+            raise Exception("Unable to get the task from FMS, ERROR: " + str(e))
