@@ -54,7 +54,7 @@ class ViewControllerProperty(QObject):
         self._depart_time = 0
         self._fms_payload = {
              "method": "get",
-             "url": "https://fms.dev.web.auto/v1/projects/{project_id}/environments/{environment_id}/vehicles/{vehicle_id}/active_schedule",
+             "url": os.getenv('FMS_URL'),
              "body": {}
             }
         self._cycle_view_control_timer = self._node.create_timer(
