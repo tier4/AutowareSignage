@@ -12,6 +12,7 @@ import requests
 import json
 from datetime import datetime
 from pytz import timezone
+from dateutil import parser
 from itertools import cycle
 import collections
 
@@ -221,7 +222,7 @@ class ViewControllerProperty(QObject):
         else:
             self.departure_station_name = "start"
         self.arrival_station_name = task["destination_point_name"]
-        date_time_obj = datetime.strptime(task["plan_start_time"], '%Y-%m-%dT%H:%M:%S.%f%z')
+        date_time_obj = parser.parse(task["plan_start_time"])
         self._depart_time = datetime.timestamp(date_time_obj)
 
     def process_previous_station_list(self):
