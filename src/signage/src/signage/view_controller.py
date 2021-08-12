@@ -54,7 +54,7 @@ class ViewControllerProperty(QObject):
         self._depart_time = 0
         self._fms_payload = {
              "method": "get",
-             "url": "https://" + os.getenv('FMS_URL') + "/v1/projects/{project_id}/environments/{environment_id}/vehicles/{vehicle_id}/active_schedule",
+             "url": "https://" + os.getenv('FMS_URL', 'fms.web.auto') + "/v1/projects/{project_id}/environments/{environment_id}/vehicles/{vehicle_id}/active_schedule",
              "body": {}
             }
         self._cycle_view_control_timer = self._node.create_timer(
@@ -268,11 +268,7 @@ class ViewControllerProperty(QObject):
 
     def process_station_list_from_fms(self):
         try:
-            ip_address = os.getenv('AUTOWARE_IP')
-            if not ip_address:
-                ip_address = "localhost"
-
-            respond = requests.post("http://{}:4711/v1/services/order".format(ip_address), json=self._fms_payload, timeout=5)
+            respond = requests.post("http://{}:4711/v1/services/order".format(os.getenv('AUTOWARE_IP', 'localhost')), json=self._fms_payload, timeout=5)
             data = json.loads(respond.text)
             self._schedule_type = data["schedule_type"]
             self.route_name  = data["project_id"]
