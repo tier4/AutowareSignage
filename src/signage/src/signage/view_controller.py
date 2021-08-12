@@ -60,7 +60,10 @@ class ViewControllerProperty(QObject):
         self._cycle_view_control_timer = self._node.create_timer(
             0.1,
             self.update_view_state)
-        self.process_station_list_from_fms()
+        try:
+            self.process_station_list_from_fms()
+        except:
+            pass
         self._route_checker = self._node.create_timer(
             1,
             self.route_checker_callback)
@@ -178,17 +181,20 @@ class ViewControllerProperty(QObject):
         if not self.is_auto_mode or self.is_emergency_mode:
             return
 
+        if not self._current_task_list:
+            # if not found current task, reconnect to fms
+            try:
+                self.process_station_list_from_fms()
+            except:
+                return
+
         if self.is_stopping and not self._checked_route_local and self._previous_driving_status:
             self.process_station_list_from_local()
-            self._checked_route_local = True
-            self._checked_route_fms = False
         elif self.is_driving and not self._checked_route_fms:
             try:
                 self.process_station_list_from_fms()
             except:
                 return
-            self._checked_route_local = False
-            self._checked_route_fms = True
 
         ## TODO: use time?
         current_time = self._node.get_clock().now().to_msg().sec
@@ -255,6 +261,8 @@ class ViewControllerProperty(QObject):
                     break
 
             self.create_next_station_list("local")
+            self._checked_route_local = True
+            self._checked_route_fms = False
         except Exception as e:
             self._node.get_logger().error("Unable to get the task from local, ERROR: " + str(e))
 
@@ -274,6 +282,8 @@ class ViewControllerProperty(QObject):
                     self.process_depart_arrive_station_details(task)
 
             self.create_next_station_list("fms")
+            self._checked_route_local = False
+            self._checked_route_fms = True
         except Exception as e:
             self._node.get_logger().error("Unable to get the task from FMS, ERROR: " + str(e))
             raise Exception("Unable to get the task from FMS, ERROR: " + str(e))
