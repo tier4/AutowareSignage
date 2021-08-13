@@ -97,7 +97,7 @@ class ViewControllerProperty(QObject):
         # self._node.get_logger().info('view mode %r' % (self._view_mode))
 
     def sub_autoware_state(self, autoware_state):
-        self.is_stopping = autoware_state in ["WaitingForRoute", "WaitingForEngage", "ArrivedGoal"]
+        self.is_stopping = autoware_state in ["WaitingForRoute", "WaitingForEngage", "ArrivedGoal", "Planning"]
         self.is_driving = autoware_state == "Driving"
 
     def sub_control_mode(self, control_mode):
@@ -196,6 +196,8 @@ class ViewControllerProperty(QObject):
                 self.process_station_list_from_fms()
             except:
                 return
+        if not self._current_task_list:
+            return
 
         ## TODO: use time?
         current_time = self._node.get_clock().now().to_msg().sec
@@ -233,16 +235,19 @@ class ViewControllerProperty(QObject):
         station_list = []
 
         for task in self._current_task_list:
-            if task["task_type"] == "move":
+            if task["task_type"] == "move" and task["status"] in ["doing", "todo"]:
                 station_list.append(task["destination_point_name"])
 
-        if self.departure_station_name != "start" and call_type == "local":
+        if self.departure_station_name != "start" and call_type == "local" and self._schedule_type == "loop":
             station_list.append(self.departure_station_name)
 
         if len(station_list) < 4 and self._schedule_type == "loop":
             station_cycle = cycle(station_list)
             for _ in range(4 - len(station_list)):
                 station_list.append(next(station_cycle))
+        else:
+            for _ in range(4 - len(station_list)):
+                station_list.append("")
 
         self.next_station_list = list(station_list[:3])
 
@@ -255,6 +260,9 @@ class ViewControllerProperty(QObject):
 
             # remove the first task
             self._current_task_list.pop(0)
+
+            if not self._current_task_list:
+                return
 
             for task in self._current_task_list:
                 if task["task_type"] == "move" and task["status"] == "todo":
@@ -273,7 +281,15 @@ class ViewControllerProperty(QObject):
             data = json.loads(respond.text)
             self._schedule_type = data["schedule_type"]
             self.route_name  = data["project_id"]
-            self._current_task_list = data.get("tasks", self._current_task_list)
+            fms_task_list = []
+            for task in data.get("tasks", {}):
+                if task["task_type"] == "move" and task["status"] in ["doing", "todo"]:
+                    fms_task_list.append(task)
+            self._current_task_list = list(fms_task_list)
+
+            if not self._current_task_list:
+                return
+
             for task in self._current_task_list:
                 if task["task_type"] == "move" and task["status"] == "doing":
                     self.process_depart_arrive_station_details(task)
