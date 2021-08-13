@@ -97,7 +97,7 @@ class ViewControllerProperty(QObject):
         # self._node.get_logger().info('view mode %r' % (self._view_mode))
 
     def sub_autoware_state(self, autoware_state):
-        self.is_stopping = autoware_state != "Driving" and  autoware_state != "InitializingVehicle"
+        self.is_stopping = autoware_state in ["WaitingForRoute", "WaitingForEngage", "ArrivedGoal"]
         self.is_driving = autoware_state == "Driving"
 
     def sub_control_mode(self, control_mode):
