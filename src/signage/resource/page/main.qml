@@ -47,6 +47,9 @@ Window {
                 window.visibility = "FullScreen"
             }
         }
+        Component.onCompleted: {
+            window.visibility = "FullScreen"
+        }
     }
 }
 
