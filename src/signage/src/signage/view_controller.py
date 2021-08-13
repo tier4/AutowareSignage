@@ -262,6 +262,8 @@ class ViewControllerProperty(QObject):
             self._current_task_list.pop(0)
 
             if not self._current_task_list:
+                self.departure_station_name = self.arrival_station_name
+                self.arrival_station_name  = ""
                 return
 
             for task in self._current_task_list:
