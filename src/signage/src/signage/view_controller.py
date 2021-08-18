@@ -262,8 +262,10 @@ class ViewControllerProperty(QObject):
             self._current_task_list.pop(0)
 
             if not self._current_task_list:
+                # Reach final station
                 self.departure_station_name = self.arrival_station_name
                 self.arrival_station_name  = ""
+                self.remain_time_text = "走行は終了しました"
                 return
 
             for task in self._current_task_list:

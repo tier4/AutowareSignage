@@ -18,15 +18,15 @@ Rectangle {
     }
 
     BusStopName {
-        visible: busStopView.counter % getCouter() === 0
+        visible: busStopView.counter % 3 === 0
     }
 
     BusRouteName {
-        visible: busStopView.counter % getCouter() === 1
+        visible: busStopView.counter % 3 === 1
     }
 
     TimeRemaining {
-        visible: busStopView.counter % getCouter() === 2
+        visible: busStopView.counter % 3 === 2
     }
 
     states: [
@@ -41,14 +41,6 @@ Rectangle {
             }
         }
     ]
-
-    function getCouter(){
-        if(viewController.arrival_station_name || viewController.arrival_station_name.length !== 0){
-            return 3
-        } else {
-            return 2
-        }
-    }
 }
 
 /*##^## Designer {
