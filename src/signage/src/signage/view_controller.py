@@ -275,7 +275,7 @@ class ViewControllerProperty(QObject):
                 # Reach final station
                 self.departure_station_name = self.arrival_station_name
                 self.arrival_station_name  = ""
-                self.remain_time_text = "終点です。ご乗車ありがとうございました"
+                self.remain_time_text = "終点です。\nご乗車ありがとうございました"
                 self._reach_final = True
                 return
 
