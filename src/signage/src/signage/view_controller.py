@@ -68,7 +68,7 @@ class ViewControllerProperty(QObject):
             }
         self._sub_path_distance = node.create_subscription(
             Float64Stamped,
-            '/path_distance_calculator/distance',
+            '/autoware_api/utils/path_distance_calculator/distance',
             self.path_distance_callback,
             10
         )
