@@ -307,17 +307,25 @@ class ViewControllerProperty(QObject):
             self.route_name  = data["project_id"]
 
             fms_task_list = []
+            fms_done_list = []
             for task in data.get("tasks", {}):
                 if task["task_type"] == "move" and task["status"] in ["doing", "todo"]:
                     fms_task_list.append(task)
+                elif task["task_type"] == "move" and task["status"] in ["done"]:
+                    fms_done_list.append(task)
             self._current_task_list = list(fms_task_list)
 
             if not self._current_task_list:
                 return
 
             for task in self._current_task_list:
-                if task["task_type"] == "move" and task["status"] == "doing":
+                if task["status"] == "doing":
                     self.process_depart_arrive_station_details(task)
+
+            if self._previous_station_list == ["", "", ""]:
+                for task in fms_done_list:
+                    self._previous_station_deque.appendleft(task["origin_point_name"] if task["origin_point_name"] else "start")
+                self.previous_station_list = list(self._previous_station_deque)
 
             self.create_next_station_list("fms")
             self._schedule_updated_time = data["updated_at"]
