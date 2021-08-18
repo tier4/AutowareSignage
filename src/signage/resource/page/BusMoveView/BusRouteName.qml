@@ -12,7 +12,7 @@ Rectangle {
         x: 288
         y: 207
         color: "#000000"
-        text: qsTr("バスルート名")
+        text: getRouteName()
         anchors.verticalCenterOffset: -100
         font.bold: true
         verticalAlignment: Text.AlignVCenter
@@ -37,6 +37,7 @@ Rectangle {
         font.pixelSize: 36
         font.bold: true
         verticalAlignment: Text.AlignVCenter
+        visible: false
     }
 
     Item {
@@ -64,12 +65,12 @@ Rectangle {
             y: -26
             width: 60
             height: 60
-            color: "#ffffff"
+            color: "#0068b6"
             radius: 30
             anchors.left: parent.left
             anchors.leftMargin: 300
             anchors.verticalCenter: beforeAndAfterBar.verticalCenter
-            border.color: "#717171"
+            border.color: "#ffffff"
             border.width: 10
 
             Text {
@@ -79,7 +80,7 @@ Rectangle {
                 width: 294
                 height: 49
                 color: "#717171"
-                text: qsTr("前のバス停名")
+                text: viewController.departure_station_name
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
@@ -104,7 +105,9 @@ Rectangle {
                 font.pixelSize: 24
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
+                visible: false
             }
+            visible : (viewController.departure_station_name || viewController.departure_station_name.length !== 0)
         }
 
         Rectangle {
@@ -118,7 +121,7 @@ Rectangle {
             anchors.right: parent.right
             anchors.rightMargin: 300
             anchors.verticalCenter: beforeAndAfterBar.verticalCenter
-            border.color: "#717171"
+            border.color: "#0068b6"
             border.width: 10
 
             Text {
@@ -126,7 +129,7 @@ Rectangle {
                 x: -117
                 width: 294
                 height: 49
-                text: qsTr("次のバス停名")
+                text: viewController.arrival_station_name
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
@@ -151,7 +154,9 @@ Rectangle {
                 font.bold: true
                 font.pixelSize: 24
                 verticalAlignment: Text.AlignVCenter
+                visible: false
             }
+            visible : (viewController.arrival_station_name || viewController.arrival_station_name.length !== 0)
         }
 
         Item {
@@ -250,19 +255,28 @@ Rectangle {
         Text {
             id: remainingTime
             x: 912
-            text: qsTr("00分")
+            text: viewController.remain_time_text
             anchors.top: beforeAndAfterBar.bottom
             anchors.topMargin: 10
             anchors.horizontalCenter: parent.horizontalCenter
             font.bold: true
             font.pixelSize: 48
+            visible: false
         }
+    }
+
+    function getRouteName() {
+        var routeName = viewController.route_name
+        if(!routeName || routeName.length === 0)
+        {
+            routeName = qsTr("バスルート名")
+        }
+        return routeName
     }
 }
 
 /*##^## Designer {
     D{i:2;anchors_x:179;anchors_y:"-45"}D{i:6;anchors_x:179;anchors_y:82}D{i:7;anchors_x:179;anchors_y:82}
-D{i:5;anchors_x:1507}D{i:9;anchors_y:89}D{i:10;anchors_x:179;anchors_y:82}D{i:27;anchors_y:106}
+D{i:5;anchors_x:1507}D{i:9;anchors_y:89}D{i:10;anchors_x:179;anchors_y:82}
 }
  ##^##*/
-

@@ -133,3 +133,4 @@ dmypy.json
 install/
 log/
 
+src/signage/resource/sound

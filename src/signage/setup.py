@@ -24,6 +24,8 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name + '/resource/page',
             package_files('resource/page')),
+        ('share/' + package_name + '/resource/sound',
+            package_files('resource/sound')),
         ('share/' + package_name + '/resource/page/BusStopView',
             package_files('resource/page/BusStopView')),
         ('share/' + package_name + '/resource/page/BusMoveView',
