@@ -53,6 +53,9 @@ class ViewControllerProperty(QObject):
         self._checked_route_local = False
         self._current_task_list = []
         self._depart_time = 0
+        self._reach_final = False
+        self._schedule_id = ""
+        self._schedule_updated_time = ""
         self._fms_payload = {
              "method": "get",
              "url": "https://" + os.getenv('FMS_URL', 'fms.web.auto') + "/v1/projects/{project_id}/environments/{environment_id}/vehicles/{vehicle_id}/active_schedule",
@@ -189,6 +192,12 @@ class ViewControllerProperty(QObject):
             except:
                 return
 
+        if self._reach_final and self._current_task_list:
+            self._reach_final = False
+            self._previous_driving_status = False
+            self._previous_station_deque = collections.deque(3*[""], 3)
+            self.previous_station_list = ["", "", ""]
+
         if self.is_stopping and not self._checked_route_local and self._previous_driving_status:
             self.process_station_list_from_local()
         elif self.is_driving and not self._checked_route_fms:
@@ -253,10 +262,11 @@ class ViewControllerProperty(QObject):
 
     def process_station_list_from_local(self):
         try:
-            self.process_previous_station_list()
             if not self._current_task_list:
                 # empty current task list
                 return
+
+            self.process_previous_station_list()
 
             # remove the first task
             self._current_task_list.pop(0)
@@ -266,6 +276,7 @@ class ViewControllerProperty(QObject):
                 self.departure_station_name = self.arrival_station_name
                 self.arrival_station_name  = ""
                 self.remain_time_text = "走行は終了しました"
+                self._reach_final = True
                 return
 
             for task in self._current_task_list:
@@ -283,8 +294,18 @@ class ViewControllerProperty(QObject):
         try:
             respond = requests.post("http://{}:4711/v1/services/order".format(os.getenv('AUTOWARE_IP', 'localhost')), json=self._fms_payload, timeout=5)
             data = json.loads(respond.text)
+
+            if not data:
+                self._node.get_logger().error("No data from fms")
+                return
+
+            elif self._schedule_updated_time == data["updated_at"] and self._schedule_id == data["schedule_id"]:
+                self._node.get_logger().error("same schedule, skip")
+                return
+
             self._schedule_type = data["schedule_type"]
             self.route_name  = data["project_id"]
+
             fms_task_list = []
             for task in data.get("tasks", {}):
                 if task["task_type"] == "move" and task["status"] in ["doing", "todo"]:
@@ -299,6 +320,8 @@ class ViewControllerProperty(QObject):
                     self.process_depart_arrive_station_details(task)
 
             self.create_next_station_list("fms")
+            self._schedule_updated_time = data["updated_at"]
+            self._schedule_id = data["schedule_id"]
             self._checked_route_local = False
             self._checked_route_fms = True
         except Exception as e:
