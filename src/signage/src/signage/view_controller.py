@@ -15,6 +15,7 @@ from pytz import timezone
 from dateutil import parser
 from itertools import cycle
 import collections
+from autoware_debug_msgs.msg import Float64Stamped
 
 class ViewControllerProperty(QObject):
     _view_mode_changed_signal = pyqtSignal(str)
@@ -24,6 +25,7 @@ class ViewControllerProperty(QObject):
     _get_next_station_list_signal = pyqtSignal(list)
     _get_previous_station_list_signal = pyqtSignal(list)
     _get_remain_time_text_signal = pyqtSignal(str)
+    _get_display_time_signal = pyqtSignal(bool)
 
     def __init__(self, node=None, autoware_state_interface=None, announce_interface=None):
         super(ViewControllerProperty, self).__init__()
@@ -47,7 +49,10 @@ class ViewControllerProperty(QObject):
         self._previous_station_deque = collections.deque(3*[""], 3)
         self._previous_station_list = ["", "", ""]
         self._remain_time_text = ""
-        self._announce_depart = False
+        self._distance = 1000
+        self._display_time = False
+        self._announced_going_to_depart = False
+        self._announced_going_to_arrive = False
         self._previous_driving_status = False
         self._checked_route_fms = False
         self._checked_route_local = False
@@ -61,6 +66,12 @@ class ViewControllerProperty(QObject):
              "url": "https://" + os.getenv('FMS_URL', 'fms.web.auto') + "/v1/projects/{project_id}/environments/{environment_id}/vehicles/{vehicle_id}/active_schedule",
              "body": {}
             }
+        self._sub_path_distance = node.create_subscription(
+            Float64Stamped,
+            '/autoware_api/utils/path_distance_calculator/distance',
+            self.path_distance_callback,
+            10
+        )
         self._cycle_view_control_timer = self._node.create_timer(
             0.1,
             self.update_view_state)
@@ -181,6 +192,18 @@ class ViewControllerProperty(QObject):
         self._remain_time_text = remain_time_text
         self._get_remain_time_text_signal.emit(remain_time_text)
 
+    # QMLへのsignal
+    @pyqtProperty(bool, notify=_get_display_time_signal)
+    def display_time(self):
+        return self._display_time
+
+    @display_time.setter
+    def display_time(self, display_time):
+        if self._display_time == display_time:
+            return
+        self._display_time = display_time
+        self._get_display_time_signal.emit(display_time)
+
     def route_checker_callback(self):
         if not self.is_auto_mode or self.is_emergency_mode:
             return
@@ -211,19 +234,30 @@ class ViewControllerProperty(QObject):
         ## TODO: use time?
         current_time = self._node.get_clock().now().to_msg().sec
         try:
+            remain_minute = 100
             if self.is_driving:
-                self._announce_depart = False
+                self._announced_going_to_depart = False
+                if self._distance < 30 and not self._announced_going_to_arrive:
+                    self._announce_interface.announce_going_to_depart_and_arrive("going_to_arrive")
+                    self._announced_going_to_arrive = True
+                    self.remain_time_text = "間もなく到着します"
 
             if self.is_stopping:
+                self._announced_going_to_arrive = False
                 remain_minute = int((self._depart_time - current_time)/60)
                 if remain_minute > 0:
                     self.remain_time_text = "このバスはあと{}分程で出発します".format(str(remain_minute))
                 else:
                     self.remain_time_text = "間もなく出発します"
 
-                if remain_minute < 1 and not self._announce_depart:
+                if remain_minute < 1 and not self._announced_going_to_depart:
                     self._announce_interface.announce_going_to_depart_and_arrive("going_to_depart")
-                    self._announce_depart = True
+                    self._announced_going_to_depart = True
+
+            if remain_minute < 5 or self._distance < 30 :
+                self.display_time = True
+            else:
+                self.display_time = False
         except Exception as e:
             self._node.get_logger().error("Error in getting calculate the time: " + str(e))
 
@@ -335,3 +369,7 @@ class ViewControllerProperty(QObject):
         except Exception as e:
             self._node.get_logger().error("Unable to get the task from FMS, ERROR: " + str(e))
             raise Exception("Unable to get the task from FMS, ERROR: " + str(e))
+
+    def path_distance_callback(self, topic):
+        if topic:
+            self._distance = topic.data

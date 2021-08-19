@@ -25,10 +25,6 @@ Rectangle {
         visible: busStopView.counter % 2 === 1
     }
 
-    TimeRemaining {
-        visible: false
-    }
-
     states: [
         State {
             name: "init"
