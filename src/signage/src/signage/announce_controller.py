@@ -2,14 +2,11 @@
 # -*- coding: utf-8 -*-
 # This Python file uses the following encoding: utf-8
 
-from PyQt5.QtCore import QObject
 from PyQt5.QtMultimedia import QSound
 
-import time
 import simpleaudio as sa
 from ament_index_python.packages import get_package_share_directory
 from autoware_external_api_msgs.srv import Engage
-from autoware_external_api_msgs.msg import ResponseStatus
 
 # The higher the value, the higher the priority
 PRIORITY_DICT = {
