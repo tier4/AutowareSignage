@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 # This Python file uses the following encoding: utf-8
 
-from PyQt5.QtCore import QObject
 from PyQt5.QtMultimedia import QSound
 
-import time
+import simpleaudio as sa
 from ament_index_python.packages import get_package_share_directory
+from autoware_external_api_msgs.srv import Engage
 
 # The higher the value, the higher the priority
 PRIORITY_DICT = {
@@ -19,7 +19,7 @@ PRIORITY_DICT = {
     "going_to_arrive" : 1
 }
 
-class AnnounceControllerProperty(QObject):
+class AnnounceControllerProperty():
     def __init__(self, node, autoware_state_interface=None):
         super(AnnounceControllerProperty, self).__init__()
         autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
@@ -37,6 +37,14 @@ class AnnounceControllerProperty(QObject):
         self._check_playing_timer = self._node.create_timer(
             1,
             self.check_playing_callback)
+        self._srv = self._node.create_service(Engage, '/signage/set/engage_announce', self.announce_engage)
+
+    def announce_engage(self, request, response):
+        filename = self._package_path + 'engage.wav'
+        wave_obj = sa.WaveObject.from_wave_file(filename)
+        play_obj = wave_obj.play()
+        play_obj.wait_done()
+        return response
 
     def process_pending_announce(self):
         try:
@@ -48,7 +56,6 @@ class AnnounceControllerProperty(QObject):
                     break
         except Exception as e:
             self._node.get_logger().error("not able to check the pending playing list: " + str(e))
-
 
     def check_playing_callback(self):
         try:
@@ -92,7 +99,6 @@ class AnnounceControllerProperty(QObject):
     def sub_autoware_state(self, autoware_state):
         self._autoware_state = autoware_state
         if autoware_state == "Driving" and not self._in_driving_state:
-            self.send_announce("engage")
             self._in_driving_state = True
         elif autoware_state == "ArrivedGoal" and self._in_driving_state:
             self.send_announce("arrived")
