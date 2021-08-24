@@ -6,7 +6,7 @@ from PyQt5.QtMultimedia import QSound
 
 import simpleaudio as sa
 from ament_index_python.packages import get_package_share_directory
-from autoware_external_api_msgs.srv import Announce
+from autoware_multimedia_msgs.srv import Announce
 
 # The higher the value, the higher the priority
 PRIORITY_DICT = {
