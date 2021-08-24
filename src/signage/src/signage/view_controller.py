@@ -16,6 +16,7 @@ from dateutil import parser
 from itertools import cycle
 import collections
 from autoware_debug_msgs.msg import Float64Stamped
+from rclpy.duration import Duration
 
 class ViewControllerProperty(QObject):
     _view_mode_changed_signal = pyqtSignal(str)
@@ -61,6 +62,7 @@ class ViewControllerProperty(QObject):
         self._reach_final = False
         self._schedule_id = ""
         self._schedule_updated_time = ""
+        self._fms_check_time = self._node.get_clock().now()
         self._fms_payload = {
              "method": "get",
              "url": "https://" + os.getenv('FMS_URL', 'fms.web.auto') + "/v1/projects/{project_id}/environments/{environment_id}/vehicles/{vehicle_id}/active_schedule",
@@ -76,7 +78,7 @@ class ViewControllerProperty(QObject):
             0.1,
             self.update_view_state)
         try:
-            self.process_station_list_from_fms()
+            self.process_station_list_from_fms(True)
         except:
             pass
         self._route_checker = self._node.create_timer(
@@ -324,10 +326,14 @@ class ViewControllerProperty(QObject):
         except Exception as e:
             self._node.get_logger().error("Unable to get the task from local, ERROR: " + str(e))
 
-    def process_station_list_from_fms(self):
+    def process_station_list_from_fms(self, skip_check = False):
         try:
+            if not skip_check and self._node.get_clock().now() - self._fms_check_time < Duration(seconds=5):
+                return
+
             respond = requests.post("http://{}:4711/v1/services/order".format(os.getenv('AUTOWARE_IP', 'localhost')), json=self._fms_payload, timeout=5)
             data = json.loads(respond.text)
+            self._fms_check_time = self._node.get_clock().now()
 
             if not data:
                 self._node.get_logger().error("No data from fms")
