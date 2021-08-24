@@ -8,35 +8,16 @@ Rectangle {
     color: "#ffffff"
     Text {
         id: busRouteText
-        x: 288
-        y: 207
         color: "#000000"
         text: getRouteName()
         anchors.verticalCenterOffset: -100
         font.bold: true
         verticalAlignment: Text.AlignVCenter
         horizontalAlignment: Text.AlignHCenter
-        font.pointSize: 68
+        font.pointSize: 50
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-    }
-
-    Text {
-        id: busRouteTextEn
-        x: 853
-        y: 131
-        width: 213
-        height: 39
-        color: "#000000"
-        text: qsTr("Route Name")
-        anchors.top: busRouteText.bottom
-        anchors.topMargin: -5
-        anchors.horizontalCenter: parent.horizontalCenter
-        horizontalAlignment: Text.AlignHCenter
-        font.pixelSize: 36
-        font.bold: true
-        verticalAlignment: Text.AlignVCenter
-        visible: false
+        wrapMode: Text.WordWrap
     }
 
     Item {
@@ -51,7 +32,6 @@ Rectangle {
 
         Rectangle {
             id: beforeAndAfterBar
-            x: 173
             width: 1700
             height: 44
             color: "#69bfd2"
@@ -61,8 +41,6 @@ Rectangle {
 
         Rectangle {
             id: rectangle2
-            x: 870
-            y: 231
             width: 70
             height: 70
             color: "#ffffff"
@@ -74,8 +52,6 @@ Rectangle {
 
             Rectangle {
                 id: rectangle1
-                x: -15
-                y: 25
                 width: 50
                 height: 50
                 color: "#0068b6"
@@ -88,7 +64,6 @@ Rectangle {
 
         Rectangle {
             id: beforeBusStopMarker
-            y: -26
             width: 60
             height: 60
             color: "#ffffff"
@@ -101,45 +76,23 @@ Rectangle {
 
             Text {
                 id: beforeBusStopName
-                x: 179
-                y: 62
-                width: 294
-                height: 49
+                width: 350
                 color: "#717171"
                 text: viewController.previous_station_list[0]
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
                 horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: 48
+                font.pixelSize: 30
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
-            }
-
-            Text {
-                id: beforeBusStopNameEn
-                x: 179
-                y: 116
-                width: 213
-                height: 39
-                color: "#717171"
-                text: qsTr("Last Bus Stop")
-                anchors.top: beforeBusStopName.bottom
-                anchors.topMargin: 5
-                anchors.horizontalCenter: beforeBusStopName.horizontalCenter
-                horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: 24
-                font.bold: true
-                verticalAlignment: Text.AlignVCenter
-                visible: false
+                wrapMode: Text.WordWrap
             }
             visible : (viewController.previous_station_list[0] || viewController.previous_station_list[0].length !== 0)
         }
 
         Rectangle {
             id: nextBusStopMarker
-            x: 1502
-            y: -21
             width: 60
             height: 60
             color: "#ffffff"
@@ -152,10 +105,7 @@ Rectangle {
 
             Text {
                 id: nextBusStopName
-                x: -117
-                y: 62
-                width: 294
-                height: 49
+                width: 350
                 text: viewController.arrival_station_name
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
@@ -163,63 +113,25 @@ Rectangle {
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: 48
-            }
-
-            Text {
-                id: nextBusStopNameEn
-                x: -77
-                y: 116
-                width: 213
-                height: 39
-                color: "#000000"
-                text: qsTr("Next Bus Stop")
-                anchors.horizontalCenter: nextBusStopName.horizontalCenter
-                anchors.top: nextBusStopName.bottom
-                anchors.topMargin: 5
-                horizontalAlignment: Text.AlignHCenter
-                font.bold: true
-                font.pixelSize: 24
-                verticalAlignment: Text.AlignVCenter
-                visible: false
+                font.pixelSize: 30
+                wrapMode: Text.WordWrap
             }
             visible : (viewController.arrival_station_name || viewController.arrival_station_name.length !== 0)
         }
 
         Text {
             id: busStopName
-            width: 216
-            height: 49
+            width: 400
             color: "#000000"
             text: getDepatureStationName()
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.left: beforeAndAfterBar.left
-            anchors.leftMargin: 742
-            anchors.top: beforeAndAfterBar.bottom
-            anchors.topMargin: 20
+            anchors.top: beforeAndAfterBar.verticalCenter
+            anchors.topMargin: 42
             horizontalAlignment: Text.AlignHCenter
-            font.pixelSize: 48
-            font.bold: true
             verticalAlignment: Text.AlignVCenter
-        }
-
-        Text {
-            id: busStopNameEn
-            x: 1
-            y: 153
-            width: 138
-            height: 36
-            color: "#000000"
-            text: qsTr("Bus Stop")
-            anchors.horizontalCenterOffset: 0
-            anchors.top: busStopName.bottom
-            anchors.topMargin: 5
-            anchors.horizontalCenter: parent.horizontalCenter
-            horizontalAlignment: Text.AlignHCenter
-            font.pixelSize: 24
+            font.pixelSize: 30
             font.bold: true
-            verticalAlignment: Text.AlignVCenter
-            visible: false
+            wrapMode: Text.WordWrap
         }
     }
 
