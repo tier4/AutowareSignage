@@ -239,7 +239,7 @@ class ViewControllerProperty(QObject):
             remain_minute = 100
             if self.is_driving:
                 self._announced_going_to_depart = False
-                if self._distance < 30 and not self._announced_going_to_arrive:
+                if self._distance < 100 and not self._announced_going_to_arrive:
                     self._announce_interface.announce_going_to_depart_and_arrive("going_to_arrive")
                     self._announced_going_to_arrive = True
                     self.remain_time_text = "間もなく到着します"
@@ -256,7 +256,7 @@ class ViewControllerProperty(QObject):
                     self._announce_interface.announce_going_to_depart_and_arrive("going_to_depart")
                     self._announced_going_to_depart = True
 
-            if remain_minute < 5 or self._distance < 30 :
+            if remain_minute < 5 or self._distance < 100 :
                 self.display_time = True
             else:
                 self.display_time = False
