@@ -6,7 +6,7 @@ from PyQt5.QtMultimedia import QSound
 
 import simpleaudio as sa
 from ament_index_python.packages import get_package_share_directory
-from autoware_external_api_msgs.srv import Engage
+from autoware_external_api_msgs.srv import Announce
 
 # The higher the value, the higher the priority
 PRIORITY_DICT = {
@@ -37,7 +37,7 @@ class AnnounceControllerProperty():
         self._check_playing_timer = self._node.create_timer(
             1,
             self.check_playing_callback)
-        self._srv = self._node.create_service(Engage, '/signage/set/engage_announce', self.announce_engage)
+        self._srv = self._node.create_service(Announce, '/api/signage/set/announce', self.announce_engage)
 
     def announce_engage(self, request, response):
         filename = self._package_path + 'engage.wav'
