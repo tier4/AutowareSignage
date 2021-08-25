@@ -190,7 +190,7 @@ Rectangle {
 
         Text {
             id: remainingTime
-            text: viewController.remain_time_text
+            text: viewController.remain_arrive_time_text
             anchors.top: beforeAndAfterBar.bottom
             anchors.topMargin: 10
             anchors.horizontalCenter: parent.horizontalCenter

@@ -13,7 +13,7 @@ Rectangle {
         width: 211
         height: 156
         color: "#000000"
-        text: viewController.remain_time_text
+        text: viewController.remain_depart_time_text
         anchors.verticalCenterOffset: -40
         anchors.verticalCenter: parent.verticalCenter
         anchors.horizontalCenter: parent.horizontalCenter

@@ -25,7 +25,8 @@ class ViewControllerProperty(QObject):
     _get_arrival_station_name_signal = pyqtSignal(str)
     _get_next_station_list_signal = pyqtSignal(list)
     _get_previous_station_list_signal = pyqtSignal(list)
-    _get_remain_time_text_signal = pyqtSignal(str)
+    _get_remain_arrive_time_text_signal = pyqtSignal(str)
+    _get_remain_depart_time_text_signal = pyqtSignal(str)
     _get_display_time_signal = pyqtSignal(bool)
 
     def __init__(self, node=None, autoware_state_interface=None, announce_interface=None):
@@ -49,7 +50,8 @@ class ViewControllerProperty(QObject):
         self._next_station_list = ["", "", ""]
         self._previous_station_deque = collections.deque(3*[""], 3)
         self._previous_station_list = ["", "", ""]
-        self._remain_time_text = ""
+        self._remain_arrive_time_text = ""
+        self._remain_depart_time_text = ""
         self._distance = 1000
         self._display_time = False
         self._announced_going_to_depart = False
@@ -183,16 +185,28 @@ class ViewControllerProperty(QObject):
         self._get_previous_station_list_signal.emit(previous_station_list)
 
     # QMLへroute_nameを反映させる
-    @pyqtProperty("QString", notify=_get_remain_time_text_signal)
-    def remain_time_text(self):
-        return self._remain_time_text
+    @pyqtProperty("QString", notify=_get_remain_arrive_time_text_signal)
+    def remain_arrive_time_text(self):
+        return self._remain_arrive_time_text
 
-    @remain_time_text.setter
-    def remain_time_text(self, remain_time_text):
-        if self._remain_time_text == remain_time_text:
+    @remain_arrive_time_text.setter
+    def remain_arrive_time_text(self, remain_arrive_time_text):
+        if self._remain_arrive_time_text == remain_arrive_time_text:
             return
-        self._remain_time_text = remain_time_text
-        self._get_remain_time_text_signal.emit(remain_time_text)
+        self._remain_arrive_time_text = remain_arrive_time_text
+        self._get_remain_arrive_time_text_signal.emit(remain_arrive_time_text)
+
+    # QMLへroute_nameを反映させる
+    @pyqtProperty("QString", notify=_get_remain_depart_time_text_signal)
+    def remain_depart_time_text(self):
+        return self._remain_depart_time_text
+
+    @remain_depart_time_text.setter
+    def remain_depart_time_text(self, remain_depart_time_text):
+        if self._remain_depart_time_text == remain_depart_time_text:
+            return
+        self._remain_depart_time_text = remain_depart_time_text
+        self._get_remain_depart_time_text_signal.emit(remain_depart_time_text)
 
     # QMLへのsignal
     @pyqtProperty(bool, notify=_get_display_time_signal)
@@ -242,15 +256,15 @@ class ViewControllerProperty(QObject):
                 if self._distance < 100 and not self._announced_going_to_arrive:
                     self._announce_interface.announce_going_to_depart_and_arrive("going_to_arrive")
                     self._announced_going_to_arrive = True
-                    self.remain_time_text = "間もなく到着します"
+                    self.remain_arrive_time_text = "間もなく到着します"
 
             if self.is_stopping:
                 self._announced_going_to_arrive = False
                 remain_minute = int((self._depart_time - current_time)/60)
                 if remain_minute > 0:
-                    self.remain_time_text = "このバスはあと{}分程で出発します".format(str(remain_minute))
+                    self.remain_depart_time_text = "このバスはあと{}分程で出発します".format(str(remain_minute))
                 else:
-                    self.remain_time_text = "間もなく出発します"
+                    self.remain_depart_time_text = "間もなく出発します"
 
                 if remain_minute < 1 and not self._announced_going_to_depart:
                     self._announce_interface.announce_going_to_depart_and_arrive("going_to_depart")
@@ -311,7 +325,7 @@ class ViewControllerProperty(QObject):
                 # Reach final station
                 self.departure_station_name = self.arrival_station_name
                 self.arrival_station_name  = ""
-                self.remain_time_text = "終点です。\nご乗車ありがとうございました"
+                self.remain_depart_time_text = "終点です。\nご乗車ありがとうございました"
                 self._reach_final = True
                 return
 
