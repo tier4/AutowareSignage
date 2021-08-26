@@ -16,6 +16,7 @@ from dateutil import parser
 from itertools import cycle
 import collections
 from autoware_debug_msgs.msg import Float64Stamped
+from rclpy.duration import Duration
 
 class ViewControllerProperty(QObject):
     _view_mode_changed_signal = pyqtSignal(str)
@@ -24,7 +25,8 @@ class ViewControllerProperty(QObject):
     _get_arrival_station_name_signal = pyqtSignal(str)
     _get_next_station_list_signal = pyqtSignal(list)
     _get_previous_station_list_signal = pyqtSignal(list)
-    _get_remain_time_text_signal = pyqtSignal(str)
+    _get_remain_arrive_time_text_signal = pyqtSignal(str)
+    _get_remain_depart_time_text_signal = pyqtSignal(str)
     _get_display_time_signal = pyqtSignal(bool)
 
     def __init__(self, node=None, autoware_state_interface=None, announce_interface=None):
@@ -48,7 +50,8 @@ class ViewControllerProperty(QObject):
         self._next_station_list = ["", "", ""]
         self._previous_station_deque = collections.deque(3*[""], 3)
         self._previous_station_list = ["", "", ""]
-        self._remain_time_text = ""
+        self._remain_arrive_time_text = ""
+        self._remain_depart_time_text = ""
         self._distance = 1000
         self._display_time = False
         self._announced_going_to_depart = False
@@ -61,6 +64,7 @@ class ViewControllerProperty(QObject):
         self._reach_final = False
         self._schedule_id = ""
         self._schedule_updated_time = ""
+        self._fms_check_time = self._node.get_clock().now()
         self._fms_payload = {
              "method": "get",
              "url": "https://" + os.getenv('FMS_URL', 'fms.web.auto') + "/v1/projects/{project_id}/environments/{environment_id}/vehicles/{vehicle_id}/active_schedule",
@@ -76,7 +80,7 @@ class ViewControllerProperty(QObject):
             0.1,
             self.update_view_state)
         try:
-            self.process_station_list_from_fms()
+            self.process_station_list_from_fms(True)
         except:
             pass
         self._route_checker = self._node.create_timer(
@@ -181,16 +185,28 @@ class ViewControllerProperty(QObject):
         self._get_previous_station_list_signal.emit(previous_station_list)
 
     # QMLへroute_nameを反映させる
-    @pyqtProperty("QString", notify=_get_remain_time_text_signal)
-    def remain_time_text(self):
-        return self._remain_time_text
+    @pyqtProperty("QString", notify=_get_remain_arrive_time_text_signal)
+    def remain_arrive_time_text(self):
+        return self._remain_arrive_time_text
 
-    @remain_time_text.setter
-    def remain_time_text(self, remain_time_text):
-        if self._remain_time_text == remain_time_text:
+    @remain_arrive_time_text.setter
+    def remain_arrive_time_text(self, remain_arrive_time_text):
+        if self._remain_arrive_time_text == remain_arrive_time_text:
             return
-        self._remain_time_text = remain_time_text
-        self._get_remain_time_text_signal.emit(remain_time_text)
+        self._remain_arrive_time_text = remain_arrive_time_text
+        self._get_remain_arrive_time_text_signal.emit(remain_arrive_time_text)
+
+    # QMLへroute_nameを反映させる
+    @pyqtProperty("QString", notify=_get_remain_depart_time_text_signal)
+    def remain_depart_time_text(self):
+        return self._remain_depart_time_text
+
+    @remain_depart_time_text.setter
+    def remain_depart_time_text(self, remain_depart_time_text):
+        if self._remain_depart_time_text == remain_depart_time_text:
+            return
+        self._remain_depart_time_text = remain_depart_time_text
+        self._get_remain_depart_time_text_signal.emit(remain_depart_time_text)
 
     # QMLへのsignal
     @pyqtProperty(bool, notify=_get_display_time_signal)
@@ -237,24 +253,24 @@ class ViewControllerProperty(QObject):
             remain_minute = 100
             if self.is_driving:
                 self._announced_going_to_depart = False
-                if self._distance < 30 and not self._announced_going_to_arrive:
+                if self._distance < 100 and not self._announced_going_to_arrive:
                     self._announce_interface.announce_going_to_depart_and_arrive("going_to_arrive")
                     self._announced_going_to_arrive = True
-                    self.remain_time_text = "間もなく到着します"
+                    self.remain_arrive_time_text = "間もなく到着します"
 
             if self.is_stopping:
                 self._announced_going_to_arrive = False
                 remain_minute = int((self._depart_time - current_time)/60)
                 if remain_minute > 0:
-                    self.remain_time_text = "このバスはあと{}分程で出発します".format(str(remain_minute))
+                    self.remain_depart_time_text = "このバスはあと{}分程で出発します".format(str(remain_minute))
                 else:
-                    self.remain_time_text = "間もなく出発します"
+                    self.remain_depart_time_text = "間もなく出発します"
 
                 if remain_minute < 1 and not self._announced_going_to_depart:
                     self._announce_interface.announce_going_to_depart_and_arrive("going_to_depart")
                     self._announced_going_to_depart = True
 
-            if remain_minute < 5 or self._distance < 30 :
+            if remain_minute < 5 or self._distance < 100 :
                 self.display_time = True
             else:
                 self.display_time = False
@@ -309,7 +325,7 @@ class ViewControllerProperty(QObject):
                 # Reach final station
                 self.departure_station_name = self.arrival_station_name
                 self.arrival_station_name  = ""
-                self.remain_time_text = "終点です。\nご乗車ありがとうございました"
+                self.remain_depart_time_text = "終点です。\nご乗車ありがとうございました"
                 self._reach_final = True
                 return
 
@@ -324,10 +340,14 @@ class ViewControllerProperty(QObject):
         except Exception as e:
             self._node.get_logger().error("Unable to get the task from local, ERROR: " + str(e))
 
-    def process_station_list_from_fms(self):
+    def process_station_list_from_fms(self, skip_check = False):
         try:
+            if not skip_check and self._node.get_clock().now() - self._fms_check_time < Duration(seconds=5):
+                return
+
             respond = requests.post("http://{}:4711/v1/services/order".format(os.getenv('AUTOWARE_IP', 'localhost')), json=self._fms_payload, timeout=5)
             data = json.loads(respond.text)
+            self._fms_check_time = self._node.get_clock().now()
 
             if not data:
                 self._node.get_logger().error("No data from fms")

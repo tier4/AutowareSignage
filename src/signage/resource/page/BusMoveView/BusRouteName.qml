@@ -9,35 +9,16 @@ Rectangle {
     color: "#ffffff"
     Text {
         id: busRouteText
-        x: 288
-        y: 207
         color: "#000000"
         text: getRouteName()
         anchors.verticalCenterOffset: -100
         font.bold: true
         verticalAlignment: Text.AlignVCenter
         horizontalAlignment: Text.AlignHCenter
-        font.pointSize: 68
+        font.pointSize: 50
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-    }
-
-    Text {
-        id: busRouteTextEn
-        x: 853
-        y: 131
-        width: 213
-        height: 39
-        color: "#000000"
-        text: qsTr("Route Name")
-        anchors.top: busRouteText.bottom
-        anchors.topMargin: -5
-        anchors.horizontalCenter: parent.horizontalCenter
-        horizontalAlignment: Text.AlignHCenter
-        font.pixelSize: 36
-        font.bold: true
-        verticalAlignment: Text.AlignVCenter
-        visible: false
+        wrapMode: Text.WordWrap
     }
 
     Item {
@@ -52,7 +33,6 @@ Rectangle {
 
         Rectangle {
             id: beforeAndAfterBar
-            x: 173
             width: 1700
             height: 44
             color: "#69bfd2"
@@ -62,7 +42,6 @@ Rectangle {
 
         Rectangle {
             id: beforeBusStopMarker
-            y: -26
             width: 60
             height: 60
             color: "#0068b6"
@@ -75,45 +54,23 @@ Rectangle {
 
             Text {
                 id: beforeBusStopName
-                x: 179
-                y: 62
-                width: 294
-                height: 49
+                width: 350
                 color: "#717171"
                 text: viewController.departure_station_name
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
                 horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: 48
+                font.pixelSize: 30
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
-            }
-
-            Text {
-                id: beforeBusStopNameEn
-                x: 179
-                y: 116
-                width: 213
-                height: 39
-                color: "#717171"
-                text: qsTr("Last Bus Stop")
-                anchors.top: beforeBusStopName.bottom
-                anchors.topMargin: 5
-                anchors.horizontalCenter: beforeBusStopName.horizontalCenter
-                horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: 24
-                font.bold: true
-                verticalAlignment: Text.AlignVCenter
-                visible: false
+                wrapMode: Text.WordWrap
             }
             visible : (viewController.departure_station_name || viewController.departure_station_name.length !== 0)
         }
 
         Rectangle {
             id: nextBusStopMarker
-            x: 1502
-            y: -21
             width: 60
             height: 60
             color: "#ffffff"
@@ -126,9 +83,7 @@ Rectangle {
 
             Text {
                 id: nextBusStopName
-                x: -117
-                width: 294
-                height: 49
+                width: 350
                 text: viewController.arrival_station_name
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
@@ -136,25 +91,8 @@ Rectangle {
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: 48
-            }
-
-            Text {
-                id: nextBusStopNameEn
-                x: -77
-                y: 116
-                width: 213
-                height: 39
-                color: "#000000"
-                text: qsTr("Next Bus Stop")
-                anchors.horizontalCenter: nextBusStopName.horizontalCenter
-                anchors.top: nextBusStopName.bottom
-                anchors.topMargin: 5
-                horizontalAlignment: Text.AlignHCenter
-                font.bold: true
-                font.pixelSize: 24
-                verticalAlignment: Text.AlignVCenter
-                visible: false
+                font.pixelSize: 30
+                wrapMode: Text.WordWrap
             }
             visible : (viewController.arrival_station_name || viewController.arrival_station_name.length !== 0)
         }
@@ -222,8 +160,6 @@ Rectangle {
 
             Shape {
                 id: rightTriangle
-                x: 15
-                y: -68
                 width: 30
                 height: 44
                 anchors.left: middleTriangle.right
@@ -254,14 +190,14 @@ Rectangle {
 
         Text {
             id: remainingTime
-            x: 912
-            text: viewController.remain_time_text
+            text: viewController.remain_arrive_time_text
             anchors.top: beforeAndAfterBar.bottom
             anchors.topMargin: 10
             anchors.horizontalCenter: parent.horizontalCenter
             font.bold: true
             font.pixelSize: 48
             visible: viewController.display_time
+            wrapMode: Text.WordWrap
         }
     }
 
