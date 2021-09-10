@@ -30,6 +30,8 @@ setup(
             package_files('resource/page/BusStopView')),
         ('share/' + package_name + '/resource/page/BusMoveView',
             package_files('resource/page/BusMoveView')),
+        ('share/' + package_name + '/resource/page/EmergencyStopView',
+            package_files('resource/page/EmergencyStopView')),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', ['launch/signage.launch.xml']),
     ],
