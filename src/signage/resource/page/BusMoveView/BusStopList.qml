@@ -178,7 +178,6 @@ Rectangle {
             Text {
                 id: nextBusStopName1En
                 width: 213
-                color: "#000000"
                 text: viewController.arrival_station_name[1]
                 anchors.top: nextBusStopName1.bottom
                 anchors.topMargin: 5
@@ -261,7 +260,6 @@ Rectangle {
             Text {
                 id: nextBusStopName2En
                 width: 100
-                color: "#717171"
                 text: viewController.next_station_list[1][1]
                 anchors.top: nextBusStopName2.bottom
                 anchors.topMargin: 5
