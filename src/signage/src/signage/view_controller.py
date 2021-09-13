@@ -287,7 +287,7 @@ class ViewControllerProperty(QObject):
         if task["origin_point_name"]:
             self.departure_station_name = self.process_name(task["origin_point_name"])
         else:
-            self.departure_station_name = "start;出発点"
+            self.departure_station_name = ["出発点", "Start"]
         self.arrival_station_name = self.process_name(task["destination_point_name"])
         date_time_obj = parser.parse(task["plan_start_time"])
         self._depart_time = datetime.timestamp(date_time_obj)
@@ -303,7 +303,7 @@ class ViewControllerProperty(QObject):
             if task["task_type"] == "move" and task["status"] in ["doing", "todo"]:
                 station_list.append(self.process_name(task["destination_point_name"]))
 
-        if self.departure_station_name[0] != "start" and call_type == "local" and self._schedule_type == "loop":
+        if self.departure_station_name[1] != "Start" and call_type == "local" and self._schedule_type == "loop":
             station_list.append(self.departure_station_name)
 
         if len(station_list) < 4 and self._schedule_type == "loop":
@@ -384,7 +384,7 @@ class ViewControllerProperty(QObject):
 
             if self._previous_station_list == [["",""], ["",""], ["",""]]:
                 for task in fms_done_list:
-                    self._previous_station_deque.appendleft(self.process_name(task["origin_point_name"]) if task["origin_point_name"] else "start;出発点")
+                    self._previous_station_deque.appendleft(self.process_name(task["origin_point_name"]) if task["origin_point_name"] else ["出発点", "Start"])
                 self.previous_station_list = list(self._previous_station_deque)
 
             self.create_next_station_list("fms")
