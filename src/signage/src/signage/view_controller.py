@@ -21,8 +21,8 @@ from rclpy.duration import Duration
 class ViewControllerProperty(QObject):
     _view_mode_changed_signal = pyqtSignal(str)
     _route_name_signal = pyqtSignal(list)
-    _get_departure_station_name_signal = pyqtSignal(str)
-    _get_arrival_station_name_signal = pyqtSignal(str)
+    _get_departure_station_name_signal = pyqtSignal(list)
+    _get_arrival_station_name_signal = pyqtSignal(list)
     _get_next_station_list_signal = pyqtSignal(list)
     _get_previous_station_list_signal = pyqtSignal(list)
     _get_remain_arrive_time_text_signal = pyqtSignal(str)
@@ -45,11 +45,11 @@ class ViewControllerProperty(QObject):
         self.is_driving = False
         self._view_mode = ""
         self._route_name = ["", ""]
-        self._departure_station_name = ""
-        self._arrival_station_name = ""
-        self._next_station_list = ["", "", ""]
-        self._previous_station_deque = collections.deque(3*[""], 3)
-        self._previous_station_list = ["", "", ""]
+        self._departure_station_name = ["", ""]
+        self._arrival_station_name = ["", ""]
+        self._next_station_list = [["",""], ["",""], ["",""]]
+        self._previous_station_deque = collections.deque(3*[["",""]], 3)
+        self._previous_station_list = [["",""], ["",""], ["",""]]
         self._remain_arrive_time_text = ""
         self._remain_depart_time_text = ""
         self._distance = 1000
@@ -143,7 +143,7 @@ class ViewControllerProperty(QObject):
         self._route_name_signal.emit(route_name)
 
     # QMLへ出発地バス停名を反映させる
-    @pyqtProperty("QString", notify=_get_departure_station_name_signal)
+    @pyqtProperty(list, notify=_get_departure_station_name_signal)
     def departure_station_name(self):
         return self._departure_station_name
 
@@ -155,7 +155,7 @@ class ViewControllerProperty(QObject):
         self._get_departure_station_name_signal.emit(departure_station_name)
 
     # QMLへ到着地バス停名を反映させる
-    @pyqtProperty("QString", notify=_get_arrival_station_name_signal)
+    @pyqtProperty(list, notify=_get_arrival_station_name_signal)
     def arrival_station_name(self):
         return self._arrival_station_name
 
@@ -240,8 +240,8 @@ class ViewControllerProperty(QObject):
         if self._reach_final and self._current_task_list:
             self._reach_final = False
             self._previous_driving_status = False
-            self._previous_station_deque = collections.deque(3*[""], 3)
-            self.previous_station_list = ["", "", ""]
+            self._previous_station_deque = collections.deque(3*[["",""]], 3)
+            self.previous_station_list = [["",""], ["",""], ["",""]]
 
         if self.is_stopping and not self._checked_route_local and self._previous_driving_status:
             self.process_station_list_from_local()
@@ -285,10 +285,10 @@ class ViewControllerProperty(QObject):
 
     def process_depart_arrive_station_details(self, task):
         if task["origin_point_name"]:
-            self.departure_station_name = task["origin_point_name"]
+            self.departure_station_name = self.process_name(task["origin_point_name"])
         else:
-            self.departure_station_name = "start"
-        self.arrival_station_name = task["destination_point_name"]
+            self.departure_station_name = "start;出発点"
+        self.arrival_station_name = self.process_name(task["destination_point_name"])
         date_time_obj = parser.parse(task["plan_start_time"])
         self._depart_time = datetime.timestamp(date_time_obj)
 
@@ -301,9 +301,9 @@ class ViewControllerProperty(QObject):
 
         for task in self._current_task_list:
             if task["task_type"] == "move" and task["status"] in ["doing", "todo"]:
-                station_list.append(task["destination_point_name"])
+                station_list.append(self.process_name(task["destination_point_name"]))
 
-        if self.departure_station_name != "start" and call_type == "local" and self._schedule_type == "loop":
+        if self.departure_station_name[0] != "start" and call_type == "local" and self._schedule_type == "loop":
             station_list.append(self.departure_station_name)
 
         if len(station_list) < 4 and self._schedule_type == "loop":
@@ -312,7 +312,7 @@ class ViewControllerProperty(QObject):
                 station_list.append(next(station_cycle))
         else:
             for _ in range(4 - len(station_list)):
-                station_list.append("")
+                station_list.append(["",""])
 
         self.next_station_list = list(station_list[:3])
 
@@ -382,9 +382,9 @@ class ViewControllerProperty(QObject):
                 if task["status"] == "doing":
                     self.process_depart_arrive_station_details(task)
 
-            if self._previous_station_list == ["", "", ""]:
+            if self._previous_station_list == [["",""], ["",""], ["",""]]:
                 for task in fms_done_list:
-                    self._previous_station_deque.appendleft(task["origin_point_name"] if task["origin_point_name"] else "start")
+                    self._previous_station_deque.appendleft(self.process_name(task["origin_point_name"]) if task["origin_point_name"] else "start;出発点")
                 self.previous_station_list = list(self._previous_station_deque)
 
             self.create_next_station_list("fms")

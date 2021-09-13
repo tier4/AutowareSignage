@@ -93,7 +93,7 @@ Rectangle {
                 id: beforeBusStopName
                 width: 350
                 color: "#717171"
-                text: viewController.previous_station_list[0]
+                text: viewController.previous_station_list[0][0]
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
@@ -103,7 +103,21 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
                 wrapMode: Text.WordWrap
             }
-            visible : (viewController.previous_station_list[0] || viewController.previous_station_list[0].length !== 0)
+            Text {
+                id: beforeBusStopNameEn
+                width: 213
+                color: "#717171"
+                text: viewController.previous_station_list[0][1]
+                anchors.top: beforeBusStopName.bottom
+                anchors.topMargin: 5
+                anchors.horizontalCenter: beforeBusStopName.horizontalCenter
+                font.pixelSize: 16
+                font.bold: true
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                wrapMode: Text.WordWrap
+            }
+            visible : (viewController.previous_station_list[0][0] || viewController.previous_station_list[0][0].length !== 0)
         }
 
         Rectangle {
@@ -121,7 +135,7 @@ Rectangle {
             Text {
                 id: nextBusStopName
                 width: 350
-                text: viewController.arrival_station_name
+                text: viewController.arrival_station_name[0]
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
@@ -131,6 +145,20 @@ Rectangle {
                 font.pixelSize: 30
                 wrapMode: Text.WordWrap
             }
+            Text {
+                id: nextBusStopNameEn
+                width: 213
+                color: "#000000"
+                text: viewController.arrival_station_name[1]
+                anchors.horizontalCenter: nextBusStopName.horizontalCenter
+                anchors.top: nextBusStopName.bottom
+                anchors.topMargin: 5
+                horizontalAlignment: Text.AlignHCenter
+                font.bold: true
+                font.pixelSize: 16
+                verticalAlignment: Text.AlignVCenter
+                wrapMode: Text.WordWrap
+            }
             visible : (viewController.arrival_station_name || viewController.arrival_station_name.length !== 0)
         }
 
@@ -138,7 +166,7 @@ Rectangle {
             id: busStopName
             width: 400
             color: "#000000"
-            text: getDepatureStationName()
+            text: viewController.departure_station_name[0]
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: beforeAndAfterBar.verticalCenter
             anchors.topMargin: 42
@@ -146,6 +174,22 @@ Rectangle {
             verticalAlignment: Text.AlignVCenter
             font.pixelSize: 30
             font.bold: true
+            wrapMode: Text.WordWrap
+        }
+
+        Text {
+            id: busStopNameEn
+            width: 138
+            color: "#000000"
+            text: viewController.departure_station_name[1]
+            anchors.horizontalCenterOffset: 0
+            anchors.top: busStopName.bottom
+            anchors.topMargin: 5
+            anchors.horizontalCenter: parent.horizontalCenter
+            horizontalAlignment: Text.AlignHCenter
+            font.pixelSize: 16
+            font.bold: true
+            verticalAlignment: Text.AlignVCenter
             wrapMode: Text.WordWrap
         }
     }
@@ -166,15 +210,6 @@ Rectangle {
             routeName = qsTr("Route Name")
         }
         return routeName
-    }
-
-    function getDepatureStationName() {
-        var station_name = viewController.departure_station_name
-        if(!station_name || station_name.length === 0)
-        {
-            station_name = qsTr("バス停名")
-        }
-        return station_name
     }
 }
 

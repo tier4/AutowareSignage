@@ -71,7 +71,7 @@ Rectangle {
                 id: beforeBusStopName
                 width: 350
                 color: "#717171"
-                text: viewController.departure_station_name
+                text: viewController.departure_station_name[0]
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
@@ -81,7 +81,21 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
                 wrapMode: Text.WordWrap
             }
-            visible : (viewController.departure_station_name || viewController.departure_station_name.length !== 0)
+            Text {
+                id: beforeBusStopNameEn
+                width: 213
+                color: "#717171"
+                text: viewController.departure_station_name[1]
+                anchors.top: beforeBusStopName.bottom
+                anchors.topMargin: 5
+                anchors.horizontalCenter: beforeBusStopName.horizontalCenter
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                font.pixelSize: 16
+                font.bold: true
+                wrapMode: Text.WordWrap
+            }
+            visible : (viewController.departure_station_name[0] || viewController.departure_station_name[0].length !== 0)
         }
 
         Rectangle {
@@ -99,7 +113,7 @@ Rectangle {
             Text {
                 id: nextBusStopName
                 width: 350
-                text: viewController.arrival_station_name
+                text: viewController.arrival_station_name[0]
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
@@ -109,7 +123,21 @@ Rectangle {
                 font.pixelSize: 30
                 wrapMode: Text.WordWrap
             }
-            visible : (viewController.arrival_station_name || viewController.arrival_station_name.length !== 0)
+            Text {
+                id: nextBusStopNameEn
+                width: 213
+                color: "#000000"
+                text: viewController.arrival_station_name[1]
+                anchors.horizontalCenter: nextBusStopName.horizontalCenter
+                anchors.top: nextBusStopName.bottom
+                anchors.topMargin: 5
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                font.bold: true
+                font.pixelSize: 16
+                wrapMode: Text.WordWrap
+            }
+            visible : (viewController.arrival_station_name[0] || viewController.arrival_station_name[0].length !== 0)
         }
 
         Item {
