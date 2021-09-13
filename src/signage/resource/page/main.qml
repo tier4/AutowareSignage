@@ -4,6 +4,7 @@ import QtQuick.Controls 2.2
 
 import "BusStopView"
 import "BusMoveView"
+import "EmergencyStopView"
 
 Window {
     id: window
