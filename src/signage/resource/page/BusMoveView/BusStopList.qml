@@ -47,20 +47,20 @@ Rectangle {
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
                 horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: 20
+                font.pixelSize: 28
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
                 wrapMode: Text.WordWrap
             }
             Text {
                 id: beforeBusStopName3En
-                width: 100
+                width: 220
                 color: "#717171"
                 text: viewController.previous_station_list[2][1]
                 anchors.top: beforeBusStopName3.bottom
                 anchors.topMargin: 5
                 anchors.horizontalCenter: beforeBusStopName3.horizontalCenter
-                font.pixelSize: 12
+                font.pixelSize: 20
                 font.bold: true
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -91,19 +91,19 @@ Rectangle {
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: 20
+                font.pixelSize: 28
                 wrapMode: Text.WordWrap
             }
             Text {
                 id: nextBusStopName3En
-                width: 100
+                width: 220
                 color: "#000000"
                 text: viewController.next_station_list[2][1]
                 anchors.horizontalCenter: nextBusStopName3.horizontalCenter
                 anchors.top: nextBusStopName3.bottom
                 anchors.topMargin: 5
                 font.bold: true
-                font.pixelSize: 12
+                font.pixelSize: 20
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 wrapMode: Text.WordWrap
@@ -129,21 +129,21 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
                 font.bold: true
-                font.pixelSize: 20
+                font.pixelSize: 28
                 anchors.topMargin: 2
                 anchors.top: parent.bottom
                 wrapMode: Text.WordWrap
             }
             Text {
                 id: currentBusStopNameEn
-                width: 213
+                width: 220
                 color: "#717171"
                 text: viewController.departure_station_name[1]
                 anchors.top: currentBusStopName.bottom
                 anchors.topMargin: 5
                 anchors.horizontalCenter: currentBusStopName.horizontalCenter
                 font.bold: true
-                font.pixelSize: 12
+                font.pixelSize: 20
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
@@ -169,7 +169,7 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
-                font.pixelSize: 20
+                font.pixelSize: 28
                 font.bold: true
                 anchors.topMargin: 2
                 anchors.top: parent.bottom
@@ -177,13 +177,13 @@ Rectangle {
             }
             Text {
                 id: nextBusStopName1En
-                width: 213
+                width: 220
                 text: viewController.arrival_station_name[1]
                 anchors.top: nextBusStopName1.bottom
                 anchors.topMargin: 5
                 anchors.horizontalCenter: nextBusStopName1.horizontalCenter
                 font.bold: true
-                font.pixelSize: 12
+                font.pixelSize: 20
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
@@ -210,7 +210,7 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
-                font.pixelSize: 20
+                font.pixelSize: 28
                 font.bold: true
                 anchors.topMargin: 2
                 anchors.top: parent.bottom
@@ -218,13 +218,13 @@ Rectangle {
             }
             Text {
                 id: beforeBusStopName1En
-                width: 100
+                width: 220
                 color: "#717171"
                 text: viewController.previous_station_list[0][1]
                 anchors.top: beforeBusStopName1.bottom
                 anchors.topMargin: 5
-                anchors.horizontalCenter: parent.horizontalCenters
-                font.pixelSize: 14
+                anchors.horizontalCenter: beforeBusStopName1.horizontalCenter
+                font.pixelSize: 20
                 font.bold: true
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -252,20 +252,20 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
                 font.bold: true
-                font.pixelSize: 20
+                font.pixelSize: 28
                 anchors.topMargin: 2
                 anchors.top: parent.bottom
                 wrapMode: Text.WordWrap
             }
             Text {
                 id: nextBusStopName2En
-                width: 100
+                width: 220
                 text: viewController.next_station_list[1][1]
                 anchors.top: nextBusStopName2.bottom
                 anchors.topMargin: 5
                 anchors.horizontalCenter: parent.horizontalCenter
                 font.bold: true
-                font.pixelSize: 12
+                font.pixelSize: 20
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 wrapMode: Text.WordWrap
@@ -293,21 +293,21 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
                 anchors.horizontalCenter: parent.horizontalCenter
                 font.bold: true
-                font.pixelSize: 20
+                font.pixelSize: 28
                 anchors.topMargin: 2
                 anchors.top: parent.bottom
                 wrapMode: Text.WordWrap
             }
             Text {
                 id: beforeBusStopName2En
-                width: 100
+                width: 220
                 color: "#717171"
                 text: viewController.previous_station_list[1][1]
                 anchors.top: beforeBusStopName2.bottom
                 anchors.topMargin: 5
                 anchors.horizontalCenter: parent.horizontalCenter
                 font.bold: true
-                font.pixelSize: 12
+                font.pixelSize: 20
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 wrapMode: Text.WordWrap
