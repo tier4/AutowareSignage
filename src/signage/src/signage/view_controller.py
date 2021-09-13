@@ -20,7 +20,7 @@ from rclpy.duration import Duration
 
 class ViewControllerProperty(QObject):
     _view_mode_changed_signal = pyqtSignal(str)
-    _route_name_signal = pyqtSignal(str)
+    _route_name_signal = pyqtSignal(list)
     _get_departure_station_name_signal = pyqtSignal(str)
     _get_arrival_station_name_signal = pyqtSignal(str)
     _get_next_station_list_signal = pyqtSignal(list)
@@ -44,7 +44,7 @@ class ViewControllerProperty(QObject):
         self.is_stopping = False
         self.is_driving = False
         self._view_mode = ""
-        self._route_name = ""
+        self._route_name = ["", ""]
         self._departure_station_name = ""
         self._arrival_station_name = ""
         self._next_station_list = ["", "", ""]
@@ -124,8 +124,14 @@ class ViewControllerProperty(QObject):
     def sub_emergency(self, emergency_stopped):
         self.is_emergency_mode = emergency_stopped
 
+    def process_name(self, name_string):
+        name_list = name_string.split(";")
+        if len(name_list) < 2:
+            name_list.append("")
+        return name_list
+
     # QMLへroute_nameを反映させる
-    @pyqtProperty("QString", notify=_route_name_signal)
+    @pyqtProperty(list, notify=_route_name_signal)
     def route_name(self):
         return self._route_name
 
@@ -358,7 +364,7 @@ class ViewControllerProperty(QObject):
                 return
 
             self._schedule_type = data["schedule_type"]
-            self.route_name  = data["project_id"]
+            self.route_name  = self.process_name(data.get("route_id", "FMS ルート名; FMS Route Name"))
 
             fms_task_list = []
             fms_done_list = []

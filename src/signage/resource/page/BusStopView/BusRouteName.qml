@@ -19,6 +19,21 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         wrapMode: Text.WordWrap
     }
+    Text {
+        id: busRouteTextEn
+        width: 213
+        height: 39
+        color: "#000000"
+        text: getRouteNameEN()
+        anchors.top: busRouteText.bottom
+        anchors.topMargin: -5
+        anchors.horizontalCenter: parent.horizontalCenter
+        horizontalAlignment: Text.AlignHCenter
+        font.pixelSize: 36
+        font.bold: true
+        verticalAlignment: Text.AlignVCenter
+        visible: true
+    }
 
     Item {
         id: beforeAndAfterBusStop
@@ -136,10 +151,19 @@ Rectangle {
     }
 
     function getRouteName() {
-        var routeName = viewController.route_name
+        var routeName = viewController.route_name[0]
         if(!routeName || routeName.length === 0)
         {
             routeName = qsTr("バスルート名")
+        }
+        return routeName
+    }
+
+    function getRouteNameEN() {
+        var routeName = viewController.route_name[1]
+        if(!routeName || routeName.length === 0)
+        {
+            routeName = qsTr("Route Name")
         }
         return routeName
     }
