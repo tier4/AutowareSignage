@@ -128,10 +128,6 @@ class ViewControllerProperty(QObject):
         name_list = name_string.split(";")
         if len(name_list) < 2:
             name_list.append("")
-        if len(name_list[0]) > 10:
-            name_list[0] = name_list[0][:10] + "..."
-        if len(name_list[1]) > 30:
-            name_list[0] = name_list[0][:28] + "..."
         return name_list
 
     def process_tag(self, tags_list, key):

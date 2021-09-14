@@ -75,6 +75,7 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter
                 font.pixelSize: 40
                 font.bold: true
+                elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
             }
             Text {
@@ -89,6 +90,7 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter
                 font.pixelSize: 30
                 font.bold: true
+                elide: Text.ElideRight
             }
             visible : (viewController.departure_station_name[0] || viewController.departure_station_name[0].length !== 0)
         }
@@ -112,10 +114,11 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
-                font.bold: true
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
+                font.bold: true
                 font.pixelSize: 40
+                elide: Text.ElideRight
             }
             Text {
                 id: nextBusStopNameEn
@@ -129,6 +132,7 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter
                 font.bold: true
                 font.pixelSize: 30
+                elide: Text.ElideRight
             }
             visible : (viewController.arrival_station_name[0] || viewController.arrival_station_name[0].length !== 0)
         }

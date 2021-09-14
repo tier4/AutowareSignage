@@ -49,6 +49,7 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter
                 font.pixelSize: 28
                 font.bold: true
+                elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
                 wrapMode: Text.WordWrap
             }
@@ -62,6 +63,7 @@ Rectangle {
                 anchors.horizontalCenter: beforeBusStopName3.horizontalCenter
                 font.pixelSize: 20
                 font.bold: true
+                elide: Text.ElideRight
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 wrapMode: Text.WordWrap
@@ -89,6 +91,7 @@ Rectangle {
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
                 font.bold: true
+                elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
                 font.pixelSize: 28
@@ -104,6 +107,7 @@ Rectangle {
                 anchors.topMargin: 5
                 font.bold: true
                 font.pixelSize: 20
+                elide: Text.ElideRight
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 wrapMode: Text.WordWrap
@@ -130,6 +134,7 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 font.bold: true
                 font.pixelSize: 28
+                elide: Text.ElideRight
                 anchors.topMargin: 2
                 anchors.top: parent.bottom
                 wrapMode: Text.WordWrap
@@ -144,6 +149,7 @@ Rectangle {
                 anchors.horizontalCenter: currentBusStopName.horizontalCenter
                 font.bold: true
                 font.pixelSize: 20
+                elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
@@ -171,6 +177,7 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 font.pixelSize: 28
                 font.bold: true
+                elide: Text.ElideRight
                 anchors.topMargin: 2
                 anchors.top: parent.bottom
                 wrapMode: Text.WordWrap
@@ -184,6 +191,7 @@ Rectangle {
                 anchors.horizontalCenter: nextBusStopName1.horizontalCenter
                 font.bold: true
                 font.pixelSize: 20
+                elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
@@ -212,6 +220,7 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 font.pixelSize: 28
                 font.bold: true
+                elide: Text.ElideRight
                 anchors.topMargin: 2
                 anchors.top: parent.bottom
                 wrapMode: Text.WordWrap
@@ -226,6 +235,7 @@ Rectangle {
                 anchors.horizontalCenter: beforeBusStopName1.horizontalCenter
                 font.pixelSize: 20
                 font.bold: true
+                elide: Text.ElideRight
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 wrapMode: Text.WordWrap
@@ -253,6 +263,7 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 font.bold: true
                 font.pixelSize: 28
+                elide: Text.ElideRight
                 anchors.topMargin: 2
                 anchors.top: parent.bottom
                 wrapMode: Text.WordWrap
@@ -266,6 +277,7 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 font.bold: true
                 font.pixelSize: 20
+                elide: Text.ElideRight
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 wrapMode: Text.WordWrap
@@ -294,6 +306,7 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 font.bold: true
                 font.pixelSize: 28
+                elide: Text.ElideRight
                 anchors.topMargin: 2
                 anchors.top: parent.bottom
                 wrapMode: Text.WordWrap
@@ -308,6 +321,7 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 font.bold: true
                 font.pixelSize: 20
+                elide: Text.ElideRight
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 wrapMode: Text.WordWrap

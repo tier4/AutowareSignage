@@ -97,6 +97,7 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter
                 font.pixelSize: 40
                 font.bold: true
+                elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
             }
             Text {
@@ -109,6 +110,7 @@ Rectangle {
                 anchors.horizontalCenter: beforeBusStopName.horizontalCenter
                 font.pixelSize: 30
                 font.bold: true
+                elide: Text.ElideRight
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }
@@ -135,6 +137,7 @@ Rectangle {
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
                 font.bold: true
+                elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
                 font.pixelSize: 40
@@ -150,6 +153,7 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter
                 font.bold: true
                 font.pixelSize: 30
+                elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
             }
             visible : (viewController.arrival_station_name[0] || viewController.arrival_station_name[0].length !== 0)
