@@ -377,8 +377,8 @@ class ViewControllerProperty(QObject):
 
             route_name = self.process_tag(data.get("tags", []), "route_name")
             if not route_name:
-                route_name = self.process_name("FMS ルート; FMS Route")
-            self.route_name  = route_name
+                route_name = "FMS ルート;FMS Route"
+            self.route_name  = self.process_name(route_name)
 
             fms_task_list = []
             fms_done_list = []
