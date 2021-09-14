@@ -17,7 +17,6 @@ Rectangle {
         font.pointSize: 50
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-        wrapMode: Text.WordWrap
     }
     Text {
         id: busRouteTextEn
@@ -99,7 +98,6 @@ Rectangle {
                 font.pixelSize: 40
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
-                wrapMode: Text.WordWrap
             }
             Text {
                 id: beforeBusStopNameEn
@@ -113,7 +111,6 @@ Rectangle {
                 font.bold: true
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
-                wrapMode: Text.WordWrap
             }
             visible : (viewController.previous_station_list[0][0] || viewController.previous_station_list[0][0].length !== 0)
         }
@@ -141,7 +138,6 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
                 font.pixelSize: 40
-                wrapMode: Text.WordWrap
             }
             Text {
                 id: nextBusStopNameEn
@@ -155,7 +151,6 @@ Rectangle {
                 font.bold: true
                 font.pixelSize: 30
                 verticalAlignment: Text.AlignVCenter
-                wrapMode: Text.WordWrap
             }
             visible : (viewController.arrival_station_name || viewController.arrival_station_name.length !== 0)
         }
@@ -172,7 +167,6 @@ Rectangle {
             verticalAlignment: Text.AlignVCenter
             font.pixelSize: 40
             font.bold: true
-            wrapMode: Text.WordWrap
         }
 
         Text {
@@ -188,7 +182,6 @@ Rectangle {
             font.pixelSize: 30
             font.bold: true
             verticalAlignment: Text.AlignVCenter
-            wrapMode: Text.WordWrap
         }
     }
 
