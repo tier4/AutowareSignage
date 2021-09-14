@@ -134,6 +134,12 @@ class ViewControllerProperty(QObject):
             name_list[0] = name_list[0][:28] + "..."
         return name_list
 
+    def process_tag(self, tags_list, key):
+        for item in tags_list:
+            if item["key"] == key:
+                return item["value"]
+        return ""
+
     # QMLへroute_nameを反映させる
     @pyqtProperty(list, notify=_route_name_signal)
     def route_name(self):
@@ -368,7 +374,11 @@ class ViewControllerProperty(QObject):
                 return
 
             self._schedule_type = data["schedule_type"]
-            self.route_name  = self.process_name(data.get("route_id", "FMS ルート名; FMS Route Name"))
+
+            route_name = self.process_tag(data.get("tags", []), "route_name")
+            if not route_name:
+                route_name = self.process_name("FMS ルート; FMS Route")
+            self.route_name  = route_name
 
             fms_task_list = []
             fms_done_list = []
