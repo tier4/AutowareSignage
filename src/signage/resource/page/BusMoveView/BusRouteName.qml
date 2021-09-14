@@ -18,7 +18,19 @@ Rectangle {
         font.pointSize: 50
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-        wrapMode: Text.WordWrap
+    }
+    Text {
+        id: busRouteTextEn
+        color: "#000000"
+        text: getRouteNameEN()
+        anchors.top: busRouteText.bottom
+        anchors.topMargin: -5
+        anchors.horizontalCenter: parent.horizontalCenter
+        horizontalAlignment: Text.AlignHCenter
+        font.pixelSize: 36
+        font.bold: true
+        verticalAlignment: Text.AlignVCenter
+        visible: true
     }
 
     Item {
@@ -54,19 +66,33 @@ Rectangle {
 
             Text {
                 id: beforeBusStopName
-                width: 350
+                width: 500
                 color: "#717171"
-                text: viewController.departure_station_name
+                text: viewController.departure_station_name[0]
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
                 horizontalAlignment: Text.AlignHCenter
+                font.pixelSize: 40
+                font.bold: true
+                elide: Text.ElideRight
+                verticalAlignment: Text.AlignVCenter
+            }
+            Text {
+                id: beforeBusStopNameEn
+                width: 500
+                color: "#717171"
+                text: viewController.departure_station_name[1]
+                anchors.top: beforeBusStopName.bottom
+                anchors.topMargin: 5
+                anchors.horizontalCenter: beforeBusStopName.horizontalCenter
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
                 font.pixelSize: 30
                 font.bold: true
-                verticalAlignment: Text.AlignVCenter
-                wrapMode: Text.WordWrap
+                elide: Text.ElideRight
             }
-            visible : (viewController.departure_station_name || viewController.departure_station_name.length !== 0)
+            visible : (viewController.departure_station_name[0] || viewController.departure_station_name[0].length !== 0)
         }
 
         Rectangle {
@@ -83,18 +109,32 @@ Rectangle {
 
             Text {
                 id: nextBusStopName
-                width: 350
-                text: viewController.arrival_station_name
+                width: 500
+                text: viewController.arrival_station_name[0]
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 2
-                font.bold: true
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: 30
-                wrapMode: Text.WordWrap
+                font.bold: true
+                font.pixelSize: 40
+                elide: Text.ElideRight
             }
-            visible : (viewController.arrival_station_name || viewController.arrival_station_name.length !== 0)
+            Text {
+                id: nextBusStopNameEn
+                width: 500
+                color: "#000000"
+                text: viewController.arrival_station_name[1]
+                anchors.horizontalCenter: nextBusStopName.horizontalCenter
+                anchors.top: nextBusStopName.bottom
+                anchors.topMargin: 5
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                font.bold: true
+                font.pixelSize: 30
+                elide: Text.ElideRight
+            }
+            visible : (viewController.arrival_station_name[0] || viewController.arrival_station_name[0].length !== 0)
         }
 
         Item {
@@ -197,15 +237,23 @@ Rectangle {
             font.bold: true
             font.pixelSize: 48
             visible: viewController.display_time
-            wrapMode: Text.WordWrap
         }
     }
 
     function getRouteName() {
-        var routeName = viewController.route_name
+        var routeName = viewController.route_name[0]
         if(!routeName || routeName.length === 0)
         {
             routeName = qsTr("バスルート名")
+        }
+        return routeName
+    }
+
+    function getRouteNameEN() {
+        var routeName = viewController.route_name[1]
+        if(!routeName || routeName.length === 0)
+        {
+            routeName = qsTr("Route Name")
         }
         return routeName
     }
