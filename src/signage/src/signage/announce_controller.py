@@ -24,12 +24,16 @@ class AnnounceControllerProperty():
         super(AnnounceControllerProperty, self).__init__()
         autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
         autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
+        autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
+        autoware_state_interface.set_velocity_callback(self.sub_velocity)
 
         self._node = node
         self._in_driving_state = False
         self._in_emergency_state = False
         self._autoware_state = ""
         self._current_announce = ""
+        self._is_auto_mode = False
+        self._is_auto_running = False
         self._pending_announce_list = []
         self._emergency_trigger_time = 0
         self._sound = QSound("")
@@ -41,14 +45,16 @@ class AnnounceControllerProperty():
 
     def announce_service(self, request, response):
         try:
+            filename = ""
             annouce_type = request.kind
             if annouce_type == 1:
                 filename = self._package_path + 'engage.wav'
-            elif annouce_type == 2:
+            elif annouce_type == 2 and self._is_auto_running:
                 filename = self._package_path + 'restart_engage.wav'
-            wave_obj = sa.WaveObject.from_wave_file(filename)
-            play_obj = wave_obj.play()
-            play_obj.wait_done()
+            if filename:
+                wave_obj = sa.WaveObject.from_wave_file(filename)
+                play_obj = wave_obj.play()
+                play_obj.wait_done()
         except Exception as e:
             self._node.get_logger().error("not able to play the annoucen, ERROR: {}".format(str(e)))
         return response
@@ -103,12 +109,22 @@ class AnnounceControllerProperty():
                     })
         self._current_announce = message
 
+    def sub_control_mode(self, control_mode):
+        self._is_auto_mode = control_mode == 1
+
+    def sub_velocity(self, velocity):
+        if velocity > 0 and self._is_auto_mode and self._in_driving_state:
+            self._is_auto_running = True
+        elif velocity < 0:
+            self._is_auto_running = False
+
     def sub_autoware_state(self, autoware_state):
         self._autoware_state = autoware_state
         if autoware_state == "Driving" and not self._in_driving_state:
             self._in_driving_state = True
-        elif autoware_state == "ArrivedGoal" and self._in_driving_state:
+        elif autoware_state in ["WaitingForRoute", "WaitingForEngage", "ArrivedGoal", "Planning"] and self._in_driving_state:
             self.send_announce("arrived")
+            self._is_auto_running = False
             self._in_driving_state = False
 
     def sub_emergency(self, emergency_stopped):
