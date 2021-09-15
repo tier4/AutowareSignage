@@ -107,7 +107,7 @@ class AnnounceControllerProperty():
         self._autoware_state = autoware_state
         if autoware_state == "Driving" and not self._in_driving_state:
             self._in_driving_state = True
-        elif autoware_state == "ArrivedGoal" and self._in_driving_state:
+        elif autoware_state in ["WaitingForRoute", "WaitingForEngage", "ArrivedGoal", "Planning"] and self._in_driving_state:
             self.send_announce("arrived")
             self._in_driving_state = False
 
