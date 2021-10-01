@@ -11,9 +11,10 @@ from autoware_hmi_msgs.srv import Announce
 # The higher the value, the higher the priority
 PRIORITY_DICT = {
     "emergency" : 3,
-    "emergency_cancel" : 3,
+    "restart_engage" : 3,
     "engage" : 2,
     "arrived" : 2,
+    "thank_you" : 2,
     "in_emergency" : 2,
     "going_to_depart" : 1,
     "going_to_arrive" : 1
@@ -26,6 +27,7 @@ class AnnounceControllerProperty():
         autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
         autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
         autoware_state_interface.set_velocity_callback(self.sub_velocity)
+        autoware_state_interface.set_door_status_callback(self.sub_door_status)
 
         self._node = node
         self._in_driving_state = False
@@ -34,6 +36,7 @@ class AnnounceControllerProperty():
         self._current_announce = ""
         self._is_auto_mode = False
         self._is_auto_running = False
+        self._sent_door_announce = False
         self._pending_announce_list = []
         self._emergency_trigger_time = 0
         self._sound = QSound("")
@@ -150,3 +153,10 @@ class AnnounceControllerProperty():
             self.send_announce("going_to_depart")
         elif message == "going_to_arrive" and self._autoware_state == "Driving":
             self.send_announce("going_to_arrive")
+
+    def sub_door_status(self, door_status):
+        if door_status == 1 and not self._sent_door_announce:
+            self.send_announce("thank_you")
+            self._sent_door_announce = True
+        elif door_status in [0, 2, 4, 5]:
+            self._sent_door_announce = False
