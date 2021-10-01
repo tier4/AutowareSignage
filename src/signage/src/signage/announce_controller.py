@@ -12,6 +12,8 @@ from autoware_hmi_msgs.srv import Announce
 PRIORITY_DICT = {
     "emergency" : 3,
     "restart_engage" : 3,
+    "door_close" : 3,
+    "door_open" : 3,
     "engage" : 2,
     "arrived" : 2,
     "thank_you" : 2,
@@ -36,7 +38,8 @@ class AnnounceControllerProperty():
         self._current_announce = ""
         self._is_auto_mode = False
         self._is_auto_running = False
-        self._sent_door_announce = False
+        self._door_announce = True
+        self._pre_door_announce_status = 0
         self._pending_announce_list = []
         self._emergency_trigger_time = 0
         self._sound = QSound("")
@@ -129,6 +132,7 @@ class AnnounceControllerProperty():
         self._autoware_state = autoware_state
         if autoware_state == "Driving" and not self._in_driving_state:
             self._in_driving_state = True
+            self._door_announce = False
         elif autoware_state in ["WaitingForRoute", "WaitingForEngage", "ArrivedGoal", "Planning"] and self._in_driving_state:
             if self._signage_stand_alone:
                 self.send_announce("arrived")
@@ -155,8 +159,17 @@ class AnnounceControllerProperty():
             self.send_announce("going_to_arrive")
 
     def sub_door_status(self, door_status):
-        if door_status == 1 and not self._sent_door_announce:
+        if door_status == 1 and not self._door_announce and not self._in_emergency_state:
+            # Only announce when the bus reach the goal and not in emergency state
             self.send_announce("thank_you")
-            self._sent_door_announce = True
-        elif door_status in [0, 2, 4, 5]:
-            self._sent_door_announce = False
+            self._door_announce = True
+        elif door_status == 3 and self._pre_door_announce_status != 3:
+            # Should able to give warning everytime the door is opening
+            self.send_announce("door_open")
+            self._pre_door_announce_status = door_status
+        elif door_status == 4 and self._pre_door_announce_status != 4:
+            # Should able to give warning everytime the door is closing
+            self.send_announce("door_close")
+            self._pre_door_announce_status = door_status
+        elif door_status in [0, 2, 5]:
+            self._pre_door_announce_status = 0
