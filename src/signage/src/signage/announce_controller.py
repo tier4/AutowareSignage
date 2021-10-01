@@ -11,9 +11,12 @@ from autoware_hmi_msgs.srv import Announce
 # The higher the value, the higher the priority
 PRIORITY_DICT = {
     "emergency" : 3,
-    "emergency_cancel" : 3,
+    "restart_engage" : 3,
+    "door_close" : 3,
+    "door_open" : 3,
     "engage" : 2,
     "arrived" : 2,
+    "thank_you" : 2,
     "in_emergency" : 2,
     "going_to_depart" : 1,
     "going_to_arrive" : 1
@@ -26,6 +29,7 @@ class AnnounceControllerProperty():
         autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
         autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
         autoware_state_interface.set_velocity_callback(self.sub_velocity)
+        autoware_state_interface.set_door_status_callback(self.sub_door_status)
 
         self._node = node
         self._in_driving_state = False
@@ -34,9 +38,13 @@ class AnnounceControllerProperty():
         self._current_announce = ""
         self._is_auto_mode = False
         self._is_auto_running = False
+        self._door_announce = True
+        # self._pre_door_announce_status = 0
         self._pending_announce_list = []
         self._emergency_trigger_time = 0
         self._sound = QSound("")
+        self._node.declare_parameter("signage_stand_alone", False)
+        self._signage_stand_alone = self._node.get_parameter("signage_stand_alone").get_parameter_value().bool_value
         self._package_path = get_package_share_directory('signage') + "/resource/sound/"
         self._check_playing_timer = self._node.create_timer(
             1,
@@ -45,16 +53,18 @@ class AnnounceControllerProperty():
 
     def announce_service(self, request, response):
         try:
-            filename = ""
-            annouce_type = request.kind
-            if annouce_type == 1:
-                filename = self._package_path + 'engage.wav'
-            elif annouce_type == 2 and self._is_auto_running:
-                filename = self._package_path + 'restart_engage.wav'
-            if filename:
-                wave_obj = sa.WaveObject.from_wave_file(filename)
-                play_obj = wave_obj.play()
-                play_obj.wait_done()
+            if self._signage_stand_alone:
+                filename = ""
+                annouce_type = request.kind
+                if annouce_type == 1:
+                    filename = self._package_path + 'engage.wav'
+                elif annouce_type == 2 and self._is_auto_running:
+                    filename = self._package_path + 'restart_engage.wav'
+                if filename:
+                    wave_obj = sa.WaveObject.from_wave_file(filename)
+                    play_obj = wave_obj.play()
+                    play_obj.wait_done()
+            self._node.get_logger().info("return announce response")
         except Exception as e:
             self._node.get_logger().error("not able to play the annoucen, ERROR: {}".format(str(e)))
         return response
@@ -122,8 +132,10 @@ class AnnounceControllerProperty():
         self._autoware_state = autoware_state
         if autoware_state == "Driving" and not self._in_driving_state:
             self._in_driving_state = True
+            self._door_announce = False
         elif autoware_state in ["WaitingForRoute", "WaitingForEngage", "ArrivedGoal", "Planning"] and self._in_driving_state:
-            self.send_announce("arrived")
+            if self._signage_stand_alone:
+                self.send_announce("arrived")
             self._is_auto_running = False
             self._in_driving_state = False
 
@@ -133,7 +145,7 @@ class AnnounceControllerProperty():
             self._in_emergency_state = True
         elif not emergency_stopped and self._in_emergency_state:
             self._in_emergency_state = False
-        elif emergency_stopped and self._in_emergency_state:
+        elif emergency_stopped and self._in_emergency_state and self._signage_stand_alone:
             if not self._emergency_trigger_time:
                 self._emergency_trigger_time = self._node.get_clock().now().to_msg().sec
             elif self._node.get_clock().now().to_msg().sec - self._emergency_trigger_time > 180:
@@ -145,3 +157,19 @@ class AnnounceControllerProperty():
             self.send_announce("going_to_depart")
         elif message == "going_to_arrive" and self._autoware_state == "Driving":
             self.send_announce("going_to_arrive")
+
+    def sub_door_status(self, door_status):
+        if door_status == 1 and not self._door_announce and not self._in_emergency_state:
+            # Only announce when the bus reach the goal and not in emergency state
+            self.send_announce("thank_you")
+            self._door_announce = True
+        # elif door_status == 3 and self._pre_door_announce_status != 3:
+        #     # Should able to give warning everytime the door is opening
+        #     self.send_announce("door_open")
+        #     self._pre_door_announce_status = door_status
+        # elif door_status == 4 and self._pre_door_announce_status != 4:
+        #     # Should able to give warning everytime the door is closing
+        #     self.send_announce("door_close")
+        #     self._pre_door_announce_status = door_status
+        # elif door_status in [0, 2, 5]:
+        #     self._pre_door_announce_status = 0

@@ -1,7 +1,7 @@
 # !/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from autoware_api_msgs.msg import AwapiAutowareStatus, AwapiVehicleStatus
+from autoware_api_msgs.msg import AwapiAutowareStatus, AwapiVehicleStatus, DoorStatus
 
 class AutowareStateInterface():
 
@@ -10,6 +10,7 @@ class AutowareStateInterface():
         self.control_mode_callback_list = []
         self.emergency_stopped_callback_list = []
 
+        self.door_status_callback_list = []
         self.turn_signal_callback_list = []
         self.velocity_callback_list = []
         self._node = node
@@ -24,6 +25,12 @@ class AutowareStateInterface():
             AwapiVehicleStatus,
             '/awapi/vehicle/get/status',
             self.vehicle_state_callback,
+            10
+        )
+        self._sub_vehicle_state = node.create_subscription(
+            DoorStatus,
+            '/awapi/vehicle/get/door',
+            self.vehicle_door_callback,
             10
         )
 
@@ -43,6 +50,9 @@ class AutowareStateInterface():
     def set_velocity_callback(self, callback):
         self.velocity_callback_list.append(callback)
 
+    def set_door_status_callback(self, callback):
+        self.door_status_callback_list.append(callback)
+
     # ros subscriber
     # autoware stateをsubしたときの処理
     def autoware_state_callback(self, topic):
@@ -61,6 +71,16 @@ class AutowareStateInterface():
                 callback(emergency_stopped)
         except Exception as e:
             self._node.get_logger().error("Unable to get the autoware state, ERROR: " + str(e))
+
+    # vehicle doorをsubしたときの処理
+    def vehicle_door_callback(self, topic):
+        try:
+            door_status = topic.status
+
+            for callback in self.door_status_callback_list:
+                callback(door_status)
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the vehicle door status, ERROR: " + str(e))
 
     # vehicle stateをsubしたときの処理
     def vehicle_state_callback(self, topic):
