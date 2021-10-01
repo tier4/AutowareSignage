@@ -1,4 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-  <node pkg="signage" exec="signage"  output="screen"/>
+  <arg name="signage_stand_alone" default="false" />
+  <node pkg="signage" exec="signage"  output="screen">
+    <param name="signage_stand_alone" value="$(var signage_stand_alone)" />
+  </node>
 </launch>
