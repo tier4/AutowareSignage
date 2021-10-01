@@ -6,11 +6,15 @@ from PyQt5.QtMultimedia import QSound
 
 import simpleaudio as sa
 from ament_index_python.packages import get_package_share_directory
+from autoware_hmi_msgs.srv import Announce
 
 # The higher the value, the higher the priority
 PRIORITY_DICT = {
     "emergency" : 3,
+    "emergency_cancel" : 3,
+    "engage" : 2,
     "arrived" : 2,
+    "in_emergency" : 2,
     "going_to_depart" : 1,
     "going_to_arrive" : 1
 }
@@ -25,16 +29,35 @@ class AnnounceControllerProperty():
 
         self._node = node
         self._in_driving_state = False
+        self._in_emergency_state = False
         self._autoware_state = ""
         self._current_announce = ""
         self._is_auto_mode = False
         self._is_auto_running = False
         self._pending_announce_list = []
+        self._emergency_trigger_time = 0
         self._sound = QSound("")
         self._package_path = get_package_share_directory('signage') + "/resource/sound/"
         self._check_playing_timer = self._node.create_timer(
             1,
             self.check_playing_callback)
+        self._srv = self._node.create_service(Announce, '/api/signage/set/announce', self.announce_service)
+
+    def announce_service(self, request, response):
+        try:
+            filename = ""
+            annouce_type = request.kind
+            if annouce_type == 1:
+                filename = self._package_path + 'engage.wav'
+            elif annouce_type == 2 and self._is_auto_running:
+                filename = self._package_path + 'restart_engage.wav'
+            if filename:
+                wave_obj = sa.WaveObject.from_wave_file(filename)
+                play_obj = wave_obj.play()
+                play_obj.wait_done()
+        except Exception as e:
+            self._node.get_logger().error("not able to play the annoucen, ERROR: {}".format(str(e)))
+        return response
 
     def process_pending_announce(self):
         try:
@@ -100,6 +123,7 @@ class AnnounceControllerProperty():
         if autoware_state == "Driving" and not self._in_driving_state:
             self._in_driving_state = True
         elif autoware_state in ["WaitingForRoute", "WaitingForEngage", "ArrivedGoal", "Planning"] and self._in_driving_state:
+            self.send_announce("arrived")
             self._is_auto_running = False
             self._in_driving_state = False
 
@@ -109,6 +133,12 @@ class AnnounceControllerProperty():
             self._in_emergency_state = True
         elif not emergency_stopped and self._in_emergency_state:
             self._in_emergency_state = False
+        elif emergency_stopped and self._in_emergency_state:
+            if not self._emergency_trigger_time:
+                self._emergency_trigger_time = self._node.get_clock().now().to_msg().sec
+            elif self._node.get_clock().now().to_msg().sec - self._emergency_trigger_time > 180:
+                self.send_announce("in_emergency")
+                self._emergency_trigger_time = 0
 
     def announce_going_to_depart_and_arrive(self, message):
         if message == "going_to_depart":
