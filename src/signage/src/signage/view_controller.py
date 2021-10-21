@@ -109,6 +109,8 @@ class ViewControllerProperty(QObject):
         elif self.is_driving and self._arrival_station_name != ["", ""]:
             self._previous_driving_status = True
             self.view_mode = "driving"
+        elif self.is_driving:
+            self.view_mode = "auto_driving"
         else:
             self.view_mode = "out_of_service"
 
