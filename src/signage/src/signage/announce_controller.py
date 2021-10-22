@@ -5,6 +5,7 @@
 from PyQt5.QtMultimedia import QSound
 
 import simpleaudio as sa
+from rclpy.duration import Duration
 from ament_index_python.packages import get_package_share_directory
 from autoware_hmi_msgs.srv import Announce
 
@@ -75,19 +76,21 @@ class AnnounceControllerProperty:
     def process_pending_announce(self):
         try:
             for play_sound in self._pending_announce_list:
-                self._pending_announce_list.remove(play_sound)
-                current_time = self._node.get_clock().now().to_msg().sec
-                if current_time - play_sound["requested_time"] <= 10:
-                    self.send_announce(play_sound["message"])
+                time_diff = self._node.get_clock().now() - play_sound["requested_time"]
+                if not self._signage_stand_alone and time_diff > Duration(seconds=5):
+                    # delay the announce for going to depart when the signage is not stand alone
+                    self.play_sound(play_sound["message"])
+                    self._pending_announce_list.remove(play_sound)
+                    break
+                elif self._signage_stand_alone and time_diff <= Duration(seconds=10):
+                    self.play_sound(play_sound["message"])
+                    self._pending_announce_list.remove(play_sound)
                     break
         except Exception as e:
             self._node.get_logger().error("not able to check the pending playing list: " + str(e))
 
     def check_playing_callback(self):
         try:
-            if not self._current_announce:
-                return
-
             if self._sound.isFinished():
                 self._current_announce = ""
                 self.process_pending_announce()
@@ -112,15 +115,24 @@ class AnnounceControllerProperty:
             elif priority == previous_priority:
                 self.play_sound(message)
         elif priority == 1:
-            if not previous_priority:
-                self.play_sound(message)
-            elif previous_priority in [2, 1]:
-                self._pending_announce_list.append(
-                    {
-                        "message": message,
-                        "requested_time": self._node.get_clock().now().to_msg().sec,
-                    }
-                )
+            if self._signage_stand_alone:
+                if not previous_priority:
+                    self.play_sound(message)
+                elif previous_priority in [2, 1]:
+                    self._pending_announce_list.append(
+                        {
+                            "message": message,
+                            "requested_time": self._node.get_clock().now(),
+                        }
+                    )
+            else:
+                if not previous_priority:
+                    self._pending_announce_list.append(
+                        {
+                            "message": message,
+                            "requested_time": self._node.get_clock().now(),
+                        }
+                    )
         self._current_announce = message
 
     def sub_control_mode(self, control_mode):
