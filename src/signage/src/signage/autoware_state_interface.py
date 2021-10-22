@@ -35,8 +35,8 @@ class AutowareStateInterface:
 
         self._topic_checker = self._node.create_timer(1, self.topic_checker_callback)
 
-    def route_checker_callback(self):
-        if self._node.get_clock().now() - self._autoware_status_time < Duration(seconds=5):
+    def topic_checker_callback(self):
+        if self._node.get_clock().now() - self._autoware_status_time > Duration(seconds=5):
             for callback in self.autoware_state_callback_list:
                 callback("")
 
@@ -46,7 +46,7 @@ class AutowareStateInterface:
             for callback in self.emergency_stopped_callback_list:
                 callback(False)
 
-        if self._node.get_clock().now() - self._vehicle_status_time < Duration(seconds=5):
+        if self._node.get_clock().now() - self._vehicle_status_time > Duration(seconds=5):
             for callback in self.velocity_callback_list:
                 callback(0)
 
