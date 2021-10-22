@@ -8,17 +8,17 @@
 
 <license>TODO</license>
   <exec_depend>ament_index_python</exec_depend>
-  <exec_depend>rclpy</exec_depend>
   <exec_depend>autoware_api_msgs</exec_depend>
   <exec_depend>autoware_perception_msgs</exec_depend>
-  <exec_depend>autoware_vehicle_msgs</exec_depend>
   <exec_depend>autoware_system_msgs</exec_depend>
-  <exec_depend>qtbase5-dev</exec_depend>
-  <exec_depend>qttools5-dev-tools</exec_depend>
+  <exec_depend>autoware_vehicle_msgs</exec_depend>
   <exec_depend>python-qt5-bindings-quick</exec_depend>
+  <exec_depend>qml-module-qtmultimedia</exec_depend>
   <exec_depend>qml-module-qtquick-controls</exec_depend>
   <exec_depend>qml-module-qtquick-controls2</exec_depend>
-  <exec_depend>qml-module-qtmultimedia</exec_depend>
+  <exec_depend>qtbase5-dev</exec_depend>
+  <exec_depend>qttools5-dev-tools</exec_depend>
+  <exec_depend>rclpy</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>

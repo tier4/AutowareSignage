@@ -24,6 +24,11 @@ Window {
         visible: viewController.view_mode === "manual_driving"
     }
 
+    AutoDriving {
+        id: autoDriving
+        visible: viewController.view_mode === "auto_driving"
+    }
+
     OutOfService {
         id: outOfService
         visible: viewController.view_mode === "out_of_service"
@@ -58,4 +63,3 @@ Window {
     D{i:0;height:360;width:1920}
 }
  ##^##*/
-

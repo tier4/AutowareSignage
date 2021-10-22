@@ -12,8 +12,9 @@ from signage.announce_controller import AnnounceControllerProperty
 from signage.autoware_state_interface import AutowareStateInterface
 from ament_index_python.packages import get_package_share_directory
 
+
 def main(args=None):
-    package_path = get_package_share_directory('signage')
+    package_path = get_package_share_directory("signage")
 
     rclpy.init(args=args)
     node = Node("signage")
@@ -36,10 +37,8 @@ def main(args=None):
 
     while True:
         app.processEvents()
-        rclpy.spin_once(node,timeout_sec=0.01)
+        rclpy.spin_once(node, timeout_sec=0.01)
 
 
 if __name__ == "__main__":
     main()
-
-

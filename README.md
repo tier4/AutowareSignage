@@ -1,6 +1,7 @@
 # FieldOperatorApplication
 
 ## 確認環境
+
 - Ubuntu20.04
 - Python3.5
 - Qt5.9
@@ -9,25 +10,28 @@
 ## setup
 
 ### Install Autoware
+
 下記参照
-https://github.com/tier4/AutowareArchitectureProposal.proj
+<https://github.com/tier4/AutowareArchitectureProposal.proj>
 
 ### setup FOA
-```
+
+```bash
 cd GSM8Signage
 source {AUTOWARE_PATH}/install/setup.bash
 bash setup.sh
 ```
 
-
 ## start
-```
+
+```bash
 source {AUTOWARE_PATH}/install/setup.bash
 bash start.sh
 ```
 
 ## rebuild
-```
+
+```bash
 cd GSM8Signage
 colcon build
 ```

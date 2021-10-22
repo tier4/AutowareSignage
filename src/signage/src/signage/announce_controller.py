@@ -5,24 +5,26 @@
 from PyQt5.QtMultimedia import QSound
 
 import simpleaudio as sa
+from rclpy.duration import Duration
 from ament_index_python.packages import get_package_share_directory
 from autoware_hmi_msgs.srv import Announce
 
 # The higher the value, the higher the priority
 PRIORITY_DICT = {
-    "emergency" : 3,
-    "restart_engage" : 3,
-    "door_close" : 3,
-    "door_open" : 3,
-    "engage" : 2,
-    "arrived" : 2,
-    "thank_you" : 2,
-    "in_emergency" : 2,
-    "going_to_depart" : 1,
-    "going_to_arrive" : 1
+    "emergency": 3,
+    "restart_engage": 3,
+    "door_close": 3,
+    "door_open": 3,
+    "engage": 2,
+    "arrived": 2,
+    "thank_you": 2,
+    "in_emergency": 2,
+    "going_to_depart": 1,
+    "going_to_arrive": 1,
 }
 
-class AnnounceControllerProperty():
+
+class AnnounceControllerProperty:
     def __init__(self, node, autoware_state_interface=None):
         super(AnnounceControllerProperty, self).__init__()
         autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
@@ -44,12 +46,14 @@ class AnnounceControllerProperty():
         self._emergency_trigger_time = 0
         self._sound = QSound("")
         self._node.declare_parameter("signage_stand_alone", False)
-        self._signage_stand_alone = self._node.get_parameter("signage_stand_alone").get_parameter_value().bool_value
-        self._package_path = get_package_share_directory('signage') + "/resource/sound/"
-        self._check_playing_timer = self._node.create_timer(
-            1,
-            self.check_playing_callback)
-        self._srv = self._node.create_service(Announce, '/api/signage/set/announce', self.announce_service)
+        self._signage_stand_alone = (
+            self._node.get_parameter("signage_stand_alone").get_parameter_value().bool_value
+        )
+        self._package_path = get_package_share_directory("signage") + "/resource/sound/"
+        self._check_playing_timer = self._node.create_timer(1, self.check_playing_callback)
+        self._srv = self._node.create_service(
+            Announce, "/api/signage/set/announce", self.announce_service
+        )
 
     def announce_service(self, request, response):
         try:
@@ -57,9 +61,9 @@ class AnnounceControllerProperty():
                 filename = ""
                 annouce_type = request.kind
                 if annouce_type == 1:
-                    filename = self._package_path + 'engage.wav'
+                    filename = self._package_path + "engage.wav"
                 elif annouce_type == 2 and self._is_auto_running:
-                    filename = self._package_path + 'restart_engage.wav'
+                    filename = self._package_path + "restart_engage.wav"
                 if filename:
                     wave_obj = sa.WaveObject.from_wave_file(filename)
                     play_obj = wave_obj.play()
@@ -72,19 +76,21 @@ class AnnounceControllerProperty():
     def process_pending_announce(self):
         try:
             for play_sound in self._pending_announce_list:
-                self._pending_announce_list.remove(play_sound)
-                current_time = self._node.get_clock().now().to_msg().sec
-                if current_time - play_sound["requested_time"] <= 10:
-                    self.send_announce(play_sound["message"])
+                time_diff = self._node.get_clock().now() - play_sound["requested_time"]
+                if not self._signage_stand_alone and time_diff > Duration(seconds=5):
+                    # delay the announce for going to depart when the signage is not stand alone
+                    self.play_sound(play_sound["message"])
+                    self._pending_announce_list.remove(play_sound)
+                    break
+                elif self._signage_stand_alone and time_diff <= Duration(seconds=10):
+                    self.play_sound(play_sound["message"])
+                    self._pending_announce_list.remove(play_sound)
                     break
         except Exception as e:
             self._node.get_logger().error("not able to check the pending playing list: " + str(e))
 
     def check_playing_callback(self):
         try:
-            if not self._current_announce:
-                return
-
             if self._sound.isFinished():
                 self._current_announce = ""
                 self.process_pending_announce()
@@ -109,14 +115,24 @@ class AnnounceControllerProperty():
             elif priority == previous_priority:
                 self.play_sound(message)
         elif priority == 1:
-            if not previous_priority:
-                self.play_sound(message)
-            elif previous_priority in [2,1]:
-                self._pending_announce_list.append(
-                    {
-                        "message":message,
-                        "requested_time":self._node.get_clock().now().to_msg().sec
-                    })
+            if self._signage_stand_alone:
+                if not previous_priority:
+                    self.play_sound(message)
+                elif previous_priority in [2, 1]:
+                    self._pending_announce_list.append(
+                        {
+                            "message": message,
+                            "requested_time": self._node.get_clock().now(),
+                        }
+                    )
+            else:
+                if not previous_priority:
+                    self._pending_announce_list.append(
+                        {
+                            "message": message,
+                            "requested_time": self._node.get_clock().now(),
+                        }
+                    )
         self._current_announce = message
 
     def sub_control_mode(self, control_mode):
@@ -133,7 +149,10 @@ class AnnounceControllerProperty():
         if autoware_state == "Driving" and not self._in_driving_state:
             self._in_driving_state = True
             self._door_announce = False
-        elif autoware_state in ["WaitingForRoute", "WaitingForEngage", "ArrivedGoal", "Planning"] and self._in_driving_state:
+        elif (
+            autoware_state in ["WaitingForRoute", "WaitingForEngage", "ArrivedGoal", "Planning"]
+            and self._in_driving_state
+        ):
             if self._signage_stand_alone:
                 self.send_announce("arrived")
             self._is_auto_running = False

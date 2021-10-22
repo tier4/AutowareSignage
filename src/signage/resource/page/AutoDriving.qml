@@ -5,13 +5,13 @@ Rectangle {
     id: emergencyStopView
     width: 1920
     height: 360
-    color: "#f60000"
+    color: "#ffffff"
     Text {
         id: emergencyStopText
         x: 288
         y: 207
-        color: "#ffffff"
-        text: qsTr("只今オペレータ対応中です")
+        color: "#000000"
+        text: qsTr("自動運転中")
         anchors.verticalCenterOffset: -40
         font.bold: true
         verticalAlignment: Text.AlignVCenter
@@ -26,8 +26,8 @@ Rectangle {
         x: 651
         width: 568
         height: 42
-        color: "#ffffff"
-        text: qsTr("Now the operator is working on it")
+        color: "#000000"
+        text: qsTr("Auto Driving")
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: emergencyStopText.bottom
         anchors.topMargin: 10

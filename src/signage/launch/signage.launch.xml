@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="signage_stand_alone" default="false" />
+  <arg name="ignore_emergency_stoppped" default="false" />
   <node pkg="signage" exec="signage"  output="screen">
     <param name="signage_stand_alone" value="$(var signage_stand_alone)" />
+    <param name="ignore_emergency_stoppped" value="$(var ignore_emergency_stoppped)" />
   </node>
 </launch>
