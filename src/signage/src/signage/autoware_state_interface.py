@@ -1,6 +1,7 @@
 # !/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from rclpy.duration import Duration
 from autoware_api_msgs.msg import AwapiAutowareStatus, AwapiVehicleStatus, DoorStatus
 
 class AutowareStateInterface():
@@ -33,6 +34,27 @@ class AutowareStateInterface():
             self.vehicle_door_callback,
             10
         )
+        self._autoware_status_time = self._node.get_clock().now()
+        self._vehicle_status_time = self._node.get_clock().now()
+
+        self._topic_checker = self._node.create_timer(
+            1,
+            self.topic_checker_callback)
+
+    def route_checker_callback(self):
+        if self._node.get_clock().now() - self._autoware_status_time  < Duration(seconds=5):
+            for callback in self.autoware_state_callback_list:
+                callback("")
+
+            for callback in self.control_mode_callback_list:
+                callback(0)
+
+            for callback in self.emergency_stopped_callback_list:
+                callback(False)
+
+        if self._node.get_clock().now() - self._vehicle_status_time < Duration(seconds=5):
+            for callback in self.velocity_callback_list:
+                callback(0)
 
     # set callback
     def set_autoware_state_callback(self, callback):
@@ -57,6 +79,7 @@ class AutowareStateInterface():
     # autoware stateをsubしたときの処理
     def autoware_state_callback(self, topic):
         try:
+            self._autoware_status_time = self._node.get_clock().now()
             autoware_state = topic.autoware_state
             control_mode = topic.control_mode
             emergency_stopped = topic.emergency_stopped
@@ -85,6 +108,7 @@ class AutowareStateInterface():
     # vehicle stateをsubしたときの処理
     def vehicle_state_callback(self, topic):
         try:
+            self._vehicle_status_time = self._node.get_clock().now()
             turn_signal = topic.turn_signal
             velocity = topic.velocity
             steering = topic.steering
