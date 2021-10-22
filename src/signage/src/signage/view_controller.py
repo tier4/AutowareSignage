@@ -18,6 +18,7 @@ import collections
 from autoware_debug_msgs.msg import Float64Stamped
 from rclpy.duration import Duration
 
+
 class ViewControllerProperty(QObject):
     _view_mode_changed_signal = pyqtSignal(str)
     _route_name_signal = pyqtSignal(list)
@@ -47,9 +48,9 @@ class ViewControllerProperty(QObject):
         self._route_name = ["", ""]
         self._departure_station_name = ["", ""]
         self._arrival_station_name = ["", ""]
-        self._next_station_list = [["",""], ["",""], ["",""]]
-        self._previous_station_deque = collections.deque(3*[["",""]], 3)
-        self._previous_station_list = [["",""], ["",""], ["",""]]
+        self._next_station_list = [["", ""], ["", ""], ["", ""]]
+        self._previous_station_deque = collections.deque(3 * [["", ""]], 3)
+        self._previous_station_list = [["", ""], ["", ""], ["", ""]]
         self._remain_arrive_time_text = ""
         self._remain_depart_time_text = ""
         self._distance = 1000
@@ -66,26 +67,24 @@ class ViewControllerProperty(QObject):
         self._schedule_updated_time = ""
         self._fms_check_time = self._node.get_clock().now()
         self._fms_payload = {
-             "method": "get",
-             "url": "https://" + os.getenv('FMS_URL', 'fms.web.auto') + "/v1/projects/{project_id}/environments/{environment_id}/vehicles/{vehicle_id}/active_schedule",
-             "body": {}
-            }
+            "method": "get",
+            "url": "https://"
+            + os.getenv("FMS_URL", "fms.web.auto")
+            + "/v1/projects/{project_id}/environments/{environment_id}/vehicles/{vehicle_id}/active_schedule",
+            "body": {},
+        }
         self._sub_path_distance = node.create_subscription(
             Float64Stamped,
-            '/autoware_api/utils/path_distance_calculator/distance',
+            "/autoware_api/utils/path_distance_calculator/distance",
             self.path_distance_callback,
-            10
+            10,
         )
-        self._cycle_view_control_timer = self._node.create_timer(
-            0.1,
-            self.update_view_state)
+        self._cycle_view_control_timer = self._node.create_timer(0.1, self.update_view_state)
         try:
             self.process_station_list_from_fms(True)
         except:
             pass
-        self._route_checker = self._node.create_timer(
-            1,
-            self.route_checker_callback)
+        self._route_checker = self._node.create_timer(1, self.route_checker_callback)
 
     # view mode
     @pyqtProperty(str, notify=_view_mode_changed_signal)
@@ -117,7 +116,12 @@ class ViewControllerProperty(QObject):
         # self._node.get_logger().info('view mode %r' % (self._view_mode))
 
     def sub_autoware_state(self, autoware_state):
-        self.is_stopping = autoware_state in ["WaitingForRoute", "WaitingForEngage", "ArrivedGoal", "Planning"]
+        self.is_stopping = autoware_state in [
+            "WaitingForRoute",
+            "WaitingForEngage",
+            "ArrivedGoal",
+            "Planning",
+        ]
         self.is_driving = autoware_state == "Driving"
 
     def sub_control_mode(self, control_mode):
@@ -248,8 +252,8 @@ class ViewControllerProperty(QObject):
         if self._reach_final and self._current_task_list:
             self._reach_final = False
             self._previous_driving_status = False
-            self._previous_station_deque = collections.deque(3*[["",""]], 3)
-            self.previous_station_list = [["",""], ["",""], ["",""]]
+            self._previous_station_deque = collections.deque(3 * [["", ""]], 3)
+            self.previous_station_list = [["", ""], ["", ""], ["", ""]]
 
         if self.is_stopping and not self._checked_route_local and self._previous_driving_status:
             self.process_station_list_from_local()
@@ -274,7 +278,7 @@ class ViewControllerProperty(QObject):
 
             if self.is_stopping:
                 self._announced_going_to_arrive = False
-                remain_minute = int((self._depart_time - current_time)/60)
+                remain_minute = int((self._depart_time - current_time) / 60)
                 if remain_minute > 0:
                     self.remain_depart_time_text = "このバスはあと{}分程で出発します".format(str(remain_minute))
                 else:
@@ -284,7 +288,7 @@ class ViewControllerProperty(QObject):
                     self._announce_interface.announce_going_to_depart_and_arrive("going_to_depart")
                     self._announced_going_to_depart = True
 
-            if remain_minute < 5 or self._distance < 100 :
+            if remain_minute < 5 or self._distance < 100:
                 self.display_time = True
             else:
                 self.display_time = False
@@ -311,7 +315,11 @@ class ViewControllerProperty(QObject):
             if task["task_type"] == "move" and task["status"] in ["doing", "todo"]:
                 station_list.append(self.process_name(task["destination_point_name"]))
 
-        if self.departure_station_name[1] != "Start" and call_type == "local" and self._schedule_type == "loop":
+        if (
+            self.departure_station_name[1] != "Start"
+            and call_type == "local"
+            and self._schedule_type == "loop"
+        ):
             station_list.append(self.departure_station_name)
 
         if len(station_list) < 4 and self._schedule_type == "loop":
@@ -320,7 +328,7 @@ class ViewControllerProperty(QObject):
                 station_list.append(next(station_cycle))
         else:
             for _ in range(4 - len(station_list)):
-                station_list.append(["",""])
+                station_list.append(["", ""])
 
         self.next_station_list = list(station_list[:3])
 
@@ -338,7 +346,7 @@ class ViewControllerProperty(QObject):
             if not self._current_task_list:
                 # Reach final station
                 self.departure_station_name = self.arrival_station_name
-                self.arrival_station_name  = ["", ""]
+                self.arrival_station_name = ["", ""]
                 self.remain_depart_time_text = "終点です。\nご乗車ありがとうございました"
                 self._reach_final = True
                 return
@@ -354,12 +362,18 @@ class ViewControllerProperty(QObject):
         except Exception as e:
             self._node.get_logger().error("Unable to get the task from local, ERROR: " + str(e))
 
-    def process_station_list_from_fms(self, skip_check = False):
+    def process_station_list_from_fms(self, skip_check=False):
         try:
-            if not skip_check and self._node.get_clock().now() - self._fms_check_time < Duration(seconds=5):
+            if not skip_check and self._node.get_clock().now() - self._fms_check_time < Duration(
+                seconds=5
+            ):
                 return
 
-            respond = requests.post("http://{}:4711/v1/services/order".format(os.getenv('AUTOWARE_IP', 'localhost')), json=self._fms_payload, timeout=5)
+            respond = requests.post(
+                "http://{}:4711/v1/services/order".format(os.getenv("AUTOWARE_IP", "localhost")),
+                json=self._fms_payload,
+                timeout=5,
+            )
             data = json.loads(respond.text)
             self._fms_check_time = self._node.get_clock().now()
 
@@ -367,7 +381,10 @@ class ViewControllerProperty(QObject):
                 self._node.get_logger().error("No data from fms")
                 return
 
-            elif self._schedule_updated_time == data["updated_at"] and self._schedule_id == data["schedule_id"]:
+            elif (
+                self._schedule_updated_time == data["updated_at"]
+                and self._schedule_id == data["schedule_id"]
+            ):
                 self._node.get_logger().error("same schedule, skip")
                 return
 
@@ -376,7 +393,7 @@ class ViewControllerProperty(QObject):
             route_name = self.process_tag(data.get("tags", []), "route_name")
             if not route_name:
                 route_name = "FMS ルート;FMS Route"
-            self.route_name  = self.process_name(route_name)
+            self.route_name = self.process_name(route_name)
 
             fms_task_list = []
             fms_done_list = []
@@ -394,9 +411,13 @@ class ViewControllerProperty(QObject):
                 if task["status"] == "doing":
                     self.process_depart_arrive_station_details(task)
 
-            if self._previous_station_list == [["",""], ["",""], ["",""]]:
+            if self._previous_station_list == [["", ""], ["", ""], ["", ""]]:
                 for task in fms_done_list:
-                    self._previous_station_deque.appendleft(self.process_name(task["origin_point_name"]) if task["origin_point_name"] else ["出発点", "Start"])
+                    self._previous_station_deque.appendleft(
+                        self.process_name(task["origin_point_name"])
+                        if task["origin_point_name"]
+                        else ["出発点", "Start"]
+                    )
                 self.previous_station_list = list(self._previous_station_deque)
 
             self.create_next_station_list("fms")
