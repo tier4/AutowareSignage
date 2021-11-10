@@ -122,7 +122,7 @@ class ViewControllerProperty(QObject):
         # self._node.get_logger().info('view mode %r' % (self._view_mode))
 
     def sub_autoware_state(self, autoware_state):
-        if not self._is_auto_mode:
+        if not self.is_auto_mode:
             return
 
         self.is_stopping = autoware_state in [
