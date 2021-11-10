@@ -38,6 +38,12 @@ class ViewControllerProperty(QObject):
         autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
         autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
         autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
+
+        self._node.declare_parameter("ignore_manual_driving", False)
+        self._ignore_manual_driving = (
+            self._node.get_parameter("ignore_manual_driving").get_parameter_value().bool_value
+        )
+
         self._announce_interface = announce_interface
 
         self.is_auto_mode = False
@@ -101,7 +107,7 @@ class ViewControllerProperty(QObject):
     def update_view_state(self):
         if self.is_emergency_mode:
             self.view_mode = "emergency_stopped"
-        elif not self.is_auto_mode:
+        elif not self.is_auto_mode and not self._ignore_manual_driving:
             self.view_mode = "manual_driving"
         elif self.is_stopping and self._departure_station_name != ["", ""]:
             self.view_mode = "stopping"
@@ -116,6 +122,9 @@ class ViewControllerProperty(QObject):
         # self._node.get_logger().info('view mode %r' % (self._view_mode))
 
     def sub_autoware_state(self, autoware_state):
+        if not self._is_auto_mode:
+            return
+
         self.is_stopping = autoware_state in [
             "WaitingForRoute",
             "WaitingForEngage",

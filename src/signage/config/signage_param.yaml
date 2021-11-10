@@ -1,0 +1,5 @@
+signage:
+  ros__parameters:
+    signage_stand_alone: true
+    ignore_emergency_stoppped: true
+    ignore_manual_driving: true

@@ -145,6 +145,9 @@ class AnnounceControllerProperty:
             self._is_auto_running = False
 
     def sub_autoware_state(self, autoware_state):
+        if not self._is_auto_mode:
+            return
+
         self._autoware_state = autoware_state
         if autoware_state == "Driving" and not self._in_driving_state:
             self._in_driving_state = True
