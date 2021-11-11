@@ -174,6 +174,9 @@ class AnnounceControllerProperty:
             self._is_auto_running = False
             self._in_driving_state = False
 
+        self._prev_prev_autoware_state = self._prev_autoware_state
+        self._prev_autoware_state = autoware_state
+
     def sub_emergency(self, emergency_stopped):
         if emergency_stopped and not self._in_emergency_state:
             self.send_announce("emergency")
