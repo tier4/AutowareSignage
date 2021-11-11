@@ -27,13 +27,10 @@ PRIORITY_DICT = {
 class AnnounceControllerProperty:
     def __init__(self, node, autoware_state_interface=None):
         super(AnnounceControllerProperty, self).__init__()
-        autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
-        autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
-        autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
-        autoware_state_interface.set_velocity_callback(self.sub_velocity)
-        autoware_state_interface.set_door_status_callback(self.sub_door_status)
 
         self._node = node
+        self._prev_autoware_state = ""
+        self._prev_prev_autoware_state = ""
         self._in_driving_state = False
         self._in_emergency_state = False
         self._autoware_state = ""
@@ -54,6 +51,11 @@ class AnnounceControllerProperty:
         self._srv = self._node.create_service(
             Announce, "/api/signage/set/announce", self.announce_service
         )
+        autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
+        autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
+        autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
+        autoware_state_interface.set_velocity_callback(self.sub_velocity)
+        autoware_state_interface.set_door_status_callback(self.sub_door_status)
 
     def announce_service(self, request, response):
         try:
@@ -145,18 +147,35 @@ class AnnounceControllerProperty:
             self._is_auto_running = False
 
     def sub_autoware_state(self, autoware_state):
+        if not self._is_auto_mode:
+            return
+
+        buffer_flag = (
+            autoware_state == self._prev_prev_autoware_state
+            and autoware_state == self._prev_autoware_state
+        )
+
+        stop_condition = [
+            "WaitingForRoute",
+            "ArrivedGoal",
+            "Planning",
+        ]
+
         self._autoware_state = autoware_state
         if autoware_state == "Driving" and not self._in_driving_state:
             self._in_driving_state = True
             self._door_announce = False
         elif (
-            autoware_state in ["WaitingForRoute", "WaitingForEngage", "ArrivedGoal", "Planning"]
-            and self._in_driving_state
-        ):
+            (autoware_state in stop_condition)
+            or (buffer_flag and autoware_state == "WaitingForEngage")
+        ) and self._in_driving_state:
             if self._signage_stand_alone:
                 self.send_announce("arrived")
             self._is_auto_running = False
             self._in_driving_state = False
+
+        self._prev_prev_autoware_state = self._prev_autoware_state
+        self._prev_autoware_state = autoware_state
 
     def sub_emergency(self, emergency_stopped):
         if emergency_stopped and not self._in_emergency_state:

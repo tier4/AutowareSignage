@@ -1,9 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="signage_stand_alone" default="false" />
-  <arg name="ignore_emergency_stoppped" default="false" />
+  <arg name="signage_param" default="$(find-pkg-share signage)/config/signage_param.yaml" />
   <node pkg="signage" exec="signage"  output="screen">
-    <param name="signage_stand_alone" value="$(var signage_stand_alone)" />
-    <param name="ignore_emergency_stoppped" value="$(var ignore_emergency_stoppped)" />
+    <param from="$(var signage_param)"/>
   </node>
 </launch>

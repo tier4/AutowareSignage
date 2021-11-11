@@ -82,14 +82,14 @@ class AutowareStateInterface:
             else:
                 emergency_stopped = topic.emergency_stopped
 
-            for callback in self.autoware_state_callback_list:
-                callback(autoware_state)
-
             for callback in self.control_mode_callback_list:
                 callback(control_mode)
 
             for callback in self.emergency_stopped_callback_list:
                 callback(emergency_stopped)
+
+            for callback in self.autoware_state_callback_list:
+                callback(autoware_state)
         except Exception as e:
             self._node.get_logger().error("Unable to get the autoware state, ERROR: " + str(e))
 
