@@ -35,17 +35,14 @@ class ViewControllerProperty(QObject):
         node.get_logger().info("%s initializing..." % "signage")
         self._node = node
 
-        autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
-        autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
-        autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
-
         self._node.declare_parameter("ignore_manual_driving", False)
         self._ignore_manual_driving = (
             self._node.get_parameter("ignore_manual_driving").get_parameter_value().bool_value
         )
 
         self._announce_interface = announce_interface
-
+        self._prev_autoware_state = ""
+        self._prev_prev_autoware_state = ""
         self.is_auto_mode = False
         self.is_emergency_mode = False
         self.is_stopping = False
@@ -71,6 +68,10 @@ class ViewControllerProperty(QObject):
         self._reach_final = False
         self._schedule_id = ""
         self._schedule_updated_time = ""
+        autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
+        autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
+        autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
+
         self._fms_check_time = self._node.get_clock().now()
         self._fms_payload = {
             "method": "get",
@@ -85,7 +86,9 @@ class ViewControllerProperty(QObject):
             self.path_distance_callback,
             10,
         )
-        self._cycle_view_control_timer = self._node.create_timer(0.1, self.update_view_state)
+
+        # To add buffer time for the autoware state
+        self._cycle_view_control_timer = self._node.create_timer(1.0, self.update_view_state)
         try:
             self.process_station_list_from_fms(True)
         except:
@@ -125,12 +128,24 @@ class ViewControllerProperty(QObject):
         if not self.is_auto_mode:
             return
 
-        self.is_stopping = autoware_state in [
+        stop_condition = [
             "WaitingForRoute",
             "ArrivedGoal",
             "Planning",
         ]
+
+        buffer_flag = (
+            autoware_state == self._prev_prev_autoware_state
+            and autoware_state == self._prev_autoware_state
+        )
+
+        self.is_stopping = (autoware_state in stop_condition) or (
+            buffer_flag and autoware_state == "WaitingForEngage"
+        )
         self.is_driving = autoware_state == "Driving"
+
+        self._prev_prev_autoware_state = self._prev_autoware_state
+        self._prev_autoware_state = autoware_state
 
     def sub_control_mode(self, control_mode):
         self.is_auto_mode = control_mode == 1
