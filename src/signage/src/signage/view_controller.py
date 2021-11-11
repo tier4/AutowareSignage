@@ -127,7 +127,6 @@ class ViewControllerProperty(QObject):
 
         self.is_stopping = autoware_state in [
             "WaitingForRoute",
-            "WaitingForEngage",
             "ArrivedGoal",
             "Planning",
         ]

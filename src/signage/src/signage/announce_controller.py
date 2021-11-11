@@ -153,7 +153,7 @@ class AnnounceControllerProperty:
             self._in_driving_state = True
             self._door_announce = False
         elif (
-            autoware_state in ["WaitingForRoute", "WaitingForEngage", "ArrivedGoal", "Planning"]
+            autoware_state in ["WaitingForRoute", "ArrivedGoal", "Planning"]
             and self._in_driving_state
         ):
             if self._signage_stand_alone:
