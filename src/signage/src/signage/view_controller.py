@@ -40,6 +40,11 @@ class ViewControllerProperty(QObject):
             self._node.get_parameter("ignore_manual_driving").get_parameter_value().bool_value
         )
 
+        self._node.declare_parameter("check_fms_time", 0)
+        self._check_fms_time = (
+            self._node.get_parameter("check_fms_time").get_parameter_value().int_value
+        )
+
         self._announce_interface = announce_interface
         self._prev_autoware_state = ""
         self._prev_prev_autoware_state = ""
@@ -271,6 +276,13 @@ class ViewControllerProperty(QObject):
                 self.process_station_list_from_fms()
             except:
                 return
+        elif self._check_fms_time:
+            if self._node.get_clock().now() - self._fms_check_time > Duration(seconds=self._check_fms_time):
+                # repeat check fms function
+                try:
+                    self.process_station_list_from_fms()
+                except:
+                    pass
 
         if self._reach_final and self._current_task_list:
             self._reach_final = False
