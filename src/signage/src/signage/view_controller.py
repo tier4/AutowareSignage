@@ -277,14 +277,16 @@ class ViewControllerProperty(QObject):
             except:
                 return
         elif self._check_fms_time > 0:
-            if self._node.get_clock().now() - self._fms_check_time > Duration(seconds=self._check_fms_time):
+            if self._node.get_clock().now() - self._fms_check_time > Duration(
+                seconds=self._check_fms_time
+            ):
                 # repeat check fms function
                 try:
                     self.process_station_list_from_fms()
                 except:
                     pass
 
-        if self._manual_goal_with_distance and not self.is_auto_mode self._distance <= 1:
+        if self._manual_goal_with_distance and not self.is_auto_mode and self._distance <= 1:
             self.process_station_list_from_local()
 
         if not self.is_auto_mode or self.is_emergency_mode:
