@@ -15,7 +15,6 @@ from pytz import timezone
 from dateutil import parser
 from itertools import cycle
 import collections
-from autoware_debug_msgs.msg import Float64Stamped
 from rclpy.duration import Duration
 
 
@@ -38,6 +37,11 @@ class ViewControllerProperty(QObject):
         self._node.declare_parameter("ignore_manual_driving", False)
         self._ignore_manual_driving = (
             self._node.get_parameter("ignore_manual_driving").get_parameter_value().bool_value
+        )
+
+        self._node.declare_parameter("manual_goal_with_distance", False)
+        self._manual_goal_with_distance = (
+            self._node.get_parameter("manual_goal_with_distance").get_parameter_value().bool_value
         )
 
         self._node.declare_parameter("check_fms_time", 0)
@@ -76,6 +80,7 @@ class ViewControllerProperty(QObject):
         autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
         autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
         autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
+        autoware_state_interface.set_distance_callback(self.sub_distance)
 
         self._fms_check_time = self._node.get_clock().now()
         self._fms_payload = {
@@ -85,12 +90,6 @@ class ViewControllerProperty(QObject):
             + "/v1/projects/{project_id}/environments/{environment_id}/vehicles/{vehicle_id}/active_schedule",
             "body": {},
         }
-        self._sub_path_distance = node.create_subscription(
-            Float64Stamped,
-            "/autoware_api/utils/path_distance_calculator/distance",
-            self.path_distance_callback,
-            10,
-        )
 
         # To add buffer time for the autoware state
         self._cycle_view_control_timer = self._node.create_timer(1.0, self.update_view_state)
@@ -144,9 +143,13 @@ class ViewControllerProperty(QObject):
             and autoware_state == self._prev_autoware_state
         )
 
-        self.is_stopping = (autoware_state in stop_condition) or (
-            buffer_flag and autoware_state == "WaitingForEngage"
-        )
+        if self._manual_goal_with_distance and not self.is_auto_mode and self._distance <= 1:
+            self.is_stopping = True
+        else:
+            self.is_stopping = (autoware_state in stop_condition) or (
+                buffer_flag and autoware_state == "WaitingForEngage"
+            )
+
         self.is_driving = autoware_state == "Driving"
 
         self._prev_prev_autoware_state = self._prev_autoware_state
@@ -267,16 +270,13 @@ class ViewControllerProperty(QObject):
         self._get_display_time_signal.emit(display_time)
 
     def route_checker_callback(self):
-        if not self.is_auto_mode or self.is_emergency_mode:
-            return
-
         if not self._current_task_list:
             # if not found current task, reconnect to fms
             try:
                 self.process_station_list_from_fms()
             except:
                 return
-        elif self._check_fms_time:
+        elif self._check_fms_time > 0:
             if self._node.get_clock().now() - self._fms_check_time > Duration(seconds=self._check_fms_time):
                 # repeat check fms function
                 try:
@@ -284,13 +284,19 @@ class ViewControllerProperty(QObject):
                 except:
                     pass
 
+        if self._manual_goal_with_distance and not self.is_auto_mode self._distance <= 1:
+            self.process_station_list_from_local()
+
+        if not self.is_auto_mode or self.is_emergency_mode:
+            return
+
         if self._reach_final and self._current_task_list:
             self._reach_final = False
             self._previous_driving_status = False
             self._previous_station_deque = collections.deque(3 * [["", ""]], 3)
             self.previous_station_list = [["", ""], ["", ""], ["", ""]]
 
-        if self.is_stopping and not self._checked_route_local and self._previous_driving_status:
+        if self.is_stopping:
             self.process_station_list_from_local()
         elif self.is_driving and not self._checked_route_fms:
             try:
@@ -371,6 +377,9 @@ class ViewControllerProperty(QObject):
         try:
             if not self._current_task_list:
                 # empty current task list
+                return
+            if self._checked_route_local and not self._previous_driving_status:
+                # repeated process
                 return
 
             self.process_previous_station_list()
@@ -464,6 +473,5 @@ class ViewControllerProperty(QObject):
             self._node.get_logger().error("Unable to get the task from FMS, ERROR: " + str(e))
             raise Exception("Unable to get the task from FMS, ERROR: " + str(e))
 
-    def path_distance_callback(self, topic):
-        if topic:
-            self._distance = topic.data
+    def sub_distance(self, distance):
+        self._distance = distance
