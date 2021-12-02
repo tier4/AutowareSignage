@@ -50,7 +50,11 @@ class RouteHandler:
         self._announced_going_to_depart = False
         self._announced_going_to_arrive = False
         self._distance = 1000
-        self._current_task_details = EMPTY_CURRENT_TASK
+        self._current_task_details = {
+            "departure_station": ["", ""],
+            "arrival_station": ["", ""],
+            "depart_time": 0,
+        }
         self._fms_check_time = 0
         self.init_seperated_task_lists()
 
@@ -179,7 +183,7 @@ class RouteHandler:
             self._route_name = utils.get_route_name(
                 data.get("tags", []),
             )
-            self._node.get_logger().error(str(self._route_name))
+
             self.init_seperated_task_lists()
             utils.seperate_task_list(self._seperated_task_lists, data.get("tasks", []))
 
@@ -189,8 +193,6 @@ class RouteHandler:
             for task in self._seperated_task_lists["doing_list"]:
                 utils.process_current_task(self._current_task_details, task)
 
-            self._node.get_logger().error(str(self._current_task_details))
-
             if self._previous_station_name == ["", ""] and self._seperated_task_lists["done_list"]:
                 self._previous_station_name = utils.get_prevous_station_name_from_fms(
                     self._seperated_task_lists["done_list"]
@@ -199,7 +201,6 @@ class RouteHandler:
             self._next_station_list = utils.create_next_station_list(
                 self._current_task_details, self._seperated_task_lists, "fms", self._schedule_type
             )
-            self._node.get_logger().error(str(self._next_station_list))
             if self._seperated_task_lists["todo_list"]:
                 self._reach_final = False
 
@@ -207,11 +208,10 @@ class RouteHandler:
             self._schedule_id = data["schedule_id"]
             self._fms_check_time = self._node.get_clock().now()
         except Exception as e:
-            self._node.get_logger().error("Unable to get the task from FMS, ERROR: " + str(e))
+            self._node.get_logger().warning("Unable to get the task from FMS, ERROR: " + str(e))
 
     def arrived_goal(self):
         try:
-            self._node.get_logger().error("here" + str(self._current_task_details))
             if self._current_task_details == EMPTY_CURRENT_TASK:
                 raise Exception("No current task details")
 
@@ -229,7 +229,7 @@ class RouteHandler:
             next_task = self._seperated_task_lists["todo_list"].pop(0)
 
             # Get the next task from todo_list
-            utils.process_current_task(self._current_task_details, next_taskItem)
+            utils.process_current_task(self._current_task_details, next_task)
 
             self._next_station_list = utils.create_next_station_list(
                 self._current_task_details, self._seperated_task_lists, "local", self._schedule_type

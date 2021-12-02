@@ -65,7 +65,7 @@ def process_current_task(current_task_details, task):
 
 
 def get_prevous_station_name_from_fms(done_list):
-    previous_station_task = done_list[PREVIOUS_LIST_INDEX]
+    previous_station_task = done_list[PREVIOUS_STATION_INDEX]
     return split_name(previous_station_task.get("origin_point_name", DEFAULT_DEPARTURE_NAME))
 
 
