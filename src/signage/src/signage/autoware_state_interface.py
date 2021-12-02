@@ -18,11 +18,6 @@ class AutowareStateInterface:
         self.distance_callback_list = []
         self._node = node
 
-        self._node.declare_parameter("ignore_emergency_stoppped", False)
-        self._ignore_emergency_stoppped = (
-            self._node.get_parameter("ignore_emergency_stoppped").get_parameter_value().bool_value
-        )
-
         self._sub_autoware_state = node.create_subscription(
             AwapiAutowareStatus, "/awapi/autoware/get/status", self.autoware_state_callback, 10
         )
@@ -92,11 +87,7 @@ class AutowareStateInterface:
             self._autoware_status_time = self._node.get_clock().now()
             autoware_state = topic.autoware_state
             control_mode = topic.control_mode
-
-            if self._ignore_emergency_stoppped:
-                emergency_stopped = False
-            else:
-                emergency_stopped = topic.emergency_stopped
+            emergency_stopped = topic.emergency_stopped
 
             for callback in self.control_mode_callback_list:
                 callback(control_mode)

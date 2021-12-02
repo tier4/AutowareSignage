@@ -4,4 +4,6 @@ signage:
     ignore_emergency_stoppped: false
     ignore_manual_driving: false
     manual_goal_with_distance: false
-    check_fms_time: 0
+    set_goal_by_distance: false
+    goal_distance: 1
+    check_fms_time: 5
