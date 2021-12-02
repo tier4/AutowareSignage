@@ -24,9 +24,9 @@ def main(args=None):
     engine = QQmlApplicationEngine()
 
     autoware_state_interface = AutowareStateInterface(node)
-    announceController = AnnounceControllerProperty(node)
     viewController = ViewControllerProperty(node)
-    route_handler = RouteHandler(node, viewController, announceController)
+    announceController = AnnounceControllerProperty(node, autoware_state_interface)
+    route_handler = RouteHandler(node, viewController, announceController, autoware_state_interface)
 
     ctx = engine.rootContext()
     ctx.setContextProperty("viewController", viewController)

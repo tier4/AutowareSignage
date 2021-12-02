@@ -5,5 +5,6 @@ signage:
     ignore_manual_driving: false
     manual_goal_with_distance: false
     set_goal_by_distance: false
-    goal_distance: 1
-    check_fms_time: 5
+    goal_distance: 1 # meter
+    check_fms_time: 5 # second
+    emergency_repeat_period: 180 # second

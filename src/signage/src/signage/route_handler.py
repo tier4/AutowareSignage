@@ -9,16 +9,17 @@ from rclpy.duration import Duration
 import signage.signage_utils as utils
 
 EMPTY_CURRENT_TASK = {
-    "departure_station" : ["", ""],
-    "arrival_station" : ["", ""],
+    "departure_station": ["", ""],
+    "arrival_station": ["", ""],
     "depart_time": 0,
 }
 
+
 class RouteHandler:
-    def __init__(self, node, viewController, announceController):
+    def __init__(self, node, viewController, announceController, autoware_state_interface):
         self._node = node
         self._viewController = viewController
-        self._announceController = announceController
+        self._announce_interface = announceController
         self.AUTOWARE_IP = os.getenv("AUTOWARE_IP", "localhost")
         self._fms_payload = {
             "method": "get",
@@ -30,22 +31,27 @@ class RouteHandler:
         self._schedule_updated_time = ""
         self._schedule_id = ""
         self._schedule_type = ""
-        self._route_name = ""
+        self._route_name = ["", ""]
         self._previous_station_name = ["", ""]
-        self._next_station_list = [["",""]*5]
+        self._next_station_list = [["", ""] * 5]
         self._remain_arrive_time_text = ""
         self._remain_depart_time_text = ""
         self._display_time = False
         self._is_auto_mode = False
         self._is_emergency_mode = False
+        self._in_emergency_state = False
+        self._emergency_trigger_time = 0
         self._is_stopping = False
         self._is_driving = False
         self._previous_driving_status = False
+        self._reach_final = False
         self._prev_autoware_state = ""
         self._prev_prev_autoware_state = ""
         self._announced_going_to_depart = False
         self._announced_going_to_arrive = False
+        self._distance = 1000
         self._current_task_details = EMPTY_CURRENT_TASK
+        self._fms_check_time = 0
         self.init_seperated_task_lists()
 
         self._node.declare_parameter("ignore_manual_driving", False)
@@ -58,7 +64,7 @@ class RouteHandler:
         )
         self._node.declare_parameter("check_fms_time", 5)
         self._check_fms_time = (
-            self._node.get_parameter("check_fms_time").get_parameter_value().int_value
+            self._node.get_parameter("check_fms_time").get_parameter_value().integer_value
         )
         self._node.declare_parameter("ignore_emergency_stoppped", False)
         self._ignore_emergency_stoppped = (
@@ -70,17 +76,29 @@ class RouteHandler:
         )
         self._node.declare_parameter("goal_distance", 1)
         self._goal_distance = (
-            self._node.get_parameter("goal_distance").get_parameter_value().int_value
+            self._node.get_parameter("goal_distance").get_parameter_value().integer_value
         )
+        self._node.declare_parameter("emergency_repeat_period", 180)
+        self._emergency_repeat_period = (
+            self._node.get_parameter("emergency_repeat_period").get_parameter_value().integer_value
+        )
+
+        self.process_station_list_from_fms()
+
+        autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
+        autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
+        autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
+        autoware_state_interface.set_distance_callback(self.sub_distance)
+
         route_checker = self._node.create_timer(1, self.route_checker_callback)
         view_mode_update = self._node.create_timer(1, self.view_mode_callback)
-
+        calculate_time = self._node.create_timer(1, self.calculate_time_callback)
 
     def init_seperated_task_lists(self):
         self._seperated_task_lists = {
-            "doing_list" : [],
-            "todo_list" : [],
-            "done_list" : [],
+            "doing_list": [],
+            "todo_list": [],
+            "done_list": [],
         }
 
     # ============== Subsciber callback ==================
@@ -89,12 +107,20 @@ class RouteHandler:
         if not self._is_auto_mode:
             return
 
-        stop_condition = ["WaitingForRoute", "ArrivedGoal", "Planning",]
+        stop_condition = [
+            "WaitingForRoute",
+            "ArrivedGoal",
+            "Planning",
+        ]
 
-        buffer_flag = (autoware_state == self._prev_prev_autoware_state and autoware_state == self._prev_autoware_state)
+        buffer_flag = (
+            autoware_state == self._prev_prev_autoware_state
+            and autoware_state == self._prev_autoware_state
+        )
 
-        self._is_stopping = (autoware_state in stop_condition) or (buffer_flag and autoware_state == "WaitingForEngage")
-        self._previous_driving_status = self._is_driving
+        self._is_stopping = (autoware_state in stop_condition) or (
+            buffer_flag and autoware_state == "WaitingForEngage"
+        )
         self._is_driving = autoware_state == "Driving"
 
         self._prev_prev_autoware_state = self._prev_autoware_state
@@ -108,6 +134,20 @@ class RouteHandler:
             self._is_emergency_mode = False
         else:
             self._is_emergency_mode = emergency_stopped
+
+        if self._is_emergency_mode and not self._in_emergency_state:
+            self._announce_interface.announce_emergency("emergency")
+            self._in_emergency_state = True
+        elif not self._is_emergency_mode and self._in_emergency_state:
+            self._in_emergency_state = False
+        elif self._is_emergency_mode and self._in_emergency_state:
+            if not self._emergency_trigger_time:
+                self._emergency_trigger_time = self._node.get_clock().now()
+            elif self._node.get_clock().now() - self._emergency_trigger_time > Duration(
+                seconds=self._emergency_repeat_period
+            ):
+                self._announce_interface.announce_emergency("in_emergency")
+                self._emergency_trigger_time = 0
 
     def sub_distance(self, distance):
         self._distance = distance
@@ -126,14 +166,20 @@ class RouteHandler:
 
             if not data:
                 raise Exception("No data from fms")
-            elif (self._schedule_updated_time == data["updated_at"] and self._schedule_id == data["schedule_id"]):
+            elif (
+                self._schedule_updated_time == data["updated_at"]
+                and self._schedule_id == data["schedule_id"]
+            ):
+                self._fms_check_time = self._node.get_clock().now()
                 raise Exception("same schedule, skip")
 
-            # depends on the type of schedule, the route will change  
+            # depends on the type of schedule, the route will change
             self._schedule_type = data["schedule_type"]
 
-            self._route_name = utils.get_route_name(data.get("tags", []),)
-
+            self._route_name = utils.get_route_name(
+                data.get("tags", []),
+            )
+            self._node.get_logger().error(str(self._route_name))
             self.init_seperated_task_lists()
             utils.seperate_task_list(self._seperated_task_lists, data.get("tasks", []))
 
@@ -143,11 +189,17 @@ class RouteHandler:
             for task in self._seperated_task_lists["doing_list"]:
                 utils.process_current_task(self._current_task_details, task)
 
+            self._node.get_logger().error(str(self._current_task_details))
+
             if self._previous_station_name == ["", ""] and self._seperated_task_lists["done_list"]:
-                self._previous_station_name = utils.get_prevous_station_name_from_fms(self._seperated_task_lists["done_list"])
+                self._previous_station_name = utils.get_prevous_station_name_from_fms(
+                    self._seperated_task_lists["done_list"]
+                )
 
-            self._next_station_list = utils.create_next_station_list(self._current_task_details,self._seperated_task_lists, "fms", self._schedule_type)
-
+            self._next_station_list = utils.create_next_station_list(
+                self._current_task_details, self._seperated_task_lists, "fms", self._schedule_type
+            )
+            self._node.get_logger().error(str(self._next_station_list))
             if self._seperated_task_lists["todo_list"]:
                 self._reach_final = False
 
@@ -159,14 +211,17 @@ class RouteHandler:
 
     def arrived_goal(self):
         try:
+            self._node.get_logger().error("here" + str(self._current_task_details))
             if self._current_task_details == EMPTY_CURRENT_TASK:
                 raise Exception("No current task details")
 
             self._previous_station_name = self._current_task_details["departure_station"]
-
+            self._node.get_logger().error(str(self._previous_station_name))
             if not self._seperated_task_lists["todo_list"]:
                 # Reach final station
-                self._current_task_details["departure_station"] = self._current_task_details["arrival_station"]
+                self._current_task_details["departure_station"] = self._current_task_details[
+                    "arrival_station"
+                ]
                 self._current_task_details["arrival_station"] = ["", ""]
                 self._reach_final = True
                 return
@@ -176,33 +231,49 @@ class RouteHandler:
             # Get the next task from todo_list
             utils.process_current_task(self._current_task_details, next_taskItem)
 
-            self._next_station_list = utils.create_next_station_list(self._current_task_details, self._seperated_task_lists, "local", self._schedule_type)
+            self._next_station_list = utils.create_next_station_list(
+                self._current_task_details, self._seperated_task_lists, "local", self._schedule_type
+            )
+            self._announce_interface.announce_arrived()
         except Exception as e:
-            self._node.get_logger().error("Unable to get the task from local, ERROR: " + str(e))
+            self._node.get_logger().error("Unable to update the goal, ERROR: " + str(e))
 
     # ========== Timer Callback =============
 
     def route_checker_callback(self):
-        if self._node.get_clock().now() - self._fms_check_time > Duration(seconds=self._check_fms_time):
-            self._process_station_list_from_fms()
+        try:
+            if not self._fms_check_time:
+                self.process_station_list_from_fms()
+            elif self._node.get_clock().now() - self._fms_check_time > Duration(
+                seconds=self._check_fms_time
+            ):
+                self.process_station_list_from_fms()
 
-        if self._is_emergency_mode:
-            return
+            if self._is_emergency_mode:
+                return
 
-        if self._ignore_manual_driving and self._set_goal_by_distance:
-            if self._distance < self._goal_distance:
-                self._is_stopping = True
+            if self._ignore_manual_driving and self._set_goal_by_distance:
+                if self._distance < self._goal_distance:
+                    self._is_stopping = True
 
-        if self._reach_final:
-            self._previous_driving_status = False
-            return
+            if self._reach_final:
+                self._previous_driving_status = False
+                return
 
-        if self._is_stopping and self._previous_driving_status:
-            self.arrived_goal()
-            self._previous_driving_status = False
+            if self._is_stopping and self._previous_driving_status:
+                self.arrived_goal()
+                self._previous_driving_status = False
+
+            if self._is_driving:
+                self._previous_driving_status = self._is_driving
+        except Exception as e:
+            self._node.get_logger().error("Error unable to check the route: " + str(e))
 
     def calculate_time_callback(self):
         try:
+            if self._current_task_details == EMPTY_CURRENT_TASK:
+                return
+
             remain_minute = 100
             if self._reach_final:
                 self._remain_depart_time_text = "終点です。\nご乗車ありがとうございました"
@@ -214,7 +285,13 @@ class RouteHandler:
                     self._remain_arrive_time_text = "間もなく到着します"
             elif self._is_stopping:
                 self._announced_going_to_arrive = False
-                remain_minute = int((self._depart_time - self._node.get_clock().now().to_msg().sec) / 60)
+                remain_minute = int(
+                    (
+                        self._current_task_details["depart_time"]
+                        - self._node.get_clock().now().to_msg().sec
+                    )
+                    / 60
+                )
                 if remain_minute > 0:
                     self._remain_depart_time_text = "このバスはあと{}分程で出発します".format(str(remain_minute))
                 else:
@@ -232,26 +309,33 @@ class RouteHandler:
             self._node.get_logger().error("Error in getting calculate the time: " + str(e))
 
     def view_mode_callback(self):
-        self._viewController.route_name = self.route_name
-        self._viewController.departure_station_name = self._current_task_details["departure_station"]
-        self._viewController.arrival_station_name = self._current_task_details["arrival_station"]
-        self._viewController.previous_station_name = self._previous_station_name
-        self._viewController.next_station_list = self._next_station_list
-        self._viewController.remain_arrive_time_text = self._remain_arrive_time_text
-        self._viewController.remain_depart_time_text = self._remain_depart_time_text
-        self._viewController.display_time = self._display_time 
+        try:
+            self._viewController.route_name = self._route_name
+            self._viewController.departure_station_name = self._current_task_details[
+                "departure_station"
+            ]
+            self._viewController.arrival_station_name = self._current_task_details[
+                "arrival_station"
+            ]
+            self._viewController.previous_station_name = self._previous_station_name
+            self._viewController.next_station_list = self._next_station_list
+            self._viewController.remain_arrive_time_text = self._remain_arrive_time_text
+            self._viewController.remain_depart_time_text = self._remain_depart_time_text
+            self._viewController.display_time = self._display_time
 
-        if self._is_emergency_mode:
-            view_mode = "emergency_stopped"
-        elif not self._is_auto_mode and not self._ignore_manual_driving:
-            view_mode = "manual_driving"
-        elif self._is_stopping and self._current_task_details["departure_station"] != ["", ""]:
-            view_mode = "stopping"
-        elif self._is_driving and self._current_task_details["arrival_station"] != ["", ""]:
-            view_mode = "driving"
-        elif self._is_driving:
-            view_mode = "auto_driving"
-        else:
-            view_mode = "out_of_service"
+            if self._is_emergency_mode:
+                view_mode = "emergency_stopped"
+            elif not self._is_auto_mode and not self._ignore_manual_driving:
+                view_mode = "manual_driving"
+            elif self._is_stopping and self._current_task_details["departure_station"] != ["", ""]:
+                view_mode = "stopping"
+            elif self._is_driving and self._current_task_details["arrival_station"] != ["", ""]:
+                view_mode = "driving"
+            elif self._is_driving:
+                view_mode = "auto_driving"
+            else:
+                view_mode = "out_of_service"
 
-        self._viewController.view_mode = view_mode
+            self._viewController.view_mode = view_mode
+        except Exception as e:
+            self._node.get_logger().error("Error in updating the view mode: " + str(e))

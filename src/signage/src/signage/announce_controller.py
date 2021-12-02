@@ -51,9 +51,6 @@ class AnnounceControllerProperty:
         self._srv = self._node.create_service(
             Announce, "/api/signage/set/announce", self.announce_service
         )
-        autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
-        autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
-        autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
         autoware_state_interface.set_velocity_callback(self.sub_velocity)
         autoware_state_interface.set_door_status_callback(self.sub_door_status)
 
@@ -117,84 +114,33 @@ class AnnounceControllerProperty:
             elif priority == previous_priority:
                 self.play_sound(message)
         elif priority == 1:
-            if self._signage_stand_alone:
-                if not previous_priority:
-                    self.play_sound(message)
-                elif previous_priority in [2, 1]:
-                    self._pending_announce_list.append(
-                        {
-                            "message": message,
-                            "requested_time": self._node.get_clock().now(),
-                        }
-                    )
-            else:
-                if not previous_priority:
-                    self._pending_announce_list.append(
-                        {
-                            "message": message,
-                            "requested_time": self._node.get_clock().now(),
-                        }
-                    )
+            if not previous_priority:
+                self.play_sound(message)
+            elif previous_priority in [2, 1]:
+                self._pending_announce_list.append(
+                    {
+                        "message": message,
+                        "requested_time": self._node.get_clock().now(),
+                    }
+                )
         self._current_announce = message
 
-    def sub_control_mode(self, control_mode):
-        self._is_auto_mode = control_mode == 1
-
     def sub_velocity(self, velocity):
-        if velocity > 0 and self._is_auto_mode and self._in_driving_state:
+        if velocity > 0:
             self._is_auto_running = True
         elif velocity < 0:
             self._is_auto_running = False
 
-    def sub_autoware_state(self, autoware_state):
-        if not self._is_auto_mode:
-            return
+    def announce_arrived(self):
+        if self._signage_stand_alone:
+            self.send_announce("arrived")
 
-        buffer_flag = (
-            autoware_state == self._prev_prev_autoware_state
-            and autoware_state == self._prev_autoware_state
-        )
-
-        stop_condition = [
-            "WaitingForRoute",
-            "ArrivedGoal",
-            "Planning",
-        ]
-
-        self._autoware_state = autoware_state
-        if autoware_state == "Driving" and not self._in_driving_state:
-            self._in_driving_state = True
-            self._door_announce = False
-        elif (
-            (autoware_state in stop_condition)
-            or (buffer_flag and autoware_state == "WaitingForEngage")
-        ) and self._in_driving_state:
-            if self._signage_stand_alone:
-                self.send_announce("arrived")
-            self._is_auto_running = False
-            self._in_driving_state = False
-
-        self._prev_prev_autoware_state = self._prev_autoware_state
-        self._prev_autoware_state = autoware_state
-
-    def sub_emergency(self, emergency_stopped):
-        if emergency_stopped and not self._in_emergency_state:
-            self.send_announce("emergency")
-            self._in_emergency_state = True
-        elif not emergency_stopped and self._in_emergency_state:
-            self._in_emergency_state = False
-        elif emergency_stopped and self._in_emergency_state and self._signage_stand_alone:
-            if not self._emergency_trigger_time:
-                self._emergency_trigger_time = self._node.get_clock().now().to_msg().sec
-            elif self._node.get_clock().now().to_msg().sec - self._emergency_trigger_time > 180:
-                self.send_announce("in_emergency")
-                self._emergency_trigger_time = 0
+    def announce_emergency(self, message):
+        if self._signage_stand_alone:
+            self.send_announce(message)
 
     def announce_going_to_depart_and_arrive(self, message):
-        if message == "going_to_depart":
-            self.send_announce("going_to_depart")
-        elif message == "going_to_arrive" and self._autoware_state == "Driving":
-            self.send_announce("going_to_arrive")
+        self.send_announce(message)
 
     def sub_door_status(self, door_status):
         if door_status == 1 and not self._door_announce and not self._in_emergency_state:

@@ -7,6 +7,7 @@ from PyQt5.QtCore import pyqtProperty
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QObject
 
+
 class ViewControllerProperty(QObject):
     _view_mode_changed_signal = pyqtSignal(str)
     _route_name_signal = pyqtSignal(list)
@@ -18,43 +19,18 @@ class ViewControllerProperty(QObject):
     _get_remain_depart_time_text_signal = pyqtSignal(str)
     _get_display_time_signal = pyqtSignal(bool)
 
-    def __init__(self, node=None, autoware_state_interface=None, announce_interface=None):
+    def __init__(self, node=None):
         super(ViewControllerProperty, self).__init__()
-
-        self._announce_interface = announce_interface
+        self._node = node
         self._view_mode = ""
         self._route_name = ["", ""]
         self._departure_station_name = ["", ""]
         self._arrival_station_name = ["", ""]
-        self._next_station_list = [["",""]*5]
+        self._next_station_list = [["", ""] * 5]
         self._previous_station_name = ["", ""]
         self._remain_arrive_time_text = ""
         self._remain_depart_time_text = ""
-        self._distance = 1000
         self._display_time = False
-        self._announced_going_to_depart = False
-        self._announced_going_to_arrive = False
-        self._previous_driving_status = False
-        self._checked_route_fms = False
-        self._checked_route_local = False
-        self._current_task_list = []
-        self._depart_time = 0
-        self._reach_final = False
-        
-        
-        autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
-        autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
-        autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
-        autoware_state_interface.set_distance_callback(self.sub_distance)
-
-        self._fms_check_time = self._node.get_clock().now()
-
-
-        self._cycle_view_control_timer = self._node.create_timer(1.0, self.update_view_state)
-        try:
-            self.process_station_list_from_fms(True)
-        except:
-            pass
 
     @pyqtProperty(str, notify=_view_mode_changed_signal)
     def view_mode(self):
