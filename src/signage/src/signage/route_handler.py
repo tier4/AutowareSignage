@@ -275,6 +275,13 @@ class RouteHandler:
                 return
 
             remain_minute = 100
+            remain_minute = int((self._current_task_details["depart_time"]
+                                - self._node.get_clock().now().to_msg().sec) / 60)
+            if remain_minute > 0:
+                self._remain_depart_time_text = "このバスはあと{}分程で出発します".format(str(remain_minute))
+            else:
+                self._remain_depart_time_text = "間もなく出発します"
+
             if self._reach_final:
                 self._remain_depart_time_text = "終点です。\nご乗車ありがとうございました"
             elif self._is_driving:
@@ -285,18 +292,6 @@ class RouteHandler:
                     self._remain_arrive_time_text = "間もなく到着します"
             elif self._is_stopping:
                 self._announced_going_to_arrive = False
-                remain_minute = int(
-                    (
-                        self._current_task_details["depart_time"]
-                        - self._node.get_clock().now().to_msg().sec
-                    )
-                    / 60
-                )
-                if remain_minute > 0:
-                    self._remain_depart_time_text = "このバスはあと{}分程で出発します".format(str(remain_minute))
-                else:
-                    self._remain_depart_time_text = "間もなく出発します"
-
                 if remain_minute < 1 and not self._announced_going_to_depart:
                     self._announce_interface.announce_going_to_depart_and_arrive("going_to_depart")
                     self._announced_going_to_depart = True
