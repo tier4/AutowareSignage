@@ -333,6 +333,8 @@ class RouteHandler:
                 view_mode = "driving"
             elif self._is_driving:
                 view_mode = "auto_driving"
+            elif self._current_task_details["departure_station"] != ["", ""]:
+                view_mode = "stopping"
             else:
                 view_mode = "out_of_service"
 
