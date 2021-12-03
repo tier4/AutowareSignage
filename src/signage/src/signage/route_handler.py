@@ -62,10 +62,6 @@ class RouteHandler:
         self._ignore_manual_driving = (
             self._node.get_parameter("ignore_manual_driving").get_parameter_value().bool_value
         )
-        self._node.declare_parameter("manual_goal_with_distance", False)
-        self._manual_goal_with_distance = (
-            self._node.get_parameter("manual_goal_with_distance").get_parameter_value().bool_value
-        )
         self._node.declare_parameter("check_fms_time", 5)
         self._check_fms_time = (
             self._node.get_parameter("check_fms_time").get_parameter_value().integer_value
@@ -216,7 +212,7 @@ class RouteHandler:
                 raise Exception("No current task details")
 
             self._previous_station_name = self._current_task_details["departure_station"]
-            self._node.get_logger().error(str(self._previous_station_name))
+
             if not self._seperated_task_lists["todo_list"]:
                 # Reach final station
                 self._current_task_details["departure_station"] = self._current_task_details[
@@ -227,7 +223,6 @@ class RouteHandler:
                 return
 
             next_task = self._seperated_task_lists["todo_list"].pop(0)
-
             # Get the next task from todo_list
             utils.process_current_task(self._current_task_details, next_task)
 
@@ -252,9 +247,14 @@ class RouteHandler:
             if self._is_emergency_mode:
                 return
 
-            if self._ignore_manual_driving and self._set_goal_by_distance:
+            if (
+                not self._is_auto_mode
+                and self._ignore_manual_driving
+                and self._set_goal_by_distance
+            ):
                 if self._distance < self._goal_distance:
                     self._is_stopping = True
+                    self._is_driving = False
 
             if self._reach_final:
                 self._previous_driving_status = False

@@ -90,8 +90,9 @@ def create_next_station_list(
         station_list.append(split_name(task.get("destination_point_name", DEFAULT_ARRIVAL_NAME)))
 
     if call_type == "local" and schedule_type == "loop":
+        # Need this condition, because FMS will not include the departure_station in the task
         if current_task_details["departure_station"][1] != "Start":
-            station_list.append(split_name(current_task_details["departure_station"]))
+            station_list.append(current_task_details["departure_station"])
 
     if len(station_list) < NEXT_STATION_DISPLAY_AMOUNT and schedule_type == "loop":
         station_list = repeat_task_for_loop(station_list)

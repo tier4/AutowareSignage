@@ -3,7 +3,6 @@ signage:
     signage_stand_alone: false
     ignore_emergency_stoppped: false
     ignore_manual_driving: false
-    manual_goal_with_distance: false
     set_goal_by_distance: false
     goal_distance: 1 # meter
     check_fms_time: 5 # second
