@@ -26,7 +26,7 @@ class ViewControllerProperty(QObject):
         self._route_name = ["", ""]
         self._departure_station_name = ["", ""]
         self._arrival_station_name = ["", ""]
-        self._next_station_list = [["", ""] * 5]
+        self._next_station_list = [["", ""], ["", ""], ["", ""], ["", ""], ["", ""]]
         self._previous_station_name = ["", ""]
         self._remain_arrive_time_text = ""
         self._remain_depart_time_text = ""

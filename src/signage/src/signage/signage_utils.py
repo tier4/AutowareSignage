@@ -79,7 +79,6 @@ def repeat_task_for_loop(station_list):
 def auto_add_empty_list(station_list):
     for _ in range(NEXT_STATION_DISPLAY_AMOUNT - len(station_list)):
         station_list.append(["", ""])
-    return station_list
 
 
 def create_next_station_list(

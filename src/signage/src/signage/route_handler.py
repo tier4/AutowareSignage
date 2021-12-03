@@ -33,7 +33,7 @@ class RouteHandler:
         self._schedule_type = ""
         self._route_name = ["", ""]
         self._previous_station_name = ["", ""]
-        self._next_station_list = [["", ""] * 5]
+        self._next_station_list = [["", ""], ["", ""], ["", ""], ["", ""], ["", ""]]
         self._remain_arrive_time_text = ""
         self._remain_depart_time_text = ""
         self._display_time = False
