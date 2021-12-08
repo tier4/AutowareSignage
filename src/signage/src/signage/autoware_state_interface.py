@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from rclpy.duration import Duration
+from autoware_debug_msgs.msg import Float64Stamped
 from autoware_api_msgs.msg import AwapiAutowareStatus, AwapiVehicleStatus, DoorStatus
 
 
@@ -14,12 +15,8 @@ class AutowareStateInterface:
         self.door_status_callback_list = []
         self.turn_signal_callback_list = []
         self.velocity_callback_list = []
+        self.distance_callback_list = []
         self._node = node
-
-        self._node.declare_parameter("ignore_emergency_stoppped", False)
-        self._ignore_emergency_stoppped = (
-            self._node.get_parameter("ignore_emergency_stoppped").get_parameter_value().bool_value
-        )
 
         self._sub_autoware_state = node.create_subscription(
             AwapiAutowareStatus, "/awapi/autoware/get/status", self.autoware_state_callback, 10
@@ -30,12 +27,23 @@ class AutowareStateInterface:
         self._sub_vehicle_state = node.create_subscription(
             DoorStatus, "/awapi/vehicle/get/door", self.vehicle_door_callback, 10
         )
+        self._sub_path_distance = node.create_subscription(
+            Float64Stamped,
+            "/autoware_api/utils/path_distance_calculator/distance",
+            self.path_distance_callback,
+            10,
+        )
         self._autoware_status_time = self._node.get_clock().now()
         self._vehicle_status_time = self._node.get_clock().now()
+        self._distance_time = self._node.get_clock().now()
 
         self._topic_checker = self._node.create_timer(1, self.topic_checker_callback)
 
     def topic_checker_callback(self):
+        if self._node.get_clock().now() - self._distance_time > Duration(seconds=1):
+            for callback in self.distance_callback_list:
+                callback(1000)
+
         if self._node.get_clock().now() - self._autoware_status_time > Duration(seconds=5):
             for callback in self.autoware_state_callback_list:
                 callback("")
@@ -69,6 +77,9 @@ class AutowareStateInterface:
     def set_door_status_callback(self, callback):
         self.door_status_callback_list.append(callback)
 
+    def set_distance_callback(self, callback):
+        self.distance_callback_list.append(callback)
+
     # ros subscriber
     # autoware stateをsubしたときの処理
     def autoware_state_callback(self, topic):
@@ -76,11 +87,7 @@ class AutowareStateInterface:
             self._autoware_status_time = self._node.get_clock().now()
             autoware_state = topic.autoware_state
             control_mode = topic.control_mode
-
-            if self._ignore_emergency_stoppped:
-                emergency_stopped = False
-            else:
-                emergency_stopped = topic.emergency_stopped
+            emergency_stopped = topic.emergency_stopped
 
             for callback in self.control_mode_callback_list:
                 callback(control_mode)
@@ -117,3 +124,13 @@ class AutowareStateInterface:
                 callback(velocity)
         except Exception as e:
             self._node.get_logger().error("Unable to get the vehicle state, ERROR: " + str(e))
+
+
+    def path_distance_callback(self, topic):
+        try:
+            self._distance_time = self._node.get_clock().now()
+            distance = topic.data
+            for callback in self.distance_callback_list:
+                callback(distance)
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the distance, ERROR: " + str(e))

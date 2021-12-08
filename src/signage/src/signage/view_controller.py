@@ -1,22 +1,11 @@
+# !/usr/bin/env python3
+# -*- coding: utf-8 -*-
 # This Python file uses the following encoding: utf-8
+
 
 from PyQt5.QtCore import pyqtProperty
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QObject
-
-import rclpy
-from rclpy.node import Node
-import os
-
-import requests
-import json
-from datetime import datetime
-from pytz import timezone
-from dateutil import parser
-from itertools import cycle
-import collections
-from autoware_debug_msgs.msg import Float64Stamped
-from rclpy.duration import Duration
 
 
 class ViewControllerProperty(QObject):
@@ -25,77 +14,24 @@ class ViewControllerProperty(QObject):
     _get_departure_station_name_signal = pyqtSignal(list)
     _get_arrival_station_name_signal = pyqtSignal(list)
     _get_next_station_list_signal = pyqtSignal(list)
-    _get_previous_station_list_signal = pyqtSignal(list)
+    _get_previous_station_name_signal = pyqtSignal(list)
     _get_remain_arrive_time_text_signal = pyqtSignal(str)
     _get_remain_depart_time_text_signal = pyqtSignal(str)
     _get_display_time_signal = pyqtSignal(bool)
 
-    def __init__(self, node=None, autoware_state_interface=None, announce_interface=None):
+    def __init__(self, node=None):
         super(ViewControllerProperty, self).__init__()
-        node.get_logger().info("%s initializing..." % "signage")
         self._node = node
-
-        self._node.declare_parameter("ignore_manual_driving", False)
-        self._ignore_manual_driving = (
-            self._node.get_parameter("ignore_manual_driving").get_parameter_value().bool_value
-        )
-
-        self._announce_interface = announce_interface
-        self._prev_autoware_state = ""
-        self._prev_prev_autoware_state = ""
-        self.is_auto_mode = False
-        self.is_emergency_mode = False
-        self.is_stopping = False
-        self.is_driving = False
         self._view_mode = ""
         self._route_name = ["", ""]
         self._departure_station_name = ["", ""]
         self._arrival_station_name = ["", ""]
-        self._next_station_list = [["", ""], ["", ""], ["", ""]]
-        self._previous_station_deque = collections.deque(3 * [["", ""]], 3)
-        self._previous_station_list = [["", ""], ["", ""], ["", ""]]
+        self._next_station_list = [["", ""], ["", ""], ["", ""], ["", ""], ["", ""]]
+        self._previous_station_name = ["", ""]
         self._remain_arrive_time_text = ""
         self._remain_depart_time_text = ""
-        self._distance = 1000
         self._display_time = False
-        self._announced_going_to_depart = False
-        self._announced_going_to_arrive = False
-        self._previous_driving_status = False
-        self._checked_route_fms = False
-        self._checked_route_local = False
-        self._current_task_list = []
-        self._depart_time = 0
-        self._reach_final = False
-        self._schedule_id = ""
-        self._schedule_updated_time = ""
-        autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
-        autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
-        autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
 
-        self._fms_check_time = self._node.get_clock().now()
-        self._fms_payload = {
-            "method": "get",
-            "url": "https://"
-            + os.getenv("FMS_URL", "fms.web.auto")
-            + "/v1/projects/{project_id}/environments/{environment_id}/vehicles/{vehicle_id}/active_schedule",
-            "body": {},
-        }
-        self._sub_path_distance = node.create_subscription(
-            Float64Stamped,
-            "/autoware_api/utils/path_distance_calculator/distance",
-            self.path_distance_callback,
-            10,
-        )
-
-        # To add buffer time for the autoware state
-        self._cycle_view_control_timer = self._node.create_timer(1.0, self.update_view_state)
-        try:
-            self.process_station_list_from_fms(True)
-        except:
-            pass
-        self._route_checker = self._node.create_timer(1, self.route_checker_callback)
-
-    # view mode
     @pyqtProperty(str, notify=_view_mode_changed_signal)
     def view_mode(self):
         return self._view_mode
@@ -106,64 +42,6 @@ class ViewControllerProperty(QObject):
             return
         self._view_mode = view_mode
         self._view_mode_changed_signal.emit(view_mode)
-
-    def update_view_state(self):
-        if self.is_emergency_mode:
-            self.view_mode = "emergency_stopped"
-        elif not self.is_auto_mode and not self._ignore_manual_driving:
-            self.view_mode = "manual_driving"
-        elif self.is_stopping and self._departure_station_name != ["", ""]:
-            self.view_mode = "stopping"
-        elif self.is_driving and self._arrival_station_name != ["", ""]:
-            self._previous_driving_status = True
-            self.view_mode = "driving"
-        elif self.is_driving:
-            self.view_mode = "auto_driving"
-        else:
-            self.view_mode = "out_of_service"
-
-        # self._node.get_logger().info('view mode %r' % (self._view_mode))
-
-    def sub_autoware_state(self, autoware_state):
-        if not self.is_auto_mode:
-            return
-
-        stop_condition = [
-            "WaitingForRoute",
-            "ArrivedGoal",
-            "Planning",
-        ]
-
-        buffer_flag = (
-            autoware_state == self._prev_prev_autoware_state
-            and autoware_state == self._prev_autoware_state
-        )
-
-        self.is_stopping = (autoware_state in stop_condition) or (
-            buffer_flag and autoware_state == "WaitingForEngage"
-        )
-        self.is_driving = autoware_state == "Driving"
-
-        self._prev_prev_autoware_state = self._prev_autoware_state
-        self._prev_autoware_state = autoware_state
-
-    def sub_control_mode(self, control_mode):
-        self.is_auto_mode = control_mode == 1
-
-    def sub_emergency(self, emergency_stopped):
-        self.is_emergency_mode = emergency_stopped
-
-    def process_name(self, name_string):
-        name_list = name_string.split(";")
-        if len(name_list) < 2:
-            name_list.append("")
-        return name_list
-
-    def process_tag(self, tags_list, key):
-        for item in tags_list:
-            if item["key"] == key:
-                return item["value"]
-        return ""
 
     # QMLへroute_nameを反映させる
     @pyqtProperty(list, notify=_route_name_signal)
@@ -214,16 +92,16 @@ class ViewControllerProperty(QObject):
         self._get_next_station_list_signal.emit(next_station_list)
 
     # QMLへのsignal
-    @pyqtProperty(list, notify=_get_previous_station_list_signal)
-    def previous_station_list(self):
-        return self._previous_station_list
+    @pyqtProperty(list, notify=_get_previous_station_name_signal)
+    def previous_station_name(self):
+        return self._previous_station_name
 
-    @previous_station_list.setter
-    def previous_station_list(self, previous_station_list):
-        if self._previous_station_list == previous_station_list:
+    @previous_station_name.setter
+    def previous_station_name(self, previous_station_name):
+        if self._previous_station_name == previous_station_name:
             return
-        self._previous_station_list = previous_station_list
-        self._get_previous_station_list_signal.emit(previous_station_list)
+        self._previous_station_name = previous_station_name
+        self._get_previous_station_name_signal.emit(previous_station_name)
 
     # QMLへroute_nameを反映させる
     @pyqtProperty("QString", notify=_get_remain_arrive_time_text_signal)
@@ -260,198 +138,3 @@ class ViewControllerProperty(QObject):
             return
         self._display_time = display_time
         self._get_display_time_signal.emit(display_time)
-
-    def route_checker_callback(self):
-        if not self.is_auto_mode or self.is_emergency_mode:
-            return
-
-        if not self._current_task_list:
-            # if not found current task, reconnect to fms
-            try:
-                self.process_station_list_from_fms()
-            except:
-                return
-
-        if self._reach_final and self._current_task_list:
-            self._reach_final = False
-            self._previous_driving_status = False
-            self._previous_station_deque = collections.deque(3 * [["", ""]], 3)
-            self.previous_station_list = [["", ""], ["", ""], ["", ""]]
-
-        if self.is_stopping and not self._checked_route_local and self._previous_driving_status:
-            self.process_station_list_from_local()
-        elif self.is_driving and not self._checked_route_fms:
-            try:
-                self.process_station_list_from_fms()
-            except:
-                return
-        if not self._current_task_list:
-            return
-
-        ## TODO: use time?
-        current_time = self._node.get_clock().now().to_msg().sec
-        try:
-            remain_minute = 100
-            if self.is_driving:
-                self._announced_going_to_depart = False
-                if self._distance < 100 and not self._announced_going_to_arrive:
-                    self._announce_interface.announce_going_to_depart_and_arrive("going_to_arrive")
-                    self._announced_going_to_arrive = True
-                    self.remain_arrive_time_text = "間もなく到着します"
-
-            if self.is_stopping:
-                self._announced_going_to_arrive = False
-                remain_minute = int((self._depart_time - current_time) / 60)
-                if remain_minute > 0:
-                    self.remain_depart_time_text = "このバスはあと{}分程で出発します".format(str(remain_minute))
-                else:
-                    self.remain_depart_time_text = "間もなく出発します"
-
-                if remain_minute < 1 and not self._announced_going_to_depart:
-                    self._announce_interface.announce_going_to_depart_and_arrive("going_to_depart")
-                    self._announced_going_to_depart = True
-
-            if remain_minute < 5 or self._distance < 100:
-                self.display_time = True
-            else:
-                self.display_time = False
-        except Exception as e:
-            self._node.get_logger().error("Error in getting calculate the time: " + str(e))
-
-    def process_depart_arrive_station_details(self, task):
-        if task["origin_point_name"]:
-            self.departure_station_name = self.process_name(task["origin_point_name"])
-        else:
-            self.departure_station_name = ["出発点", "Start"]
-        self.arrival_station_name = self.process_name(task["destination_point_name"])
-        date_time_obj = parser.parse(task["plan_start_time"])
-        self._depart_time = datetime.timestamp(date_time_obj)
-
-    def process_previous_station_list(self):
-        self._previous_station_deque.appendleft(self.departure_station_name)
-        self.previous_station_list = list(self._previous_station_deque)
-
-    def create_next_station_list(self, call_type):
-        station_list = []
-
-        for task in self._current_task_list:
-            if task["task_type"] == "move" and task["status"] in ["doing", "todo"]:
-                station_list.append(self.process_name(task["destination_point_name"]))
-
-        if (
-            self.departure_station_name[1] != "Start"
-            and call_type == "local"
-            and self._schedule_type == "loop"
-        ):
-            station_list.append(self.departure_station_name)
-
-        if len(station_list) < 4 and self._schedule_type == "loop":
-            station_cycle = cycle(station_list)
-            for _ in range(4 - len(station_list)):
-                station_list.append(next(station_cycle))
-        else:
-            for _ in range(4 - len(station_list)):
-                station_list.append(["", ""])
-
-        self.next_station_list = list(station_list[:3])
-
-    def process_station_list_from_local(self):
-        try:
-            if not self._current_task_list:
-                # empty current task list
-                return
-
-            self.process_previous_station_list()
-
-            # remove the first task
-            self._current_task_list.pop(0)
-
-            if not self._current_task_list:
-                # Reach final station
-                self.departure_station_name = self.arrival_station_name
-                self.arrival_station_name = ["", ""]
-                self.remain_depart_time_text = "終点です。\nご乗車ありがとうございました"
-                self._reach_final = True
-                return
-
-            for task in self._current_task_list:
-                if task["task_type"] == "move" and task["status"] == "todo":
-                    self.process_depart_arrive_station_details(task)
-                    break
-
-            self.create_next_station_list("local")
-            self._checked_route_local = True
-            self._checked_route_fms = False
-        except Exception as e:
-            self._node.get_logger().error("Unable to get the task from local, ERROR: " + str(e))
-
-    def process_station_list_from_fms(self, skip_check=False):
-        try:
-            if not skip_check and self._node.get_clock().now() - self._fms_check_time < Duration(
-                seconds=5
-            ):
-                return
-
-            respond = requests.post(
-                "http://{}:4711/v1/services/order".format(os.getenv("AUTOWARE_IP", "localhost")),
-                json=self._fms_payload,
-                timeout=5,
-            )
-            data = json.loads(respond.text)
-            self._fms_check_time = self._node.get_clock().now()
-
-            if not data:
-                self._node.get_logger().error("No data from fms")
-                return
-
-            elif (
-                self._schedule_updated_time == data["updated_at"]
-                and self._schedule_id == data["schedule_id"]
-            ):
-                self._node.get_logger().error("same schedule, skip")
-                return
-
-            self._schedule_type = data["schedule_type"]
-
-            route_name = self.process_tag(data.get("tags", []), "route_name")
-            if not route_name:
-                route_name = "行き先案内; Route Information"
-            self.route_name = self.process_name(route_name)
-
-            fms_task_list = []
-            fms_done_list = []
-            for task in data.get("tasks", {}):
-                if task["task_type"] == "move" and task["status"] in ["doing", "todo"]:
-                    fms_task_list.append(task)
-                elif task["task_type"] == "move" and task["status"] in ["done"]:
-                    fms_done_list.append(task)
-            self._current_task_list = list(fms_task_list)
-
-            if not self._current_task_list:
-                return
-
-            for task in self._current_task_list:
-                if task["status"] == "doing":
-                    self.process_depart_arrive_station_details(task)
-
-            if self._previous_station_list == [["", ""], ["", ""], ["", ""]]:
-                for task in fms_done_list:
-                    self._previous_station_deque.appendleft(
-                        self.process_name(task["origin_point_name"])
-                        if task["origin_point_name"]
-                        else ["出発点", "Start"]
-                    )
-                self.previous_station_list = list(self._previous_station_deque)
-
-            self.create_next_station_list("fms")
-            self._schedule_updated_time = data["updated_at"]
-            self._schedule_id = data["schedule_id"]
-            self._checked_route_local = False
-            self._checked_route_fms = True
-        except Exception as e:
-            self._node.get_logger().error("Unable to get the task from FMS, ERROR: " + str(e))
-            raise Exception("Unable to get the task from FMS, ERROR: " + str(e))
-
-    def path_distance_callback(self, topic):
-        if topic:
-            self._distance = topic.data
