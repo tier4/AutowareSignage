@@ -17,7 +17,6 @@
 ### setup FOA
 
 ```bash
-cd GSM8Signage
 source {AUTOWARE_PATH}/install/setup.bash
 bash setup.sh
 ```
@@ -32,6 +31,5 @@ bash start.sh
 ## rebuild
 
 ```bash
-cd GSM8Signage
 colcon build
 ```
