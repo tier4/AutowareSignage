@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from rclpy.duration import Duration
-from autoware_debug_msgs.msg import Float64Stamped
-from autoware_api_msgs.msg import AwapiAutowareStatus, AwapiVehicleStatus, DoorStatus
+from tier4_debug_msgs.msg import Float64Stamped
+from tier4_api_msgs.msg import AwapiAutowareStatus, AwapiVehicleStatus, DoorStatus
 
 
 class AutowareStateInterface:
@@ -124,7 +124,6 @@ class AutowareStateInterface:
                 callback(velocity)
         except Exception as e:
             self._node.get_logger().error("Unable to get the vehicle state, ERROR: " + str(e))
-
 
     def path_distance_callback(self, topic):
         try:

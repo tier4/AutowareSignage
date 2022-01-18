@@ -7,7 +7,7 @@ from PyQt5.QtMultimedia import QSound
 import simpleaudio as sa
 from rclpy.duration import Duration
 from ament_index_python.packages import get_package_share_directory
-from autoware_hmi_msgs.srv import Announce
+from tier4_hmi_msgs.srv import Announce
 
 # The higher the value, the higher the priority
 PRIORITY_DICT = {
@@ -67,7 +67,9 @@ class AnnounceControllerProperty:
                     wave_obj = sa.WaveObject.from_wave_file(filename)
                     play_obj = wave_obj.play()
                     play_obj.wait_done()
-            self._node.get_logger().info("return announce response")
+                self._node.get_logger().info(
+                    "return announce response: {}".format(str(annouce_type))
+                )
         except Exception as e:
             self._node.get_logger().error("not able to play the annoucen, ERROR: {}".format(str(e)))
         return response
