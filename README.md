@@ -33,3 +33,7 @@ bash start.sh
 ```bash
 colcon build
 ```
+
+## License
+
+音声：jtalk
