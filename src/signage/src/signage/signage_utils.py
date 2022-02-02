@@ -47,13 +47,17 @@ def seperate_task_list(seperated_task_list, task_list):
 
 
 def process_current_task(current_task_details, task):
-    if task.get("origin_point_name", ""):
-        current_task_details["departure_station"] = split_name(task.get("origin_point_name", ""))
+    if task.get("origin", "").get("name", ""):
+        current_task_details["departure_station"] = split_name(
+            task.get("origin", "").get("name", "")
+        )
     else:
         current_task_details["departure_station"] = split_name(DEFAULT_DEPARTURE_NAME)
 
-    if task.get("destination_point_name", ""):
-        current_task_details["arrival_station"] = split_name(task.get("destination_point_name", ""))
+    if task.get("destination", "").get("name", ""):
+        current_task_details["arrival_station"] = split_name(
+            task.get("destination", "").get("name", "")
+        )
     else:
         current_task_details["arrival_station"] = split_name(DEFAULT_ARRIVAL_NAME)
 
@@ -66,7 +70,7 @@ def process_current_task(current_task_details, task):
 
 def get_prevous_station_name_from_fms(done_list):
     previous_station_task = done_list[PREVIOUS_STATION_INDEX]
-    return split_name(previous_station_task.get("origin_point_name", DEFAULT_DEPARTURE_NAME))
+    return split_name(previous_station_task.get("origin", "").get("name", DEFAULT_DEPARTURE_NAME))
 
 
 def repeat_task_for_loop(station_list):
@@ -87,7 +91,9 @@ def create_next_station_list(
     station_list = [current_task_details["arrival_station"]]
 
     for task in seperated_task_list["todo_list"]:
-        station_list.append(split_name(task.get("destination_point_name", DEFAULT_ARRIVAL_NAME)))
+        station_list.append(
+            split_name(task.get("destination", "").get("name", DEFAULT_ARRIVAL_NAME))
+        )
 
     if call_type == "local" and schedule_type == "loop":
         # Need this condition, because FMS will not include the departure_station in the task
