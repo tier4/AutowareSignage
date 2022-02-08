@@ -149,13 +149,13 @@ class AnnounceControllerProperty:
             # Only announce when the bus reach the goal and not in emergency state
             self.send_announce("thank_you")
             self._door_announce = True
-        # elif door_status == 3 and self._pre_door_announce_status != 3:
-        #     # Should able to give warning everytime the door is opening
-        #     self.send_announce("door_open")
-        #     self._pre_door_announce_status = door_status
-        # elif door_status == 4 and self._pre_door_announce_status != 4:
-        #     # Should able to give warning everytime the door is closing
-        #     self.send_announce("door_close")
-        #     self._pre_door_announce_status = door_status
-        # elif door_status in [0, 2, 5]:
-        #     self._pre_door_announce_status = 0
+        elif door_status == 3 and self._pre_door_announce_status != 3:
+            # Should able to give warning everytime the door is opening
+            self.send_announce("door_open")
+            self._pre_door_announce_status = door_status
+        elif door_status == 4 and self._pre_door_announce_status != 4:
+            # Should able to give warning everytime the door is closing
+            self.send_announce("door_close")
+            self._pre_door_announce_status = door_status
+        elif door_status in [0, 2, 5]:
+            self._pre_door_announce_status = 0
