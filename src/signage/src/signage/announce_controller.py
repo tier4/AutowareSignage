@@ -38,7 +38,6 @@ class AnnounceControllerProperty:
         self._is_auto_mode = False
         self._is_auto_running = False
         self._door_announce = True
-        # self._pre_door_announce_status = 0
         self._pending_announce_list = []
         self._emergency_trigger_time = 0
         self._sound = QSound("")
@@ -52,7 +51,6 @@ class AnnounceControllerProperty:
             Announce, "/api/signage/set/announce", self.announce_service
         )
         autoware_state_interface.set_velocity_callback(self.sub_velocity)
-        autoware_state_interface.set_door_status_callback(self.sub_door_status)
 
     def announce_service(self, request, response):
         try:
@@ -143,19 +141,3 @@ class AnnounceControllerProperty:
 
     def announce_going_to_depart_and_arrive(self, message):
         self.send_announce(message)
-
-    def sub_door_status(self, door_status):
-        if door_status == 1 and not self._door_announce and not self._in_emergency_state:
-            # Only announce when the bus reach the goal and not in emergency state
-            self.send_announce("thank_you")
-            self._door_announce = True
-        elif door_status == 3 and self._pre_door_announce_status != 3:
-            # Should able to give warning everytime the door is opening
-            self.send_announce("door_open")
-            self._pre_door_announce_status = door_status
-        elif door_status == 4 and self._pre_door_announce_status != 4:
-            # Should able to give warning everytime the door is closing
-            self.send_announce("door_close")
-            self._pre_door_announce_status = door_status
-        elif door_status in [0, 2, 5]:
-            self._pre_door_announce_status = 0

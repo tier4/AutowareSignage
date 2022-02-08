@@ -3,7 +3,8 @@
 
 from rclpy.duration import Duration
 from tier4_debug_msgs.msg import Float64Stamped
-from tier4_api_msgs.msg import AwapiAutowareStatus, AwapiVehicleStatus, DoorStatus
+from tier4_api_msgs.msg import AwapiAutowareStatus, AwapiVehicleStatus
+from tier4_external_api_msgs.msg import DoorStatus
 
 
 class AutowareStateInterface:
@@ -25,7 +26,7 @@ class AutowareStateInterface:
             AwapiVehicleStatus, "/awapi/vehicle/get/status", self.vehicle_state_callback, 10
         )
         self._sub_vehicle_state = node.create_subscription(
-            DoorStatus, "/awapi/vehicle/get/door", self.vehicle_door_callback, 10
+            DoorStatus, "/api/external/get/door", self.vehicle_door_callback, 10
         )
         self._sub_path_distance = node.create_subscription(
             Float64Stamped,
