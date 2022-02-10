@@ -132,5 +132,3 @@ dmypy.json
 # ros output
 install/
 log/
-
-src/signage/resource/sound
