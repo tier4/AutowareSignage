@@ -7,6 +7,7 @@ import requests
 import json
 from rclpy.duration import Duration
 import signage.signage_utils as utils
+from tier4_external_api_msgs.msg import DoorStatus
 
 EMPTY_CURRENT_TASK = {
     "departure_station": ["", ""],
@@ -50,6 +51,7 @@ class RouteHandler:
         self._announced_going_to_depart = False
         self._announced_going_to_arrive = False
         self._distance = 1000
+        self._pre_door_announce_status = DoorStatus.UNKNOWN
         self._current_task_details = {
             "departure_station": ["", ""],
             "arrival_station": ["", ""],
@@ -89,6 +91,7 @@ class RouteHandler:
         autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
         autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
         autoware_state_interface.set_distance_callback(self.sub_distance)
+        autoware_state_interface.set_door_status_callback(self.sub_door_status)
 
         route_checker = self._node.create_timer(1, self.route_checker_callback)
         view_mode_update = self._node.create_timer(1, self.view_mode_callback)
@@ -151,6 +154,22 @@ class RouteHandler:
 
     def sub_distance(self, distance):
         self._distance = distance
+
+    def sub_door_status(self, door_status):
+        if self._pre_door_announce_status == door_status:
+            # same announce, return
+            return
+
+        if door_status == DoorStatus.OPENING:
+            # Should able to give warning everytime the door is opening
+            self._announce_interface.send_announce("door_open")
+            self._pre_door_announce_status = door_status
+        elif door_status == DoorStatus.CLOSING:
+            # Should able to give warning everytime the door is closing
+            self._announce_interface.send_announce("door_close")
+            self._pre_door_announce_status = door_status
+        else:
+            self._pre_door_announce_status = door_status
 
     # ============== Subsciber callback ==================
 
