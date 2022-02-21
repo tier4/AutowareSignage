@@ -18,6 +18,7 @@ class ViewControllerProperty(QObject):
     _get_remain_arrive_time_text_signal = pyqtSignal(str)
     _get_remain_depart_time_text_signal = pyqtSignal(str)
     _get_display_time_signal = pyqtSignal(bool)
+    _get_monitor_height_signal = pyqtSignal(int)
 
     def __init__(self, node=None):
         super(ViewControllerProperty, self).__init__()
@@ -31,6 +32,10 @@ class ViewControllerProperty(QObject):
         self._remain_arrive_time_text = ""
         self._remain_depart_time_text = ""
         self._display_time = False
+        self._node.declare_parameter("monitor_height", 360)
+        self._monitor_height = (
+            self._node.get_parameter("monitor_height").get_parameter_value().integer_value
+        )
 
     @pyqtProperty(str, notify=_view_mode_changed_signal)
     def view_mode(self):
@@ -138,3 +143,14 @@ class ViewControllerProperty(QObject):
             return
         self._display_time = display_time
         self._get_display_time_signal.emit(display_time)
+
+    @pyqtProperty(int, notify=_get_monitor_height_signal)
+    def monitor_height(self):
+        return self._monitor_height
+
+    @monitor_height.setter
+    def monitor_height(self, monitor_height):
+        if self._monitor_height == monitor_height:
+            return
+        self._monitor_height = monitor_height
+        self._get_monitor_height_signal.emit(monitor_height)

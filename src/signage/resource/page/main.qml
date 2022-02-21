@@ -12,7 +12,7 @@ Window {
     title: qsTr("案内板")
 
     width: 1920
-    height: 360
+    height: viewController.monitor_height
 
     EmergencyStopView {
         id: emergencyStopView

@@ -5,7 +5,7 @@ import QtQuick.Shapes 1.12
 Rectangle {
     id: busRouteName
     width: 1920
-    height: 360
+    height: viewController.monitor_height
     color: "#ffffff"
     Text {
         id: busRouteText
