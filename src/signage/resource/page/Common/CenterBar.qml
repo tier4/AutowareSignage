@@ -7,6 +7,4 @@ Rectangle {
     width: viewController.monitor_width - 200
     height: 44
     color: "#69bfd2"
-    anchors.verticalCenter: parent.verticalCenter
-    anchors.horizontalCenter: parent.horizontalCenter
 }

@@ -61,7 +61,7 @@ Rectangle {
             font.bold: true
             elide: Text.ElideMiddle
         }
-        visible : (viewController.departure_station_name[0] || viewController.departure_station_name[0].length !== 0)
+        visible : checkVisible(viewController.departure_station_name[0])
     }
 
     Rectangle {
@@ -103,99 +103,27 @@ Rectangle {
             font.bold: true
             elide: Text.ElideMiddle
         }
-        visible : (viewController.arrival_station_name || viewController.arrival_station_name.length !== 0)
+        visible : checkVisible(viewController.arrival_station_name[0])
     }
 
-    Item {
-        id: arrow_direction
+    ArrowDirection {
+        id: middleArrow
         anchors.verticalCenter: centerBar.verticalCenter
         anchors.horizontalCenter: centerBar.horizontalCenter
+    }
 
-        Shape {
-            id: middleTriangle
-            width: 30
-            height: 44
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
-            ShapePath {
-                fillColor: "white"
-                fillRule: ShapePath.WindingFill
-                strokeWidth: 0
-                strokeColor: "white"
-                startX: 0
-                startY: 0
-                PathLine {
-                    x: 30
-                    y: 22
-                }
-                PathLine {
-                    x: 0
-                    y: 44
-                }
-                PathLine {
-                    x: 0
-                    y: 0
-                }
-            }
-        }
+    ArrowDirection {
+        id: rightArrow
+        anchors.left: middleArrow.right
+        anchors.leftMargin: 0
+        anchors.verticalCenter: centerBar.verticalCenter
+    }
 
-        Shape {
-            id: leftTriangle
-            width: 30
-            height: 44
-            anchors.right: middleTriangle.left
-            anchors.rightMargin: 0
-            anchors.verticalCenter: parent.verticalCenter
-            ShapePath {
-                fillColor: "white"
-                fillRule: ShapePath.WindingFill
-                strokeWidth: 0
-                strokeColor: "white"
-                startX: 0
-                startY: 0
-                PathLine {
-                    x: 30
-                    y: 22
-                }
-                PathLine {
-                    x: 0
-                    y: 44
-                }
-                PathLine {
-                    x: 0
-                    y: 0
-                }
-            }
-        }
-
-        Shape {
-            id: rightTriangle
-            width: 30
-            height: 44
-            anchors.left: middleTriangle.right
-            anchors.leftMargin: 0
-            anchors.verticalCenter: parent.verticalCenter
-            ShapePath {
-                fillColor: "white"
-                fillRule: ShapePath.WindingFill
-                strokeWidth: 0
-                strokeColor: "white"
-                startX: 0
-                startY: 0
-                PathLine {
-                    x: 30
-                    y: 22
-                }
-                PathLine {
-                    x: 0
-                    y: 44
-                }
-                PathLine {
-                    x: 0
-                    y: 0
-                }
-            }
-        }
+    ArrowDirection {
+        id: leftArrow
+        anchors.right: middleArrow.left
+        anchors.rightMargin: 0
+        anchors.verticalCenter: centerBar.verticalCenter
     }
 
     Text {
@@ -211,5 +139,9 @@ Rectangle {
 
     function getTextWidth() {
         return viewController.monitor_width / 3 - 100
+    }
+
+    function checkVisible(name) {
+        return (name || name.length !== 0)
     }
 }
