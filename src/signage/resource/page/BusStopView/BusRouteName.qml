@@ -65,7 +65,7 @@ Rectangle {
 
         Text {
             id: busStopNameEn
-            width: viewController.monitor_width / 3 - 100
+            width: getTextWidth()
             color: "#000000"
             text: viewController.departure_station_name[1]
             anchors.horizontalCenter: parent.horizontalCenter
