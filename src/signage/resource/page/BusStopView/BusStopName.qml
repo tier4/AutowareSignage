@@ -52,7 +52,7 @@ Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 50*viewController.font_ratio
+            font.pixelSize: 50*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
         }
@@ -63,11 +63,11 @@ Rectangle {
             color: "#000000"
             text: viewController.departure_station_name[1]
             anchors.bottom: currentBusStopMarker.top
-            anchors.bottomMargin: 10*viewController.font_ratio
+            anchors.bottomMargin: 10*viewController.size_ratio
             anchors.horizontalCenter: parent.horizontalCenter
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 30*viewController.font_ratio
+            font.pixelSize: 30*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
         }
@@ -94,7 +94,7 @@ Rectangle {
             anchors.top: beforeBusStopMarker.bottom
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 40*viewController.font_ratio
+            font.pixelSize: 40*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
         }
@@ -108,7 +108,7 @@ Rectangle {
             anchors.topMargin: 5
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 30*viewController.font_ratio
+            font.pixelSize: 30*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
         }
@@ -136,7 +136,7 @@ Rectangle {
             anchors.top: nextBusStopMarker.bottom
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 40*viewController.font_ratio
+            font.pixelSize: 40*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
         }
@@ -150,7 +150,7 @@ Rectangle {
             anchors.topMargin: 5
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 30*viewController.font_ratio
+            font.pixelSize: 30*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
         }

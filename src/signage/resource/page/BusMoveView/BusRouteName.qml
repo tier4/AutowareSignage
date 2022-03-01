@@ -43,7 +43,7 @@ Rectangle {
             anchors.top: currentBusStopMarker.bottom
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 40*viewController.font_ratio
+            font.pixelSize: 40*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
         }
@@ -57,7 +57,7 @@ Rectangle {
             anchors.topMargin: 5
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 30*viewController.font_ratio
+            font.pixelSize: 30*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
         }
@@ -85,7 +85,7 @@ Rectangle {
             anchors.top: nextBusStopMarker.bottom
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 40*viewController.font_ratio
+            font.pixelSize: 40*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
         }
@@ -99,7 +99,7 @@ Rectangle {
             anchors.topMargin: 5
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 30*viewController.font_ratio
+            font.pixelSize: 30*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
         }
@@ -133,7 +133,7 @@ Rectangle {
         anchors.topMargin: 10
         anchors.horizontalCenter: parent.horizontalCenter
         font.bold: true
-        font.pixelSize: 48*viewController.font_ratio
+        font.pixelSize: 48*viewController.size_ratio
         visible: viewController.display_time
     }
 

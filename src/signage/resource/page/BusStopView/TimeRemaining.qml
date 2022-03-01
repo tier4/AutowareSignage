@@ -16,7 +16,7 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
-        font.pointSize: 80*viewController.font_ratio
+        font.pointSize: 80*viewController.size_ratio
         font.bold: true
         elide: Text.ElideMiddle
     }
