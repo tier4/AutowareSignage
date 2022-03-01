@@ -7,4 +7,4 @@ signage:
     goal_distance: 1 # meter
     check_fms_time: 5 # second
     emergency_repeat_period: 180 # second
-    monitor_height: 360
+    monitor_height: 540

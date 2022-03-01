@@ -19,6 +19,7 @@ class ViewControllerProperty(QObject):
     _get_remain_depart_time_text_signal = pyqtSignal(str)
     _get_display_time_signal = pyqtSignal(bool)
     _get_monitor_height_signal = pyqtSignal(int)
+    _get_font_ratio_signal = pyqtSignal(float)
 
     def __init__(self, node=None):
         super(ViewControllerProperty, self).__init__()
@@ -36,6 +37,7 @@ class ViewControllerProperty(QObject):
         self._monitor_height = (
             self._node.get_parameter("monitor_height").get_parameter_value().integer_value
         )
+        self._font_ratio = (self._monitor_height / 360.0) * 0.8
 
     @pyqtProperty(str, notify=_view_mode_changed_signal)
     def view_mode(self):
@@ -154,3 +156,14 @@ class ViewControllerProperty(QObject):
             return
         self._monitor_height = monitor_height
         self._get_monitor_height_signal.emit(monitor_height)
+
+    @pyqtProperty(float, notify=_get_font_ratio_signal)
+    def font_ratio(self):
+        return self._font_ratio
+
+    @font_ratio.setter
+    def font_ratio(self, font_ratio):
+        if self._font_ratio == font_ratio:
+            return
+        self._font_ratio = font_ratio
+        self._get_font_ratio_signal.emit(font_ratio)
