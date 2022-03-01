@@ -23,14 +23,14 @@ Rectangle {
 
     Rectangle {
         id: beforeBusStopMarker
-        width: 60
-        height: 60
+        width: 60*viewController.size_ratio
+        height: 60*viewController.size_ratio
         color: "#ffffff"
-        radius: 30
+        radius: 30*viewController.size_ratio
         anchors.left: parent.left
         anchors.leftMargin: getMargin(1)
         anchors.verticalCenter: centerBar.verticalCenter
-        border.width: 10
+        border.width: 10*viewController.size_ratio
         border.color: "#717171"
 
         Text {
@@ -54,7 +54,7 @@ Rectangle {
             text: viewController.previous_station_name[1]
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: beforeBusStopName.bottom
-            anchors.topMargin: 5
+            anchors.topMargin: 5*viewController.size_ratio
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             font.pixelSize: 20*viewController.size_ratio
@@ -68,14 +68,14 @@ Rectangle {
 
     Rectangle {
         id: currentBusStopMarker
-        width: 60
-        height: 60
+        width: 60*viewController.size_ratio
+        height: 60*viewController.size_ratio
         color: "#0068b6"
-        radius: 30
+        radius: 30*viewController.size_ratio
         anchors.left: parent.left
         anchors.leftMargin: getMargin(2)
         anchors.verticalCenter: centerBar.verticalCenter
-        border.width: 10
+        border.width: 10*viewController.size_ratio
         border.color: "#ffffff"
 
         Text {
@@ -100,7 +100,7 @@ Rectangle {
             text: viewController.departure_station_name[1]
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: currentBusStopName.bottom
-            anchors.topMargin: 5
+            anchors.topMargin: 5*viewController.size_ratio
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             font.pixelSize: 20*viewController.size_ratio
@@ -113,14 +113,14 @@ Rectangle {
 
     Rectangle {
         id: nextBusStop1Marker
-        width: 60
-        height: 60
+        width: 60*viewController.size_ratio
+        height: 60*viewController.size_ratio
         color: "#ffffff"
-        radius: 30
+        radius: 30*viewController.size_ratio
         anchors.left: parent.left
         anchors.leftMargin: getMargin(3)
         anchors.verticalCenter: centerBar.verticalCenter
-        border.width: 10
+        border.width: 10*viewController.size_ratio
         border.color: "#0068b6"
 
         Text {
@@ -144,7 +144,7 @@ Rectangle {
             text: viewController.arrival_station_name[1]
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: nextBusStop1Name.bottom
-            anchors.topMargin: 5
+            anchors.topMargin: 5*viewController.size_ratio
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             font.pixelSize: 20*viewController.size_ratio
@@ -158,13 +158,13 @@ Rectangle {
 
     Rectangle {
         id: nextBusStop2Marker
-        width: 60
-        height: 60
+        width: 60*viewController.size_ratio
+        height: 60*viewController.size_ratio
         color: "#ffffff"
-        radius: 30
+        radius: 30*viewController.size_ratio
         anchors.verticalCenter: centerBar.verticalCenter
         anchors.horizontalCenter: centerBar.horizontalCenter
-        border.width: 10
+        border.width: 10*viewController.size_ratio
         border.color: "#0068b6"
 
         Text {
@@ -188,7 +188,7 @@ Rectangle {
             text: viewController.next_station_list[1][1]
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: nextBusStop2Name.bottom
-            anchors.topMargin: 5
+            anchors.topMargin: 5*viewController.size_ratio
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             font.pixelSize: 20*viewController.size_ratio
@@ -202,14 +202,14 @@ Rectangle {
 
     Rectangle {
         id: nextBusStop3Marker
-        width: 60
-        height: 60
+        width: 60*viewController.size_ratio
+        height: 60*viewController.size_ratio
         color: "#ffffff"
-        radius: 30
+        radius: 30*viewController.size_ratio
         anchors.right: parent.right
         anchors.rightMargin: getMargin(3)
         anchors.verticalCenter: centerBar.verticalCenter
-        border.width: 10
+        border.width: 10*viewController.size_ratio
         border.color: "#0068b6"
 
         Text {
@@ -233,7 +233,7 @@ Rectangle {
             text: viewController.next_station_list[2][1]
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: nextBusStop3Name.bottom
-            anchors.topMargin: 5
+            anchors.topMargin: 5*viewController.size_ratio
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             font.pixelSize: 20*viewController.size_ratio
@@ -246,14 +246,14 @@ Rectangle {
 
     Rectangle {
         id: nextBusStop4Marker
-        width: 60
-        height: 60
+        width: 60*viewController.size_ratio
+        height: 60*viewController.size_ratio
         color: "#ffffff"
-        radius: 30
+        radius: 30*viewController.size_ratio
         anchors.right: parent.right
         anchors.rightMargin: getMargin(2)
         anchors.verticalCenter: centerBar.verticalCenter
-        border.width: 10
+        border.width: 10*viewController.size_ratio
         border.color: "#0068b6"
 
         Text {
@@ -277,7 +277,7 @@ Rectangle {
             text: viewController.next_station_list[3][1]
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: nextBusStop4Name.bottom
-            anchors.topMargin: 5
+            anchors.topMargin: 5*viewController.size_ratio
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             font.pixelSize: 20*viewController.size_ratio
@@ -290,14 +290,14 @@ Rectangle {
 
     Rectangle {
         id: nextBusStop5Marker
-        width: 60
-        height: 60
+        width: 60*viewController.size_ratio
+        height: 60*viewController.size_ratio
         color: "#ffffff"
-        radius: 30
+        radius: 30*viewController.size_ratio
         anchors.right: parent.right
         anchors.rightMargin: getMargin(1)
         anchors.verticalCenter: centerBar.verticalCenter
-        border.width: 10
+        border.width: 10*viewController.size_ratio
         border.color: "#0068b6"
 
         Text {
@@ -321,7 +321,7 @@ Rectangle {
             text: viewController.next_station_list[4][1]
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: nextBusStop5Name.bottom
-            anchors.topMargin: 5
+            anchors.topMargin: 5*viewController.size_ratio
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             font.pixelSize: 20*viewController.size_ratio

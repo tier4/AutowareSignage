@@ -24,15 +24,15 @@ Rectangle {
 
     Rectangle {
         id: currentBusStopMarker
-        width: 60
-        height: 60
+        width: 60*viewController.size_ratio
+        height: 60*viewController.size_ratio
         color: "#0068b6"
-        radius: 30
+        radius: 30*viewController.size_ratio
         anchors.left: parent.left
-        anchors.leftMargin: 300
+        anchors.leftMargin: getMargin()
         anchors.verticalCenter: centerBar.verticalCenter
         border.color: "#ffffff"
-        border.width: 10
+        border.width: 10*viewController.size_ratio
 
         Text {
             id: currentBusStopName
@@ -54,7 +54,7 @@ Rectangle {
             text: viewController.departure_station_name[1]
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: currentBusStopName.bottom
-            anchors.topMargin: 5
+            anchors.topMargin: 5*viewController.size_ratio
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             font.pixelSize: 30*viewController.size_ratio
@@ -66,15 +66,15 @@ Rectangle {
 
     Rectangle {
         id: nextBusStopMarker
-        width: 60
-        height: 60
+        width: 60*viewController.size_ratio
+        height: 60*viewController.size_ratio
         color: "#ffffff"
-        radius: 30
+        radius: 30*viewController.size_ratio
         anchors.right: parent.right
-        anchors.rightMargin: 300
+        anchors.rightMargin: getMargin()
         anchors.verticalCenter: centerBar.verticalCenter
         border.color: "#0068b6"
-        border.width: 10
+        border.width: 10*viewController.size_ratio
 
         Text {
             id: nextBusStopName
@@ -96,7 +96,7 @@ Rectangle {
             text: viewController.arrival_station_name[1]
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: nextBusStopName.bottom
-            anchors.topMargin: 5
+            anchors.topMargin: 5*viewController.size_ratio
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             font.pixelSize: 30*viewController.size_ratio
@@ -130,7 +130,7 @@ Rectangle {
         id: remainingTime
         text: viewController.remain_arrive_time_text
         anchors.top: centerBar.bottom
-        anchors.topMargin: 10
+        anchors.topMargin: 10*viewController.size_ratio
         anchors.horizontalCenter: parent.horizontalCenter
         font.bold: true
         font.pixelSize: 48*viewController.size_ratio
@@ -143,5 +143,9 @@ Rectangle {
 
     function checkVisible(name) {
         return (name || name.length !== 0)
+    }
+
+    function getMargin() {
+        return viewController.monitor_width / 4
     }
 }

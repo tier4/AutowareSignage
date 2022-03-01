@@ -8,4 +8,4 @@ signage:
     check_fms_time: 5 # second
     emergency_repeat_period: 180 # second
     monitor_width: 1920
-    monitor_height: 540
+    monitor_height: 360

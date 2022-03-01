@@ -42,7 +42,7 @@ class ViewControllerProperty(QObject):
         self._monitor_height = (
             self._node.get_parameter("monitor_height").get_parameter_value().integer_value
         )
-        self._size_ratio = (self._monitor_height / 360.0) * (self._monitor_width / 1920)
+        self._size_ratio = (self._monitor_height / 360.0) * (self._monitor_width / 1920) * 0.8
 
     @pyqtProperty(str, notify=_view_mode_changed_signal)
     def view_mode(self):
