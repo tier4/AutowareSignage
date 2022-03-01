@@ -50,7 +50,7 @@ Rectangle {
         }
 
         Text {
-            id: busStopName
+            id: currentBusStopName
             width: getTextWidth()
             color: "#000000"
             text: viewController.departure_station_name[0]
@@ -64,12 +64,12 @@ Rectangle {
         }
 
         Text {
-            id: busStopNameEn
+            id: currentBusStopNameEn
             width: getTextWidth()
             color: "#000000"
             text: viewController.departure_station_name[1]
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: busStopName.bottom
+            anchors.top: currentBusStopName.bottom
             anchors.topMargin: 5
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
