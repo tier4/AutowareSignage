@@ -42,7 +42,7 @@ Rectangle {
             anchors.top: beforeBusStopMarker.bottom
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 28*viewController.font_ratio
+            font.pixelSize: 28*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
             wrapMode: Text.WordWrap
@@ -57,7 +57,7 @@ Rectangle {
             anchors.topMargin: 5
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 20*viewController.font_ratio
+            font.pixelSize: 20*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
             wrapMode: Text.WordWrap
@@ -87,7 +87,7 @@ Rectangle {
             anchors.top: currentBusStopMarker.bottom
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 28*viewController.font_ratio
+            font.pixelSize: 28*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
             wrapMode: Text.WordWrap
@@ -103,7 +103,7 @@ Rectangle {
             anchors.topMargin: 5
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 20*viewController.font_ratio
+            font.pixelSize: 20*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
             wrapMode: Text.WordWrap
@@ -132,7 +132,7 @@ Rectangle {
             anchors.top: nextBusStop1Marker.bottom
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 28*viewController.font_ratio
+            font.pixelSize: 28*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
             wrapMode: Text.WordWrap
@@ -147,7 +147,7 @@ Rectangle {
             anchors.topMargin: 5
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 20*viewController.font_ratio
+            font.pixelSize: 20*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
             wrapMode: Text.WordWrap
@@ -176,7 +176,7 @@ Rectangle {
             anchors.top: nextBusStop2Marker.bottom
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 28*viewController.font_ratio
+            font.pixelSize: 28*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
             wrapMode: Text.WordWrap
@@ -191,7 +191,7 @@ Rectangle {
             anchors.topMargin: 5
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 20*viewController.font_ratio
+            font.pixelSize: 20*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
             wrapMode: Text.WordWrap
@@ -221,7 +221,7 @@ Rectangle {
             anchors.top: nextBusStop3Marker.bottom
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 28*viewController.font_ratio
+            font.pixelSize: 28*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
             wrapMode: Text.WordWrap
@@ -236,7 +236,7 @@ Rectangle {
             anchors.topMargin: 5
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 20*viewController.font_ratio
+            font.pixelSize: 20*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
             wrapMode: Text.WordWrap
@@ -265,7 +265,7 @@ Rectangle {
             anchors.top: nextBusStop4Marker.bottom
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 28*viewController.font_ratio
+            font.pixelSize: 28*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
             wrapMode: Text.WordWrap
@@ -280,7 +280,7 @@ Rectangle {
             anchors.topMargin: 5
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 20*viewController.font_ratio
+            font.pixelSize: 20*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
             wrapMode: Text.WordWrap
@@ -309,7 +309,7 @@ Rectangle {
             anchors.top: nextBusStop5Marker.bottom
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 28*viewController.font_ratio
+            font.pixelSize: 28*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
             wrapMode: Text.WordWrap
@@ -324,7 +324,7 @@ Rectangle {
             anchors.topMargin: 5
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 20*viewController.font_ratio
+            font.pixelSize: 20*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
             wrapMode: Text.WordWrap
