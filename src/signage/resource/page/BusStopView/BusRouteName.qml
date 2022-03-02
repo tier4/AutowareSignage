@@ -9,6 +9,10 @@ Rectangle {
     height: viewController.monitor_height
     color: "#ffffff"
 
+    CurrentTime {
+        id: displayCurrentTime
+    }
+
     CenterBar {
         id: centerBar
         anchors.verticalCenter: parent.verticalCenter

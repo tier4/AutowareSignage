@@ -1,11 +1,18 @@
 import QtQuick 2.9
 import QtQuick.Controls 2.2
 
+import "../Common"
+
 Rectangle {
     id: remainingTimeView
     width: viewController.monitor_width
     height: viewController.monitor_height
     color: "#ffffff"
+
+    CurrentTime {
+        id: displayCurrentTime
+    }
+
     Text {
         id: remainingTimeText
         width: viewController.monitor_width - 200

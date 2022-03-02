@@ -1,6 +1,5 @@
 import QtQuick 2.9
 import QtQuick.Controls 2.2
-import QtQuick.Shapes 1.12
 
 import "../Common"
 
@@ -9,6 +8,10 @@ Rectangle {
     width: viewController.monitor_width
     height: viewController.monitor_height
     color: "#ffffff"
+
+    CurrentTime {
+        id: displayCurrentTime
+    }
 
     CenterBar {
         id: centerBar

@@ -18,6 +18,7 @@ class ViewControllerProperty(QObject):
     _get_remain_arrive_time_text_signal = pyqtSignal(str)
     _get_remain_depart_time_text_signal = pyqtSignal(str)
     _get_display_time_signal = pyqtSignal(bool)
+    _get_clock_string_signal = pyqtSignal(str)
     _get_monitor_height_signal = pyqtSignal(int)
     _get_monitor_width_signal = pyqtSignal(int)
     _get_size_ratio_signal = pyqtSignal(float)
@@ -43,6 +44,7 @@ class ViewControllerProperty(QObject):
             self._node.get_parameter("monitor_height").get_parameter_value().integer_value
         )
         self._size_ratio = (self._monitor_height / 360.0) * (self._monitor_width / 1920) * 0.8
+        self._clock_string = ""
 
     @pyqtProperty(str, notify=_view_mode_changed_signal)
     def view_mode(self):
@@ -150,6 +152,18 @@ class ViewControllerProperty(QObject):
             return
         self._display_time = display_time
         self._get_display_time_signal.emit(display_time)
+
+    # QMLへroute_nameを反映させる
+    @pyqtProperty("QString", notify=_get_clock_string_signal)
+    def clock_string(self):
+        return self._clock_string
+
+    @clock_string.setter
+    def clock_string(self, clock_string):
+        if self._clock_string == clock_string:
+            return
+        self._clock_string = clock_string
+        self._get_clock_string_signal.emit(clock_string)
 
     @pyqtProperty(int, notify=_get_monitor_width_signal)
     def monitor_width(self):
