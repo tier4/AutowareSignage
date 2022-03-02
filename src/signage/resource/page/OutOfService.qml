@@ -11,7 +11,7 @@ Rectangle {
         color: "#000000"
         text: qsTr("回送中")
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.verticalCenter: parent.verticalCenter
+        anchors.bottom: parent.verticalCenter
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         font.pointSize: 80*viewController.size_ratio
