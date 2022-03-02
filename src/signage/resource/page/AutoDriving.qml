@@ -13,6 +13,10 @@ Rectangle {
         id: displayCurrentTime
     }
 
+    CompanyIcon {
+        id: companyIcon
+    }
+
     Text {
         id: autoDrivingText
         color: "#000000"
