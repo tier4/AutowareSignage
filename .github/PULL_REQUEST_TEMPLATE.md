@@ -1,41 +1,36 @@
-## PR Type
+## Related Issue(required)
 
-<!-- Select one and remove others. If an appropriate one is not listed, please write by yourself. -->
+<!-- Link related issue -->
 
-- New Feature
-- Improvement
-- Bug Fix
-
-## Related Links
-
-<!-- Please write related links to GitHub/Jira/Slack/etc. -->
-
-## Description
+## Description(required)
 
 <!-- Describe what this PR changes. -->
 
-## Review Procedure
+## Review Procedure(required)
 
 <!-- Explain how to review this PR. -->
 
-## Remarks
+## Related PR(optional)
 
-<!-- Write remarks as you like if you need them. -->
+<!-- Link related PR -->
 
 ## Pre-Review Checklist for the PR Author
 
 **PR Author should check the checkboxes below when creating the PR.**
 
-- [ ] Read [pull request guidelines][pull-request-guidelines]
-- [ ] Code follows [coding guidelines][coding-guidelines]
+- [ ] Read [commit-guidelines][commit-guidelines]
 - [ ] Assign PR to reviewer
+
+If you are adding new package following items are required:
+
+- [ ] Documentation with description of the package is available
+- [ ] A sample launch file and parameter file are available if the package contains executable nodes
 
 ## Checklist for the PR Reviewer
 
 **Reviewers should check the checkboxes below before approval.**
 
 - [ ] Commits are properly organized and messages are according to the guideline
-- [ ] Code follows [coding guidelines][coding-guidelines]
 - [ ] PR title describes the changes
 
 ## Post-Review Checklist for the PR Author
@@ -43,8 +38,8 @@
 **PR Author should check the checkboxes below before merging.**
 
 - [ ] All open points are addressed and tracked via issues or tickets
-- [ ] Write [release notes][release-notes]
+- [ ] Write release notes
 
-[coding-guidelines]: https://tier4.atlassian.net/wiki/spaces/AIP/pages/1194394777/T4
-[pull-request-guidelines]: https://tier4.github.io/autoware.proj/tree/main/developer_guide/PullRequestGuideline/
-[release-notes]: https://tier4.atlassian.net/l/c/tRm8nvpu
+
+[commit-guidelines]: https://www.conventionalcommits.org/en/v1.0.0/
+[spell-check-dict]: https://github.com/tier4/autoware-spell-check-dict#how-to-contribute
