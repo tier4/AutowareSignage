@@ -13,10 +13,6 @@ Rectangle {
         id: displayCurrentTime
     }
 
-    CompanyIcon {
-        id: companyIcon
-    }
-
     CenterBar {
         id: centerBar
         anchors.verticalCenter: parent.verticalCenter

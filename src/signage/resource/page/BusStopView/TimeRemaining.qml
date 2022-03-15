@@ -13,10 +13,6 @@ Rectangle {
         id: displayCurrentTime
     }
 
-    CompanyIcon {
-        id: companyIcon
-    }
-
     Text {
         id: remainingTimeText
         width: viewController.monitor_width - 200

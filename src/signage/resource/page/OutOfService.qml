@@ -13,10 +13,6 @@ Rectangle {
         id: displayCurrentTime
     }
 
-    CompanyIcon {
-        id: companyIcon
-    }
-
     Text {
         id: outOfServiceText
         color: "#000000"

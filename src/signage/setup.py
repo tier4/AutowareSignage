@@ -39,10 +39,6 @@ setup(
             "share/" + package_name + "/resource/page/Common",
             package_files("resource/page/Common"),
         ),
-        (
-            "share/" + package_name + "/resource/page/icon",
-            package_files("resource/page/icon"),
-        ),
         ("share/" + package_name, ["package.xml"]),
         ("share/" + package_name + "/launch", ["launch/signage.launch.xml"]),
         ("share/" + package_name + "/config", ["config/signage_param.yaml"]),
