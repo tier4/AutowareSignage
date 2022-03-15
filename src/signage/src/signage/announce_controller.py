@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # This Python file uses the following encoding: utf-8
 
-from PyQt5.QtMultimedia import QSound
+from python_qt_binding.QtMultimedia import QSound
 
 import simpleaudio as sa
 from rclpy.duration import Duration

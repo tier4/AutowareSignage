@@ -1,8 +1,8 @@
 # This Python file uses the following encoding: utf-8
 import sys
 
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtQml import QQmlApplicationEngine
+from python_qt_binding.QtWidgets import QApplication
+from python_qt_binding.QtQml import QQmlApplicationEngine
 
 import rclpy
 from rclpy.node import Node
