@@ -3,7 +3,7 @@
 <package format="3">
 
   <name>signage_version</name>
-  <version>2.0.0</version>
+  <version>0.0.0</version>
   <description>The signage_version package</description>
   <maintainer email="makoto.yabuta@tier4.jp">Makoto Yabuta</maintainer>
   <license>Apache License 2.0</license>
