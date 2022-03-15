@@ -5,7 +5,7 @@
 - Ubuntu20.04
 - Python3.5
 - Qt5.9
-- ros foxy
+- ros galactic
 
 ## setup
 
@@ -14,7 +14,7 @@
 下記参照
 <https://github.com/tier4/AutowareArchitectureProposal.proj>
 
-### setup FOA
+### setup
 
 ```bash
 source {AUTOWARE_PATH}/install/setup.bash
