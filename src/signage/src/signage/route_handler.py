@@ -5,6 +5,7 @@
 import os
 import requests
 import json
+from datetime import datetime
 from rclpy.duration import Duration
 import signage.signage_utils as utils
 from tier4_external_api_msgs.msg import DoorStatus
@@ -294,8 +295,13 @@ class RouteHandler:
                 return
 
             remain_minute = 100
-            remain_minute = int((self._current_task_details["depart_time"]
-                                - self._node.get_clock().now().to_msg().sec) / 60)
+            remain_minute = int(
+                (
+                    self._current_task_details["depart_time"]
+                    - self._node.get_clock().now().to_msg().sec
+                )
+                / 60
+            )
             if remain_minute > 0:
                 self._remain_depart_time_text = "このバスはあと{}分程で出発します".format(str(remain_minute))
             else:
@@ -324,6 +330,7 @@ class RouteHandler:
 
     def view_mode_callback(self):
         try:
+            self._viewController.clock_string = datetime.now().strftime("%H:%M")
             self._viewController.route_name = self._route_name
             self._viewController.departure_station_name = self._current_task_details[
                 "departure_station"

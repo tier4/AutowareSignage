@@ -1,22 +1,15 @@
 import QtQuick 2.9
 import QtQuick.Controls 2.2
 
-import "Common"
-
 Rectangle {
-    id: autoDrivingView
+    id: emergencyStoppingView
     width: viewController.monitor_width
     height: viewController.monitor_height
-    color: "#ffffff"
-
-    CurrentTime {
-        id: displayCurrentTime
-    }
-
+    color: "#f60000"
     Text {
-        id: autoDrivingText
-        color: "#000000"
-        text: qsTr("自動運転中")
+        id: emergencyStoppingText
+        color: "#ffffff"
+        text: qsTr("只今オペレータ対応中です")
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.verticalCenter
         horizontalAlignment: Text.AlignHCenter
@@ -27,10 +20,10 @@ Rectangle {
     }
 
     Text {
-        id: autoDrivingEnText
-        color: "#000000"
-        text: qsTr("Auto Driving")
-        anchors.top: autoDrivingText.bottom
+        id: emergencyStoppingEnText
+        color: "#ffffff"
+        text: qsTr("Now the operator is working on it")
+        anchors.top: emergencyStoppingText.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter

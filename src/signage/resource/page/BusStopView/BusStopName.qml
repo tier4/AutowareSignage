@@ -1,179 +1,175 @@
 import QtQuick 2.9
 import QtQuick.Controls 2.2
 
+import "../Common"
+
 Rectangle {
     id: busStopName
-    width: 1920
-    height: 360
+    width: viewController.monitor_width
+    height: viewController.monitor_height
     color: "#ffffff"
-    Text {
-        id: currentBusText
-        color: "#000000"
-        text: viewController.departure_station_name[0]
-        anchors.verticalCenterOffset: -100
-        font.bold: true
-        verticalAlignment: Text.AlignVCenter
-        horizontalAlignment: Text.AlignHCenter
-        font.pointSize: 50
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.verticalCenter: parent.verticalCenter
+
+    CurrentTime {
+        id: displayCurrentTime
     }
 
-    Text {
-        id: currentBusTextEn
-        color: "#000000"
-        text: viewController.departure_station_name[1]
-        anchors.top: currentBusText.bottom
-        anchors.topMargin: -5
+    CenterBar {
+        id: centerBar
+        anchors.verticalCenter: parent.verticalCenter
         anchors.horizontalCenter: parent.horizontalCenter
-        horizontalAlignment: Text.AlignHCenter
-        font.pixelSize: 28
-        font.bold: true
-        verticalAlignment: Text.AlignVCenter
     }
 
     Item {
-        id: beforeAndAfterBusStop
-        height: 100
-        anchors.right: parent.right
-        anchors.rightMargin: 0
-        anchors.left: parent.left
-        anchors.leftMargin: 0
-        anchors.top: currentBusText.bottom
-        anchors.topMargin: 30
+        id: currentBusStop
+        anchors.verticalCenter: centerBar.verticalCenter
+        anchors.horizontalCenter: parent.horizontalCenter
 
         Rectangle {
-            id: beforeAndAfterBar
-            width: 1700
-            height: 44
-            color: "#69bfd2"
+            id: currentBusStopMarker
+            width: 90*viewController.size_ratio
+            height: 90*viewController.size_ratio
+            color: "#ffffff"
+            radius: 45*viewController.size_ratio
             anchors.verticalCenter: parent.verticalCenter
             anchors.horizontalCenter: parent.horizontalCenter
-        }
-
-        Rectangle {
-            id: rectangle2
-            width: 90
-            height: 90
-            color: "#ffffff"
-            radius: 45
-            anchors.verticalCenter: beforeAndAfterBar.verticalCenter
-            anchors.horizontalCenter: parent.horizontalCenter
             border.color: "#717171"
-            border.width: 5
+            border.width: 5*viewController.size_ratio
 
             Rectangle {
-                id: rectangle1
-                width: 70
-                height: 70
+                id: innerLayer
+                width: 70*viewController.size_ratio
+                height: 70*viewController.size_ratio
                 color: "#0068b6"
-                radius: 35
+                radius: 35*viewController.size_ratio
                 border.width: 0
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
 
-        Rectangle {
-            id: beforeBusStopMarker
-            width: 60
-            height: 60
-            color: "#ffffff"
-            radius: 30
-            anchors.left: parent.left
-            anchors.leftMargin: 300
-            anchors.verticalCenter: beforeAndAfterBar.verticalCenter
-            border.color: "#717171"
-            border.width: 10
-
-            Text {
-                id: beforeBusStopName
-                width: 500
-                color: "#717171"
-                text: viewController.previous_station_name[0]
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: parent.bottom
-                anchors.topMargin: 2
-                horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: 40
-                font.bold: true
-                elide: Text.ElideRight
-                verticalAlignment: Text.AlignVCenter
-            }
-            Text {
-                id: beforeBusStopNameEn
-                width: 500
-                color: "#717171"
-                text: viewController.previous_station_name[1]
-                anchors.top: beforeBusStopName.bottom
-                anchors.topMargin: 5
-                anchors.horizontalCenter: beforeBusStopName.horizontalCenter
-                font.pixelSize: 30
-                font.bold: true
-                elide: Text.ElideRight
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-            visible : (viewController.previous_station_name[0] || viewController.previous_station_name[0].length !== 0)
+        Text {
+            id: currentBusStopName
+            width: viewController.monitor_width - 200
+            color: "#000000"
+            text: viewController.departure_station_name[0]
+            anchors.bottom: currentBusStopNameEn.top
+            anchors.horizontalCenter: parent.horizontalCenter
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            font.pixelSize: 50*viewController.size_ratio
+            font.bold: true
+            elide: Text.ElideMiddle
         }
 
-        Rectangle {
-            id: nextBusStopMarker
-            width: 60
-            height: 60
-            color: "#ffffff"
-            radius: 30
-            anchors.right: parent.right
-            anchors.rightMargin: 300
-            anchors.verticalCenter: beforeAndAfterBar.verticalCenter
-            border.color: "#0068b6"
-            border.width: 10
-
-            Text {
-                id: nextBusStopName
-                width: 500
-                text: viewController.arrival_station_name[0]
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: parent.bottom
-                anchors.topMargin: 2
-                font.bold: true
-                elide: Text.ElideRight
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: 40
-            }
-            Text {
-                id: nextBusStopNameEn
-                width: 500
-                color: "#000000"
-                text: viewController.arrival_station_name[1]
-                anchors.horizontalCenter: nextBusStopName.horizontalCenter
-                anchors.top: nextBusStopName.bottom
-                anchors.topMargin: 5
-                horizontalAlignment: Text.AlignHCenter
-                font.bold: true
-                font.pixelSize: 30
-                elide: Text.ElideRight
-                verticalAlignment: Text.AlignVCenter
-            }
-            visible : (viewController.arrival_station_name[0] || viewController.arrival_station_name[0].length !== 0)
+        Text {
+            id: currentBusStopNameEn
+            width: viewController.monitor_width - 200
+            color: "#000000"
+            text: viewController.departure_station_name[1]
+            anchors.bottom: currentBusStopMarker.top
+            anchors.bottomMargin: 10*viewController.size_ratio
+            anchors.horizontalCenter: parent.horizontalCenter
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            font.pixelSize: 30*viewController.size_ratio
+            font.bold: true
+            elide: Text.ElideMiddle
         }
     }
-    function getDepatureStationName() {
-        var station_name = viewController.departure_station_name
-        if(!station_name || station_name.length === 0)
-        {
-            station_name = qsTr("バス停名")
+
+    Rectangle {
+        id: beforeBusStopMarker
+        width: 60*viewController.size_ratio
+        height: 60*viewController.size_ratio
+        color: "#ffffff"
+        radius: 30*viewController.size_ratio
+        anchors.left: parent.left
+        anchors.leftMargin: getMargin()
+        anchors.verticalCenter: centerBar.verticalCenter
+        border.color: "#717171"
+        border.width: 10*viewController.size_ratio
+
+        Text {
+            id: beforeBusStopName
+            width: getTextWidth()
+            color: "#717171"
+            text: viewController.previous_station_name[0]
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: beforeBusStopMarker.bottom
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            font.pixelSize: 40*viewController.size_ratio
+            font.bold: true
+            elide: Text.ElideMiddle
         }
-        return station_name
+        Text {
+            id: beforeBusStopNameEn
+            width: getTextWidth()
+            color: "#717171"
+            text: viewController.previous_station_name[1]
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: beforeBusStopName.bottom
+            anchors.topMargin: 5*viewController.size_ratio
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            font.pixelSize: 30*viewController.size_ratio
+            font.bold: true
+            elide: Text.ElideMiddle
+        }
+        visible : checkVisible(viewController.previous_station_name[0])
+    }
+
+    Rectangle {
+        id: nextBusStopMarker
+        width: 60*viewController.size_ratio
+        height: 60*viewController.size_ratio
+        color: "#ffffff"
+        radius: 30*viewController.size_ratio
+        anchors.right: parent.right
+        anchors.rightMargin: getMargin()
+        anchors.verticalCenter: centerBar.verticalCenter
+        border.color: "#0068b6"
+        border.width: 10*viewController.size_ratio
+
+        Text {
+            id: nextBusStopName
+            width: getTextWidth()
+            color: "#000000"
+            text: viewController.arrival_station_name[0]
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: nextBusStopMarker.bottom
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            font.pixelSize: 40*viewController.size_ratio
+            font.bold: true
+            elide: Text.ElideMiddle
+        }
+        Text {
+            id: nextBusStopNameEn
+            width: getTextWidth()
+            color: "#000000"
+            text: viewController.arrival_station_name[1]
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: nextBusStopName.bottom
+            anchors.topMargin: 5*viewController.size_ratio
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            font.pixelSize: 30*viewController.size_ratio
+            font.bold: true
+            elide: Text.ElideMiddle
+        }
+        visible : checkVisible(viewController.arrival_station_name[0])
+    }
+
+    function getTextWidth() {
+        return viewController.monitor_width / 3 - (80*viewController.size_ratio)
+    }
+
+    function getMargin() {
+        return viewController.monitor_width / 4
+    }
+
+    function checkVisible(name) {
+        return (name || name.length !== 0)
     }
 }
-
-
-
-
-/*##^## Designer {
-    D{i:2;anchors_x:179;anchors_y:"-45"}D{i:8;anchors_x:179;anchors_y:82}D{i:9;anchors_x:179;anchors_y:82}
-D{i:7;anchors_y:89}D{i:10;anchors_x:179;anchors_y:82}
-}
- ##^##*/

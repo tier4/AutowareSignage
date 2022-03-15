@@ -18,6 +18,10 @@ class ViewControllerProperty(QObject):
     _get_remain_arrive_time_text_signal = pyqtSignal(str)
     _get_remain_depart_time_text_signal = pyqtSignal(str)
     _get_display_time_signal = pyqtSignal(bool)
+    _get_clock_string_signal = pyqtSignal(str)
+    _get_monitor_height_signal = pyqtSignal(int)
+    _get_monitor_width_signal = pyqtSignal(int)
+    _get_size_ratio_signal = pyqtSignal(float)
 
     def __init__(self, node=None):
         super(ViewControllerProperty, self).__init__()
@@ -31,6 +35,16 @@ class ViewControllerProperty(QObject):
         self._remain_arrive_time_text = ""
         self._remain_depart_time_text = ""
         self._display_time = False
+        self._node.declare_parameter("monitor_width", 1920)
+        self._monitor_width = (
+            self._node.get_parameter("monitor_width").get_parameter_value().integer_value
+        )
+        self._node.declare_parameter("monitor_height", 360)
+        self._monitor_height = (
+            self._node.get_parameter("monitor_height").get_parameter_value().integer_value
+        )
+        self._size_ratio = (self._monitor_height / 360.0) * (self._monitor_width / 1920) * 0.8
+        self._clock_string = ""
 
     @pyqtProperty(str, notify=_view_mode_changed_signal)
     def view_mode(self):
@@ -138,3 +152,48 @@ class ViewControllerProperty(QObject):
             return
         self._display_time = display_time
         self._get_display_time_signal.emit(display_time)
+
+    # QMLへroute_nameを反映させる
+    @pyqtProperty("QString", notify=_get_clock_string_signal)
+    def clock_string(self):
+        return self._clock_string
+
+    @clock_string.setter
+    def clock_string(self, clock_string):
+        if self._clock_string == clock_string:
+            return
+        self._clock_string = clock_string
+        self._get_clock_string_signal.emit(clock_string)
+
+    @pyqtProperty(int, notify=_get_monitor_width_signal)
+    def monitor_width(self):
+        return self._monitor_width
+
+    @monitor_width.setter
+    def monitor_width(self, monitor_width):
+        if self._monitor_width == monitor_width:
+            return
+        self._monitor_width = monitor_width
+        self._get_monitor_width_signal.emit(monitor_width)
+
+    @pyqtProperty(int, notify=_get_monitor_height_signal)
+    def monitor_height(self):
+        return self._monitor_height
+
+    @monitor_height.setter
+    def monitor_height(self, monitor_height):
+        if self._monitor_height == monitor_height:
+            return
+        self._monitor_height = monitor_height
+        self._get_monitor_height_signal.emit(monitor_height)
+
+    @pyqtProperty(float, notify=_get_size_ratio_signal)
+    def size_ratio(self):
+        return self._size_ratio
+
+    @size_ratio.setter
+    def size_ratio(self, size_ratio):
+        if self._size_ratio == size_ratio:
+            return
+        self._size_ratio = size_ratio
+        self._get_size_ratio_signal.emit(size_ratio)
