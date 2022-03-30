@@ -3,8 +3,8 @@ import QtQuick.Controls 2.2
 
 Rectangle {
     id: busStopView
-    width: 1920
-    height: 360
+    width: viewController.monitor_width
+    height: viewController.monitor_height
 
     property int counter: 0
 
@@ -42,8 +42,3 @@ Rectangle {
         }
     ]
 }
-
-/*##^## Designer {
-    D{i:0;autoSize:true;height:480;width:640}
-}
- ##^##*/
