@@ -3,8 +3,8 @@ import QtQuick.Controls 2.2
 
 Rectangle {
     id: emergencyStopView
-    width: 1920
-    height: 360
+    width: viewController.monitor_width
+    height: viewController.monitor_height
 
     property int counter: 0
 
@@ -21,7 +21,7 @@ Rectangle {
         visible: emergencyStopView.counter % 2 === 0
     }
 
-    EmergencyStoping {
+    EmergencyStopping {
         visible: emergencyStopView.counter % 2 === 1
     }
 
@@ -38,8 +38,3 @@ Rectangle {
         }
     ]
 }
-
-/*##^## Designer {
-    D{i:0;autoSize:true;height:480;width:640}
-}
- ##^##*/

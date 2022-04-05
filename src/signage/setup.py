@@ -35,6 +35,10 @@ setup(
             "share/" + package_name + "/resource/page/EmergencyStopView",
             package_files("resource/page/EmergencyStopView"),
         ),
+        (
+            "share/" + package_name + "/resource/page/Common",
+            package_files("resource/page/Common"),
+        ),
         ("share/" + package_name, ["package.xml"]),
         ("share/" + package_name + "/launch", ["launch/signage.launch.xml"]),
         ("share/" + package_name + "/config", ["config/signage_param.yaml"]),

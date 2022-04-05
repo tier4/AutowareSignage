@@ -11,8 +11,8 @@ Window {
     visible: true
     title: qsTr("案内板")
 
-    width: 1920
-    height: 360
+    width: viewController.monitor_width
+    height: viewController.monitor_height
 
     EmergencyStopView {
         id: emergencyStopView
@@ -58,8 +58,3 @@ Window {
         }
     }
 }
-
-/*##^## Designer {
-    D{i:0;height:360;width:1920}
-}
- ##^##*/
