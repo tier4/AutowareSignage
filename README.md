@@ -21,6 +21,11 @@ source {AUTOWARE_PATH}/install/setup.bash
 bash setup.sh
 ```
 
+IF you wont to use other FMS Domain, change environment variable.
+```bash
+export FMS_URL=fms.web.auto
+```
+
 ## start
 
 ```bash
