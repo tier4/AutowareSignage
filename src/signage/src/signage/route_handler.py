@@ -217,8 +217,11 @@ class RouteHandler:
             self._next_station_list = utils.create_next_station_list(
                 self._current_task_details, self._seperated_task_lists, "fms", self._schedule_type
             )
-            if self._seperated_task_lists["todo_list"]:
+
+            # Reset previous station when reach goal
+            if self._reach_final and self._seperated_task_lists["doing_list"]:
                 self._reach_final = False
+                self._previous_station_name = ["", ""]
 
             self._schedule_updated_time = data["updated_at"]
             self._schedule_id = data["schedule_id"]
