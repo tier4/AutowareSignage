@@ -4,4 +4,8 @@
   <node pkg="signage" exec="signage"  output="screen">
     <param from="$(var signage_param)"/>
   </node>
+
+  <include file="$(find-pkg-share proto_boot_shutdown_interface)/launch/proto_boot_shutdown.launch.xml">
+    <arg name="ecu_name" value="signage_inside_ecu" />
+  </include>
 </launch>
