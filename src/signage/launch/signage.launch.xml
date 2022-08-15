@@ -6,6 +6,6 @@
   </node>
 
   <include file="$(find-pkg-share proto_boot_shutdown_interface)/launch/proto_boot_shutdown.launch.xml">
-    <arg name="ecu_name" value="signage_inside_ecu" />
+    <arg name="ecu_name" value="signage0" />
   </include>
 </launch>
