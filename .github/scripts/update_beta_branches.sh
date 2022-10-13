@@ -35,4 +35,4 @@ git diff --cached --exit-code || git commit -m "Update repos files"
 
 echo -e "\e[36mComplete.\e[m"
 
-rm -rf autoware-release-scripts/ src/tier4_autoware_msgs src/auto_msgs
+rm -rf autoware-release-scripts/ src/*_msgs
