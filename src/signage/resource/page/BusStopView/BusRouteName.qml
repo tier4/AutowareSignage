@@ -66,6 +66,7 @@ Rectangle {
             font.pixelSize: 40*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
+            wrapMode: Text.WordWrap
         }
 
         Text {
@@ -81,6 +82,7 @@ Rectangle {
             font.pixelSize: 30*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
+            wrapMode: Text.WordWrap
         }
     }
 
@@ -108,6 +110,7 @@ Rectangle {
             font.pixelSize: 40*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
+            wrapMode: Text.WordWrap
         }
         Text {
             id: beforeBusStopNameEn
@@ -122,6 +125,7 @@ Rectangle {
             font.pixelSize: 30*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
+            wrapMode: Text.WordWrap
         }
         visible : checkVisible(viewController.previous_station_name[0])
     }
@@ -150,6 +154,7 @@ Rectangle {
             font.pixelSize: 40*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
+            wrapMode: Text.WordWrap
         }
         Text {
             id: nextBusStopNameEn
@@ -164,6 +169,7 @@ Rectangle {
             font.pixelSize: 30*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
+            wrapMode: Text.WordWrap
         }
         visible : checkVisible(viewController.arrival_station_name[0])
     }
