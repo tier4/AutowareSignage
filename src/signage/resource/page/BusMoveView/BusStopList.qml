@@ -367,6 +367,6 @@ Rectangle {
     }
 
     function getTextWidth() {
-        return viewController.monitor_width / 7 - 50
+        return viewController.monitor_width / 8 - 50
     }
 }
