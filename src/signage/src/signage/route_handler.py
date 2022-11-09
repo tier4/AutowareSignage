@@ -319,6 +319,7 @@ class RouteHandler:
                     self._announced_going_to_arrive = True
                     self._remain_arrive_time_text = "間もなく到着します"
             elif self._is_stopping:
+                self._remain_arrive_time_text = ""
                 self._announced_going_to_arrive = False
                 if remain_minute < 1 and not self._announced_going_to_depart:
                     self._announce_interface.announce_going_to_depart_and_arrive("going_to_depart")

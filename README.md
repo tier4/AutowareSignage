@@ -1,18 +1,18 @@
-# FieldOperatorApplication
+# Autoware Signage
 
-## 確認環境
+## Tested environments
 
-- Ubuntu20.04
-- Python3.5
-- Qt5.9
-- ros galactic
+| OS           | python     | ros           |
+| ------------ | ---------- | ------------- |
+| Ubuntu 20.04 | python3.8  | ros2 galactic |
+| Ubuntu 22.04 | python3.10 | ros2 humble   |
 
 ## setup
 
 ### Install Autoware
+refer to here
 
-下記参照
-<https://github.com/tier4/AutowareArchitectureProposal.proj>
+<https://autowarefoundation.github.io/autoware-documentation/main/installation/>
 
 ### setup
 
@@ -41,4 +41,4 @@ colcon build
 
 ## License
 
-音声：jtalk
+voice：jtalk

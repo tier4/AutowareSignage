@@ -49,6 +49,7 @@ Rectangle {
             font.pixelSize: 40*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
+            wrapMode: Text.WordWrap
         }
         Text {
             id: currentBusStopNameEn
@@ -63,6 +64,7 @@ Rectangle {
             font.pixelSize: 30*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
+            wrapMode: Text.WordWrap
         }
         visible : checkVisible(viewController.departure_station_name[0])
     }
@@ -91,6 +93,7 @@ Rectangle {
             font.pixelSize: 40*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
+            wrapMode: Text.WordWrap
         }
         Text {
             id: nextBusStopNameEn
@@ -105,6 +108,7 @@ Rectangle {
             font.pixelSize: 30*viewController.size_ratio
             font.bold: true
             elide: Text.ElideMiddle
+            wrapMode: Text.WordWrap
         }
         visible : checkVisible(viewController.arrival_station_name[0])
     }
@@ -149,6 +153,6 @@ Rectangle {
     }
 
     function getMargin() {
-        return viewController.monitor_width / 4
+        return viewController.monitor_width / 6
     }
 }
