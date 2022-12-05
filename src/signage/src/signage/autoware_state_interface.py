@@ -5,6 +5,7 @@ from rclpy.duration import Duration
 from tier4_debug_msgs.msg import Float64Stamped
 from tier4_api_msgs.msg import AwapiAutowareStatus, AwapiVehicleStatus
 from tier4_external_api_msgs.msg import DoorStatus
+from autoware_auto_system_msgs.msg import HazardStatusStamped
 
 
 class AutowareStateInterface:
@@ -27,6 +28,9 @@ class AutowareStateInterface:
         )
         self._sub_vehicle_state = node.create_subscription(
             DoorStatus, "/api/external/get/door", self.vehicle_door_callback, 10
+        )
+        self._sub_hazard_status = node.create_subscription(
+            HazardStatusStamped, "/system/emergency/hazard_status", self.sub_hazard_status_callback, 10
         )
         self._sub_path_distance = node.create_subscription(
             Float64Stamped,
@@ -93,9 +97,6 @@ class AutowareStateInterface:
             for callback in self.control_mode_callback_list:
                 callback(control_mode)
 
-            for callback in self.emergency_stopped_callback_list:
-                callback(emergency_stopped)
-
             for callback in self.autoware_state_callback_list:
                 callback(autoware_state)
         except Exception as e:
@@ -134,3 +135,11 @@ class AutowareStateInterface:
                 callback(distance)
         except Exception as e:
             self._node.get_logger().error("Unable to get the distance, ERROR: " + str(e))
+
+    def sub_hazard_status_callback(self, topic):
+        try:
+            emergency_stopped = topic.status.emergency
+            for callback in self.emergency_stopped_callback_list:
+                callback(emergency_stopped)
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the hazard_status, ERROR: " + str(e))
