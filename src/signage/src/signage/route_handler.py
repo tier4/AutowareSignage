@@ -306,18 +306,18 @@ class RouteHandler:
                 / 60
             )
             if remain_minute > 0:
-                self._remain_depart_time_text = "このバスはあと{}分程で出発します".format(str(remain_minute))
+                self._remain_depart_time_text = "塩尻実証実験中"
             else:
-                self._remain_depart_time_text = "間もなく出発します"
+                self._remain_depart_time_text = "塩尻実証実験中"
 
             if self._reach_final:
-                self._remain_depart_time_text = "終点です。\nご乗車ありがとうございました"
+                self._remain_depart_time_text = "塩尻実証実験中"
             elif self._is_driving:
                 self._announced_going_to_depart = False
                 if self._distance < 100 and not self._announced_going_to_arrive:
                     self._announce_interface.announce_going_to_depart_and_arrive("going_to_arrive")
                     self._announced_going_to_arrive = True
-                    self._remain_arrive_time_text = "間もなく到着します"
+                    self._remain_arrive_time_text = "塩尻実証実験中"
             elif self._is_stopping:
                 self._remain_arrive_time_text = ""
                 self._announced_going_to_arrive = False
