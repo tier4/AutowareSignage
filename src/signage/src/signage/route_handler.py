@@ -43,7 +43,7 @@ class RouteHandler:
         self._is_emergency_mode = False
         self._in_emergency_state = False
         self._emergency_trigger_time = 0
-        self._is_arrived = False
+        self._is_stopping = False
         self._is_driving = False
         self._previous_driving_status = False
         self._reach_final = False
@@ -114,7 +114,7 @@ class RouteHandler:
 
         if self._prev_autoware_state == "WaitingForEngage" and  autoware_state == "Driving":
             self._is_driving = True
-            self._is_arrived = False
+            self._is_stopping = False
 
         self._prev_autoware_state = autoware_state
 
@@ -162,7 +162,7 @@ class RouteHandler:
 
     def sub_routing_state(self, routing_state):
         if routing_state == 3:
-            self._is_arrived = True
+            self._is_stopping = True
             self._is_driving = False
 
     # ============== Subsciber callback ==================
@@ -269,14 +269,14 @@ class RouteHandler:
                 and self._set_goal_by_distance
             ):
                 if self._distance < self._goal_distance:
-                    self._is_arrived = True
+                    self._is_stopping = True
                     self._is_driving = False
 
             if self._reach_final:
                 self._previous_driving_status = False
                 return
 
-            if self._is_arrived and self._previous_driving_status:
+            if self._is_stopping and self._previous_driving_status:
                 self.arrived_goal()
                 self._previous_driving_status = False
 
@@ -311,7 +311,7 @@ class RouteHandler:
                     self._announce_interface.announce_going_to_depart_and_arrive("going_to_arrive")
                     self._announced_going_to_arrive = True
                     self._remain_arrive_time_text = "間もなく到着します"
-            elif self._is_arrived:
+            elif self._is_stopping:
                 self._remain_arrive_time_text = ""
                 self._announced_going_to_arrive = False
                 if remain_minute < 1 and not self._announced_going_to_depart:
@@ -345,7 +345,7 @@ class RouteHandler:
                 view_mode = "emergency_stopped"
             elif not self._is_auto_mode and not self._ignore_manual_driving:
                 view_mode = "manual_driving"
-            elif self._is_arrived and self._current_task_details["departure_station"] != ["", ""]:
+            elif self._is_stopping and self._current_task_details["departure_station"] != ["", ""]:
                 view_mode = "stopping"
             elif self._is_driving and self._current_task_details["arrival_station"] != ["", ""]:
                 view_mode = "driving"
