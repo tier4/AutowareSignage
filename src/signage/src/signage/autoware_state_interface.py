@@ -6,6 +6,7 @@ from tier4_debug_msgs.msg import Float64Stamped
 from tier4_api_msgs.msg import AwapiAutowareStatus, AwapiVehicleStatus
 from tier4_external_api_msgs.msg import DoorStatus
 from autoware_auto_system_msgs.msg import HazardStatusStamped
+from autoware_adapi_v1_msgs.msg import RouteState
 
 
 class AutowareStateInterface:
@@ -18,6 +19,7 @@ class AutowareStateInterface:
         self.turn_signal_callback_list = []
         self.velocity_callback_list = []
         self.distance_callback_list = []
+        self.routing_state_callback_list = []
         self._node = node
 
         self._sub_autoware_state = node.create_subscription(
@@ -37,6 +39,9 @@ class AutowareStateInterface:
             "/autoware_api/utils/path_distance_calculator/distance",
             self.path_distance_callback,
             10,
+        )
+        self._sub_routing_state = node.create_subscription(
+            RouteState, "/api/routing/state", self.sub_routing_state_callback, 10
         )
         self._autoware_status_time = self._node.get_clock().now()
         self._vehicle_status_time = self._node.get_clock().now()
@@ -84,6 +89,9 @@ class AutowareStateInterface:
 
     def set_distance_callback(self, callback):
         self.distance_callback_list.append(callback)
+
+    def set_routing_state_callback(self, callback):
+        self.routing_state_callback_list.append(callback)
 
     # ros subscriber
     # autoware stateをsubしたときの処理
@@ -143,3 +151,11 @@ class AutowareStateInterface:
                 callback(emergency_stopped)
         except Exception as e:
             self._node.get_logger().error("Unable to get the hazard_status, ERROR: " + str(e))
+
+    def sub_routing_state_callback(self, topic):
+        try:
+            routing_state = topic.state
+            for callback in self.routing_state_callback_list:
+                callback(routing_state)
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the routing state, ERROR: " + str(e))
