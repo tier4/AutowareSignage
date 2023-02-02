@@ -23,8 +23,9 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
-        font.pointSize: 80*viewController.size_ratio
+        font.pointSize: 80*viewController.size_ratio*0.7
         font.bold: true
         elide: Text.ElideMiddle
+        wrapMode: Text.WordWrap
     }
 }
