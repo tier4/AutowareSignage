@@ -93,6 +93,7 @@ class RouteHandler:
         autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
         autoware_state_interface.set_distance_callback(self.sub_distance)
         autoware_state_interface.set_door_status_callback(self.sub_door_status)
+        autoware_state_interface.set_routing_state_callback(self.sub_routing_state)
 
         route_checker = self._node.create_timer(1, self.route_checker_callback)
         view_mode_update = self._node.create_timer(1, self.view_mode_callback)
@@ -111,23 +112,10 @@ class RouteHandler:
         if not self._is_auto_mode:
             return
 
-        stop_condition = [
-            "WaitingForRoute",
-            "ArrivedGoal",
-            "Planning",
-        ]
+        if self._prev_autoware_state == "WaitingForEngage" and  autoware_state == "Driving":
+            self._is_driving = True
+            self._is_stopping = False
 
-        buffer_flag = (
-            autoware_state == self._prev_prev_autoware_state
-            and autoware_state == self._prev_autoware_state
-        )
-
-        self._is_stopping = (autoware_state in stop_condition) or (
-            buffer_flag and autoware_state == "WaitingForEngage"
-        )
-        self._is_driving = autoware_state == "Driving"
-
-        self._prev_prev_autoware_state = self._prev_autoware_state
         self._prev_autoware_state = autoware_state
 
     def sub_control_mode(self, control_mode):
@@ -171,6 +159,11 @@ class RouteHandler:
             self._pre_door_announce_status = door_status
         else:
             self._pre_door_announce_status = door_status
+
+    def sub_routing_state(self, routing_state):
+        if routing_state == 3:
+            self._is_stopping = True
+            self._is_driving = False
 
     # ============== Subsciber callback ==================
 

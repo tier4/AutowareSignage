@@ -5,6 +5,8 @@ from rclpy.duration import Duration
 from tier4_debug_msgs.msg import Float64Stamped
 from tier4_api_msgs.msg import AwapiAutowareStatus, AwapiVehicleStatus
 from tier4_external_api_msgs.msg import DoorStatus
+from autoware_auto_system_msgs.msg import HazardStatusStamped
+from autoware_adapi_v1_msgs.msg import RouteState
 
 
 class AutowareStateInterface:
@@ -17,6 +19,7 @@ class AutowareStateInterface:
         self.turn_signal_callback_list = []
         self.velocity_callback_list = []
         self.distance_callback_list = []
+        self.routing_state_callback_list = []
         self._node = node
 
         self._sub_autoware_state = node.create_subscription(
@@ -28,11 +31,17 @@ class AutowareStateInterface:
         self._sub_vehicle_state = node.create_subscription(
             DoorStatus, "/api/external/get/door", self.vehicle_door_callback, 10
         )
+        self._sub_hazard_status = node.create_subscription(
+            HazardStatusStamped, "/system/emergency/hazard_status", self.sub_hazard_status_callback, 10
+        )
         self._sub_path_distance = node.create_subscription(
             Float64Stamped,
             "/autoware_api/utils/path_distance_calculator/distance",
             self.path_distance_callback,
             10,
+        )
+        self._sub_routing_state = node.create_subscription(
+            RouteState, "/api/routing/state", self.sub_routing_state_callback, 10
         )
         self._autoware_status_time = self._node.get_clock().now()
         self._vehicle_status_time = self._node.get_clock().now()
@@ -81,6 +90,9 @@ class AutowareStateInterface:
     def set_distance_callback(self, callback):
         self.distance_callback_list.append(callback)
 
+    def set_routing_state_callback(self, callback):
+        self.routing_state_callback_list.append(callback)
+
     # ros subscriber
     # autoware stateをsubしたときの処理
     def autoware_state_callback(self, topic):
@@ -92,9 +104,6 @@ class AutowareStateInterface:
 
             for callback in self.control_mode_callback_list:
                 callback(control_mode)
-
-            for callback in self.emergency_stopped_callback_list:
-                callback(emergency_stopped)
 
             for callback in self.autoware_state_callback_list:
                 callback(autoware_state)
@@ -134,3 +143,19 @@ class AutowareStateInterface:
                 callback(distance)
         except Exception as e:
             self._node.get_logger().error("Unable to get the distance, ERROR: " + str(e))
+
+    def sub_hazard_status_callback(self, topic):
+        try:
+            emergency_stopped = topic.status.emergency
+            for callback in self.emergency_stopped_callback_list:
+                callback(emergency_stopped)
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the hazard_status, ERROR: " + str(e))
+
+    def sub_routing_state_callback(self, topic):
+        try:
+            routing_state = topic.state
+            for callback in self.routing_state_callback_list:
+                callback(routing_state)
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the routing state, ERROR: " + str(e))
