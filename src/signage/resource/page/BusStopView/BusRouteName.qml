@@ -179,7 +179,7 @@ Rectangle {
     }
 
     function getMargin() {
-        return viewController.monitor_width / 4
+        return viewController.monitor_width / 6
     }
 
     function checkVisible(name) {
