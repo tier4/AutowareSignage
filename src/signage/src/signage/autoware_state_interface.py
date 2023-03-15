@@ -5,8 +5,7 @@ from rclpy.duration import Duration
 from tier4_debug_msgs.msg import Float64Stamped
 from tier4_api_msgs.msg import AwapiAutowareStatus, AwapiVehicleStatus
 from tier4_external_api_msgs.msg import DoorStatus
-from autoware_auto_system_msgs.msg import HazardStatusStamped
-from autoware_adapi_v1_msgs.msg import RouteState
+from autoware_adapi_v1_msgs.msg import RouteState, MrmState
 
 
 class AutowareStateInterface:
@@ -31,10 +30,10 @@ class AutowareStateInterface:
         self._sub_vehicle_state = node.create_subscription(
             DoorStatus, "/api/external/get/door", self.vehicle_door_callback, 10
         )
-        self._sub_hazard_status = node.create_subscription(
-            HazardStatusStamped,
-            "/system/emergency/hazard_status",
-            self.sub_hazard_status_callback,
+        self._sub_mrm = node.create_subscription(
+            MrmState,
+            "/api/fail_safe/mrm_state",
+            self.sub_mrm_callback,
             10,
         )
         self._sub_path_distance = node.create_subscription(
@@ -147,9 +146,9 @@ class AutowareStateInterface:
         except Exception as e:
             self._node.get_logger().error("Unable to get the distance, ERROR: " + str(e))
 
-    def sub_hazard_status_callback(self, topic):
+    def sub_mrm_callback(self, topic):
         try:
-            emergency_stopped = topic.status.emergency
+            emergency_stopped = topic.behavior == MrmState.EMERGENCY_STOP
             for callback in self.emergency_stopped_callback_list:
                 callback(emergency_stopped)
         except Exception as e:
