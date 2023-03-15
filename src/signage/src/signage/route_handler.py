@@ -24,9 +24,7 @@ class RouteHandler:
             + "/v1/projects/{project_id}/environments/{environment_id}/vehicles/{vehicle_id}/active_schedule",
             "body": {},
         }
-        self._schedule_updated_time = ""
-        self._schedule_id = ""
-        self._schedule_type = ""
+        self._schedule_details = utils.init_schedule_details()
         self._route_name = ["", ""]
         self._previous_station_name = ["", ""]
         self._next_station_list = [["", ""] * 5]
@@ -162,16 +160,11 @@ class RouteHandler:
 
             if not data:
                 raise Exception("No data from fms")
-            elif (
-                self._schedule_updated_time == data["updated_at"]
-                and self._schedule_id == data["schedule_id"]
-            ):
+            elif utils.check_schedule_update(self._schedule_details, data):
                 self._fms_check_time = self._node.get_clock().now()
                 raise Exception("same schedule, skip")
 
-            # depends on the type of schedule, the route will change
-            self._schedule_type = data["schedule_type"]
-
+            self._schedule_details = utils.update_schedule_details(data)
             self._route_name = utils.get_route_name(
                 data.get("tags", []),
             )
@@ -190,7 +183,10 @@ class RouteHandler:
                 )
 
             self._next_station_list = utils.create_next_station_list(
-                self._current_task_details, self.task_list.todo_list, "fms", self._schedule_type
+                self._current_task_details,
+                self.task_list.todo_list,
+                "fms",
+                self._schedule_details.schedule_type,
             )
 
             # Reset previous station when reach goal
@@ -198,8 +194,6 @@ class RouteHandler:
                 self._reach_final = False
                 self._previous_station_name = ["", ""]
 
-            self._schedule_updated_time = data["updated_at"]
-            self._schedule_id = data["schedule_id"]
             self._fms_check_time = self._node.get_clock().now()
         except Exception as e:
             self._node.get_logger().warning(
@@ -227,7 +221,10 @@ class RouteHandler:
             self._current_task_details = utils.process_current_task(next_task)
 
             self._next_station_list = utils.create_next_station_list(
-                self._current_task_details, self.task_list.todo_list, "local", self._schedule_type
+                self._current_task_details,
+                self.task_list.todo_list,
+                "local",
+                self._schedule_details.schedule_type,
             )
             self._announce_interface.announce_arrived()
         except Exception as e:

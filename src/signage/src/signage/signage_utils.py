@@ -28,12 +28,34 @@ class CurrentTask:
     depart_time: int
 
 
+@dataclass
+class ScheduleDetails:
+    updated_time: str
+    schedule_id: str
+    schedule_type: str
+
+
 def init_task_list():
     return TaskList([], [], [])
 
 
 def init_current_task():
     return CurrentTask(["", ""], ["", ""], 0)
+
+
+def init_schedule_details():
+    return ScheduleDetails("", "", "")
+
+
+def check_schedule_update(schedule_details, data):
+    return (
+        schedule_details.updated_time == data["updated_at"]
+        and schedule_details.schedule_id == data["schedule_id"]
+    )
+
+
+def update_schedule_details(data):
+    return ScheduleDetails(data["updated_at"], data["schedule_id"], data["schedule_type"])
 
 
 def process_tag(tags_list, key):
