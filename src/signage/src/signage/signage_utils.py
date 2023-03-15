@@ -42,15 +42,15 @@ class DisplayDetails:
     next_station_list: list
 
 
-def init_task_list():
+def init_TaskList():
     return TaskList([], [], [])
 
 
-def init_current_task():
+def init_CurrentTask():
     return CurrentTask(["", ""], ["", ""], 0)
 
 
-def init_schedule_details():
+def init_ScheduleDetails():
     return ScheduleDetails("", "", "")
 
 

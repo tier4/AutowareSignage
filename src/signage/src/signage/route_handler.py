@@ -24,10 +24,10 @@ class RouteHandler:
             + "/v1/projects/{project_id}/environments/{environment_id}/vehicles/{vehicle_id}/active_schedule",
             "body": {},
         }
-        self._schedule_details = utils.init_schedule_details()
+        self._schedule_details = utils.init_ScheduleDetails()
         self._display_details = utils.init_DisplayDetails()
-        self._current_task_details = utils.init_current_task()
-        self._task_list = utils.init_task_list()
+        self._current_task_details = utils.init_CurrentTask()
+        self._task_list = utils.init_TaskList()
         self._remain_arrive_time_text = ""
         self._remain_depart_time_text = ""
         self._display_time = False
@@ -203,7 +203,7 @@ class RouteHandler:
 
     def arrived_goal(self):
         try:
-            if self._current_task_details == utils.init_current_task():
+            if self._current_task_details == utils.init_CurrentTask():
                 raise Exception("No current task details")
 
             self._display_details.previous_station = self._current_task_details.departure_station
@@ -269,7 +269,7 @@ class RouteHandler:
 
     def calculate_time_callback(self):
         try:
-            if self._current_task_details == utils.init_current_task():
+            if self._current_task_details == utils.init_CurrentTask():
                 return
 
             remain_minute = 100
