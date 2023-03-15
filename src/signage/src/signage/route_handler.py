@@ -25,9 +25,9 @@ class RouteHandler:
             "body": {},
         }
         self._schedule_details = utils.init_schedule_details()
-        self._route_name = ["", ""]
-        self._previous_station_name = ["", ""]
-        self._next_station_list = [["", ""] * 5]
+        self._display_details = utils.init_DisplayDetails()
+        self._current_task_details = utils.init_current_task()
+        self._task_list = utils.init_task_list()
         self._remain_arrive_time_text = ""
         self._remain_depart_time_text = ""
         self._display_time = False
@@ -45,9 +45,7 @@ class RouteHandler:
         self._announced_going_to_arrive = False
         self._distance = 1000
         self._pre_door_announce_status = DoorStatus.UNKNOWN
-        self._current_task_details = utils.init_current_task()
         self._fms_check_time = 0
-        self._task_list = utils.init_task_list()
 
         self._node.declare_parameter("ignore_manual_driving", False)
         self._ignore_manual_driving = (
@@ -165,9 +163,12 @@ class RouteHandler:
                 raise Exception("same schedule, skip")
 
             self._schedule_details = utils.update_schedule_details(data)
-            self._route_name = utils.get_route_name(
+
+            self._display_details.route_name = utils.get_route_name(
                 data.get("tags", []),
             )
+
+            self._node.get_logger().error(str(self._display_details))
 
             self.task_list = utils.seperate_task_list(data.get("tasks", []))
 
@@ -177,12 +178,12 @@ class RouteHandler:
             for task in self.task_list.doing_list:
                 self._current_task_details = utils.process_current_task(task)
 
-            if self._previous_station_name == ["", ""] and self.task_list.done_list:
-                self._previous_station_name = utils.get_prevous_station_name_from_fms(
+            if self._display_details.previous_station == ["", ""] and self.task_list.done_list:
+                self._display_details.previous_station = utils.get_prevous_station_name_from_fms(
                     self.task_list.done_list
                 )
 
-            self._next_station_list = utils.create_next_station_list(
+            self._display_details.next_station_list = utils.create_next_station_list(
                 self._current_task_details,
                 self.task_list.todo_list,
                 "fms",
@@ -192,7 +193,7 @@ class RouteHandler:
             # Reset previous station when reach goal
             if self._reach_final and self.task_list.doing_list:
                 self._reach_final = False
-                self._previous_station_name = ["", ""]
+                self._display_details.previous_station = ["", ""]
 
             self._fms_check_time = self._node.get_clock().now()
         except Exception as e:
@@ -205,7 +206,7 @@ class RouteHandler:
             if self._current_task_details == utils.init_current_task():
                 raise Exception("No current task details")
 
-            self._previous_station_name = self._current_task_details.departure_station
+            self._display_details.previous_station = self._current_task_details.departure_station
 
             if not self.task_list.todo_list:
                 # Reach final station
@@ -220,7 +221,7 @@ class RouteHandler:
             # Get the next task from todo_list
             self._current_task_details = utils.process_current_task(next_task)
 
-            self._next_station_list = utils.create_next_station_list(
+            self._display_details.next_station_list = utils.create_next_station_list(
                 self._current_task_details,
                 self.task_list.todo_list,
                 "local",
@@ -306,13 +307,13 @@ class RouteHandler:
     def view_mode_callback(self):
         try:
             self._viewController.clock_string = datetime.now().strftime("%H:%M")
-            self._viewController.route_name = self._route_name
+            self._viewController.route_name = self._display_details.route_name
             self._viewController.departure_station_name = (
                 self._current_task_details.departure_station
             )
             self._viewController.arrival_station_name = self._current_task_details.arrival_station
-            self._viewController.previous_station_name = self._previous_station_name
-            self._viewController.next_station_list = self._next_station_list
+            self._viewController.previous_station_name = self._display_details.previous_station
+            self._viewController.next_station_list = self._display_details.next_station_list
             self._viewController.remain_arrive_time_text = self._remain_arrive_time_text
             self._viewController.remain_depart_time_text = self._remain_depart_time_text
             self._viewController.display_time = self._display_time

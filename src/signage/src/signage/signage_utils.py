@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # This Python file uses the following encoding: utf-8
 
-DEFAULT_ROUTE_NAME = "行き先案内; Route Information"
+DEFAULT_ROUTE_NAME = ["行き先案内", "Route Information"]
 DEFAULT_DEPARTURE_NAME = "出発点; Start"
 DEFAULT_ARRIVAL_NAME = "終点; Last Stop"
 PREVIOUS_STATION_INDEX = -1  # TODO: check whether is -1 or 0
@@ -35,6 +35,13 @@ class ScheduleDetails:
     schedule_type: str
 
 
+@dataclass
+class DisplayDetails:
+    route_name: list
+    previous_station: list
+    next_station_list: list
+
+
 def init_task_list():
     return TaskList([], [], [])
 
@@ -45,6 +52,10 @@ def init_current_task():
 
 def init_schedule_details():
     return ScheduleDetails("", "", "")
+
+
+def init_DisplayDetails():
+    return DisplayDetails(DEFAULT_ROUTE_NAME, ["", ""], [["", ""] * 5])
 
 
 def check_schedule_update(schedule_details, data):
@@ -75,7 +86,7 @@ def split_name(name_string):
 def get_route_name(tag_list):
     route_name = process_tag(tag_list, "route_name")
     if not route_name:
-        route_name = DEFAULT_ROUTE_NAME
+        return DEFAULT_ROUTE_NAME
     return split_name(route_name)
 
 
