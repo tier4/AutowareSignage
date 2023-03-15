@@ -202,7 +202,7 @@ class RouteHandler:
             self._schedule_id = data["schedule_id"]
             self._fms_check_time = self._node.get_clock().now()
         except Exception as e:
-            self._node.get_logger().warning("Unable to get the task from FMS, ERROR: " + str(e))
+            self._node.get_logger().warning("Unable to get the task from FMS, ERROR: " + str(e), throttle_duration_sec=5)
 
     def arrived_goal(self):
         try:
