@@ -10,12 +10,6 @@ from rclpy.duration import Duration
 import signage.signage_utils as utils
 from tier4_external_api_msgs.msg import DoorStatus
 
-EMPTY_CURRENT_TASK = {
-    "departure_station": ["", ""],
-    "arrival_station": ["", ""],
-    "depart_time": 0,
-}
-
 
 class RouteHandler:
     def __init__(self, node, viewController, announceController, autoware_state_interface):
@@ -35,7 +29,7 @@ class RouteHandler:
         self._schedule_type = ""
         self._route_name = ["", ""]
         self._previous_station_name = ["", ""]
-        self._next_station_list = [["", ""], ["", ""], ["", ""], ["", ""], ["", ""]]
+        self._next_station_list = [["", ""]*5]
         self._remain_arrive_time_text = ""
         self._remain_depart_time_text = ""
         self._display_time = False
@@ -53,13 +47,9 @@ class RouteHandler:
         self._announced_going_to_arrive = False
         self._distance = 1000
         self._pre_door_announce_status = DoorStatus.UNKNOWN
-        self._current_task_details = {
-            "departure_station": ["", ""],
-            "arrival_station": ["", ""],
-            "depart_time": 0,
-        }
+        self._current_task_details = utils.init_current_task()
         self._fms_check_time = 0
-        self.init_seperated_task_lists()
+        self._task_list = utils.init_task_list()
 
         self._node.declare_parameter("ignore_manual_driving", False)
         self._ignore_manual_driving = (
@@ -98,13 +88,6 @@ class RouteHandler:
         route_checker = self._node.create_timer(1, self.route_checker_callback)
         view_mode_update = self._node.create_timer(1, self.view_mode_callback)
         calculate_time = self._node.create_timer(1, self.calculate_time_callback)
-
-    def init_seperated_task_lists(self):
-        self._seperated_task_lists = {
-            "doing_list": [],
-            "todo_list": [],
-            "done_list": [],
-        }
 
     # ============== Subsciber callback ==================
 
@@ -193,26 +176,25 @@ class RouteHandler:
                 data.get("tags", []),
             )
 
-            self.init_seperated_task_lists()
-            utils.seperate_task_list(self._seperated_task_lists, data.get("tasks", []))
+            self.task_list = utils.seperate_task_list(data.get("tasks", []))
 
-            if not self._seperated_task_lists["doing_list"]:
+            if not self.task_list.doing_list:
                 raise Exception("doing_list is not found, skip")
 
-            for task in self._seperated_task_lists["doing_list"]:
-                utils.process_current_task(self._current_task_details, task)
+            for task in self.task_list.doing_list:
+                self._current_task_details = utils.process_current_task(task)
 
-            if self._previous_station_name == ["", ""] and self._seperated_task_lists["done_list"]:
+            if self._previous_station_name == ["", ""] and self.task_list.done_list:
                 self._previous_station_name = utils.get_prevous_station_name_from_fms(
-                    self._seperated_task_lists["done_list"]
+                    self.task_list.done_list
                 )
 
             self._next_station_list = utils.create_next_station_list(
-                self._current_task_details, self._seperated_task_lists, "fms", self._schedule_type
+                self._current_task_details, self.task_list.todo_list, "fms", self._schedule_type
             )
 
             # Reset previous station when reach goal
-            if self._reach_final and self._seperated_task_lists["doing_list"]:
+            if self._reach_final and self.task_list.doing_list:
                 self._reach_final = False
                 self._previous_station_name = ["", ""]
 
@@ -224,26 +206,24 @@ class RouteHandler:
 
     def arrived_goal(self):
         try:
-            if self._current_task_details == EMPTY_CURRENT_TASK:
+            if self._current_task_details == utils.init_current_task():
                 raise Exception("No current task details")
 
-            self._previous_station_name = self._current_task_details["departure_station"]
+            self._previous_station_name = self._current_task_details.departure_station
 
-            if not self._seperated_task_lists["todo_list"]:
+            if not self.task_list.todo_list:
                 # Reach final station
-                self._current_task_details["departure_station"] = self._current_task_details[
-                    "arrival_station"
-                ]
-                self._current_task_details["arrival_station"] = ["", ""]
+                self._current_task_details.departure_station = self._current_task_details.arrival_station
+                self._current_task_details.arrival_station = ["", ""]
                 self._reach_final = True
                 return
 
-            next_task = self._seperated_task_lists["todo_list"].pop(0)
+            next_task = self.task_list.todo_list.pop(0)
             # Get the next task from todo_list
-            utils.process_current_task(self._current_task_details, next_task)
+            self._current_task_details = utils.process_current_task(next_task)
 
             self._next_station_list = utils.create_next_station_list(
-                self._current_task_details, self._seperated_task_lists, "local", self._schedule_type
+                self._current_task_details, self.task_list.todo_list, "local", self._schedule_type
             )
             self._announce_interface.announce_arrived()
         except Exception as e:
@@ -287,13 +267,13 @@ class RouteHandler:
 
     def calculate_time_callback(self):
         try:
-            if self._current_task_details == EMPTY_CURRENT_TASK:
+            if self._current_task_details == utils.init_current_task():
                 return
 
             remain_minute = 100
             remain_minute = int(
                 (
-                    self._current_task_details["depart_time"]
+                    self._current_task_details.depart_time
                     - self._node.get_clock().now().to_msg().sec
                 )
                 / 60
@@ -329,12 +309,8 @@ class RouteHandler:
         try:
             self._viewController.clock_string = datetime.now().strftime("%H:%M")
             self._viewController.route_name = self._route_name
-            self._viewController.departure_station_name = self._current_task_details[
-                "departure_station"
-            ]
-            self._viewController.arrival_station_name = self._current_task_details[
-                "arrival_station"
-            ]
+            self._viewController.departure_station_name = self._current_task_details.departure_station
+            self._viewController.arrival_station_name = self._current_task_details.arrival_station
             self._viewController.previous_station_name = self._previous_station_name
             self._viewController.next_station_list = self._next_station_list
             self._viewController.remain_arrive_time_text = self._remain_arrive_time_text
@@ -345,13 +321,13 @@ class RouteHandler:
                 view_mode = "emergency_stopped"
             elif not self._is_auto_mode and not self._ignore_manual_driving:
                 view_mode = "manual_driving"
-            elif self._is_stopping and self._current_task_details["departure_station"] != ["", ""]:
+            elif self._is_stopping and self._current_task_details.departure_station != ["", ""]:
                 view_mode = "stopping"
-            elif self._is_driving and self._current_task_details["arrival_station"] != ["", ""]:
+            elif self._is_driving and self._current_task_details.arrival_station != ["", ""]:
                 view_mode = "driving"
             elif self._is_driving:
                 view_mode = "auto_driving"
-            elif self._current_task_details["departure_station"] != ["", ""]:
+            elif self._current_task_details.departure_station != ["", ""]:
                 view_mode = "stopping"
             else:
                 view_mode = "out_of_service"

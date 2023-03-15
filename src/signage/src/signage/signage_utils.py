@@ -8,10 +8,29 @@ DEFAULT_ARRIVAL_NAME = "終点; Last Stop"
 PREVIOUS_STATION_INDEX = -1  # TODO: check whether is -1 or 0
 NEXT_STATION_DISPLAY_AMOUNT = 6
 
+from dataclasses import dataclass
 from datetime import datetime
 from dateutil import parser
 from itertools import cycle
 
+@dataclass
+class TaskList:
+    doing_list: list
+    todo_list: list
+    done_list: list
+
+@dataclass
+class CurrentTask:
+    departure_station: list
+    arrival_station: list
+    depart_time: int
+
+
+def init_task_list():
+    return TaskList([],[],[])
+
+def init_current_task():
+    return CurrentTask(["", ""], ["", ""], 0)
 
 def process_tag(tags_list, key):
     for item in tags_list:
@@ -34,38 +53,43 @@ def get_route_name(tag_list):
     return split_name(route_name)
 
 
-def seperate_task_list(seperated_task_list, task_list):
+def seperate_task_list(task_list):
+    doing_list = []
+    todo_list = []
+    done_list = []
     for task in task_list:
         if task["task_type"] == "move":
             if task["status"] in ["doing"]:
-                seperated_task_list["doing_list"].append(task)
+                doing_list.append(task)
             elif task["status"] in ["todo"]:
-                seperated_task_list["todo_list"].append(task)
+                todo_list.append(task)
             elif task["status"] in ["done"]:
-                seperated_task_list["done_list"].append(task)
-    return seperated_task_list
+                done_list.append(task)
+    return TaskList(doing_list, todo_list, done_list)
 
 
-def process_current_task(current_task_details, task):
+def process_current_task(task):
     if task.get("origin", "").get("name", ""):
-        current_task_details["departure_station"] = split_name(
+        departure_station = split_name(
             task.get("origin", "").get("name", "")
         )
     else:
-        current_task_details["departure_station"] = split_name(DEFAULT_DEPARTURE_NAME)
+        departure_station = split_name(DEFAULT_DEPARTURE_NAME)
 
     if task.get("destination", "").get("name", ""):
-        current_task_details["arrival_station"] = split_name(
+        arrival_station = split_name(
             task.get("destination", "").get("name", "")
         )
     else:
-        current_task_details["arrival_station"] = split_name(DEFAULT_ARRIVAL_NAME)
+        arrival_station = split_name(DEFAULT_ARRIVAL_NAME)
 
     try:
         date_time_obj = parser.parse(task["plan_start_time"])
-        current_task_details["depart_time"] = datetime.timestamp(date_time_obj)
+        depart_time = datetime.timestamp(date_time_obj)
     except:
-        current_task_details["depart_time"] = 0
+        depart_time = 0
+
+    return CurrentTask(departure_station, arrival_station, depart_time)
 
 
 def get_prevous_station_name_from_fms(done_list):
@@ -86,19 +110,19 @@ def auto_add_empty_list(station_list):
 
 
 def create_next_station_list(
-    current_task_details, seperated_task_list, call_type, schedule_type=""
+    current_task_details, todo_list, call_type, schedule_type=""
 ):
-    station_list = [current_task_details["arrival_station"]]
+    station_list = [current_task_details.arrival_station]
 
-    for task in seperated_task_list["todo_list"]:
+    for task in todo_list:
         station_list.append(
             split_name(task.get("destination", "").get("name", DEFAULT_ARRIVAL_NAME))
         )
 
     if call_type == "local" and schedule_type == "loop":
         # Need this condition, because FMS will not include the departure_station in the task
-        if current_task_details["departure_station"][1] != "Start":
-            station_list.append(current_task_details["departure_station"])
+        if current_task_details.departure_station[1] != "Start":
+            station_list.append(current_task_details.departure_station)
 
     if len(station_list) < NEXT_STATION_DISPLAY_AMOUNT and schedule_type == "loop":
         station_list = repeat_task_for_loop(station_list)
