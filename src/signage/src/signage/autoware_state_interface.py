@@ -1,11 +1,12 @@
 # !/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import rclpy
 from rclpy.duration import Duration
 from tier4_debug_msgs.msg import Float64Stamped
 from tier4_api_msgs.msg import AwapiAutowareStatus, AwapiVehicleStatus
 from tier4_external_api_msgs.msg import DoorStatus
-from autoware_adapi_v1_msgs.msg import RouteState, MrmState
+from autoware_adapi_v1_msgs.msg import RouteState, MrmState, OperationModeState
 
 
 class AutowareStateInterface:
@@ -19,33 +20,47 @@ class AutowareStateInterface:
         self.velocity_callback_list = []
         self.distance_callback_list = []
         self.routing_state_callback_list = []
+        self.operation_mode_callback_list = []
         self._node = node
 
-        self._sub_autoware_state = node.create_subscription(
-            AwapiAutowareStatus, "/awapi/autoware/get/status", self.autoware_state_callback, 10
+        sub_qos = rclpy.qos.QoSProfile(
+            history=rclpy.qos.QoSHistoryPolicy.KEEP_LAST,
+            depth=10,
+            reliability=rclpy.qos.QoSReliabilityPolicy.BEST_EFFORT,
+            durability=rclpy.qos.QoSDurabilityPolicy.SYSTEM_DEFAULT,
+        )
+        api_qos = rclpy.qos.QoSProfile(
+            history=rclpy.qos.QoSHistoryPolicy.KEEP_LAST,
+            depth=10,
+            reliability=rclpy.qos.QoSReliabilityPolicy.RELIABLE,
+            durability=rclpy.qos.QoSDurabilityPolicy.TRANSIENT_LOCAL,
+        )
+
+        self._sub_operation_mode = node.create_subscription(
+            OperationModeState, "/api/operation_mode/state", self.operation_mode_callback, api_qos
         )
         self._sub_vehicle_state = node.create_subscription(
-            AwapiVehicleStatus, "/awapi/vehicle/get/status", self.vehicle_state_callback, 10
+            AwapiVehicleStatus, "/awapi/vehicle/get/status", self.vehicle_state_callback, sub_qos
         )
         self._sub_vehicle_state = node.create_subscription(
-            DoorStatus, "/api/external/get/door", self.vehicle_door_callback, 10
+            DoorStatus, "/api/external/get/door", self.vehicle_door_callback, sub_qos
         )
         self._sub_mrm = node.create_subscription(
             MrmState,
             "/api/fail_safe/mrm_state",
             self.sub_mrm_callback,
-            10,
+            sub_qos,
         )
         self._sub_path_distance = node.create_subscription(
             Float64Stamped,
             "/autoware_api/utils/path_distance_calculator/distance",
             self.path_distance_callback,
-            10,
+            sub_qos,
         )
         self._sub_routing_state = node.create_subscription(
-            RouteState, "/api/routing/state", self.sub_routing_state_callback, 10
+            RouteState, "/api/routing/state", self.sub_routing_state_callback, api_qos
         )
-        self._autoware_status_time = self._node.get_clock().now()
+        self._mrm_time = self._node.get_clock().now()
         self._vehicle_status_time = self._node.get_clock().now()
         self._distance_time = self._node.get_clock().now()
 
@@ -56,13 +71,7 @@ class AutowareStateInterface:
             for callback in self.distance_callback_list:
                 callback(1000)
 
-        if self._node.get_clock().now() - self._autoware_status_time > Duration(seconds=5):
-            for callback in self.autoware_state_callback_list:
-                callback("")
-
-            for callback in self.control_mode_callback_list:
-                callback(0)
-
+        if self._node.get_clock().now() - self._mrm_time > Duration(seconds=5):
             for callback in self.emergency_stopped_callback_list:
                 callback(False)
 
@@ -95,22 +104,21 @@ class AutowareStateInterface:
     def set_routing_state_callback(self, callback):
         self.routing_state_callback_list.append(callback)
 
+    def set_operation_mode_callback(self, callback):
+        self.operation_mode_callback_list.append(callback)
+
     # ros subscriber
     # autoware stateをsubしたときの処理
-    def autoware_state_callback(self, topic):
+    def operation_mode_callback(self, topic):
         try:
-            self._autoware_status_time = self._node.get_clock().now()
-            autoware_state = topic.autoware_state
-            control_mode = topic.control_mode
-            emergency_stopped = topic.emergency_stopped
-
             for callback in self.control_mode_callback_list:
-                callback(control_mode)
+                callback(topic.is_autoware_control_enabled)
 
-            for callback in self.autoware_state_callback_list:
-                callback(autoware_state)
+            for callback in self.operation_mode_callback_list:
+                callback(topic.mode)
+
         except Exception as e:
-            self._node.get_logger().error("Unable to get the autoware state, ERROR: " + str(e))
+            self._node.get_logger().error("Unable to get the operation mode, ERROR: " + str(e))
 
     # vehicle doorをsubしたときの処理
     def vehicle_door_callback(self, topic):
@@ -148,6 +156,7 @@ class AutowareStateInterface:
 
     def sub_mrm_callback(self, topic):
         try:
+            self._mrm_time = self._node.get_clock().now()
             emergency_stopped = topic.behavior == MrmState.EMERGENCY_STOP
             for callback in self.emergency_stopped_callback_list:
                 callback(emergency_stopped)

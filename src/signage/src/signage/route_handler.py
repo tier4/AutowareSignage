@@ -9,6 +9,7 @@ from datetime import datetime
 from rclpy.duration import Duration
 import signage.signage_utils as utils
 from tier4_external_api_msgs.msg import DoorStatus
+from autoware_adapi_v1_msgs.msg import RouteState, OperationModeState
 
 
 class RouteHandler:
@@ -39,8 +40,6 @@ class RouteHandler:
         self._is_driving = False
         self._previous_driving_status = False
         self._reach_final = False
-        self._prev_autoware_state = ""
-        self._prev_prev_autoware_state = ""
         self._announced_going_to_depart = False
         self._announced_going_to_arrive = False
         self._distance = 1000
@@ -74,12 +73,12 @@ class RouteHandler:
 
         self.process_station_list_from_fms()
 
-        autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
         autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
         autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
         autoware_state_interface.set_distance_callback(self.sub_distance)
         autoware_state_interface.set_door_status_callback(self.sub_door_status)
         autoware_state_interface.set_routing_state_callback(self.sub_routing_state)
+        autoware_state_interface.set_operation_mode_callback(self.sub_operation_mode)
 
         route_checker = self._node.create_timer(1, self.route_checker_callback)
         view_mode_update = self._node.create_timer(1, self.view_mode_callback)
@@ -87,18 +86,13 @@ class RouteHandler:
 
     # ============== Subsciber callback ==================
 
-    def sub_autoware_state(self, autoware_state):
-        if not self._is_auto_mode:
-            return
+    def sub_control_mode(self, control_mode):
+        self._is_auto_mode = control_mode
 
-        if self._prev_autoware_state == "WaitingForEngage" and autoware_state == "Driving":
+    def sub_operation_mode(self, operation_mode):
+        if operation_mode == OperationModeState.AUTONOMOUS:
             self._is_driving = True
             self._is_stopping = False
-
-        self._prev_autoware_state = autoware_state
-
-    def sub_control_mode(self, control_mode):
-        self._is_auto_mode = control_mode == 1
 
     def sub_emergency(self, emergency_stopped):
         if self._ignore_emergency_stoppped:
