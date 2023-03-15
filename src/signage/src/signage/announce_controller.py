@@ -29,6 +29,7 @@ class AnnounceControllerProperty:
         super(AnnounceControllerProperty, self).__init__()
 
         self._node = node
+        self._autoware = autoware_state_interface
         self._prev_autoware_state = ""
         self._prev_prev_autoware_state = ""
         self._in_driving_state = False
@@ -50,13 +51,15 @@ class AnnounceControllerProperty:
         self._srv = self._node.create_service(
             Announce, "/api/signage/set/announce", self.announce_service
         )
-        autoware_state_interface.set_velocity_callback(self.sub_velocity)
 
     def announce_service(self, request, response):
         try:
             if self._signage_stand_alone:
                 filename = ""
                 annouce_type = request.kind
+
+                self._is_auto_running = self._autoware.information.velocity > 0
+
                 if annouce_type == 1:
                     filename = self._package_path + "engage.wav"
                 elif annouce_type == 2 and self._is_auto_running:
@@ -124,12 +127,6 @@ class AnnounceControllerProperty:
                     }
                 )
         self._current_announce = message
-
-    def sub_velocity(self, velocity):
-        if velocity > 0:
-            self._is_auto_running = True
-        elif velocity < 0:
-            self._is_auto_running = False
 
     def announce_arrived(self):
         if self._signage_stand_alone:
