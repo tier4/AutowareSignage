@@ -29,7 +29,7 @@ class RouteHandler:
         self._schedule_type = ""
         self._route_name = ["", ""]
         self._previous_station_name = ["", ""]
-        self._next_station_list = [["", ""]*5]
+        self._next_station_list = [["", ""] * 5]
         self._remain_arrive_time_text = ""
         self._remain_depart_time_text = ""
         self._display_time = False
@@ -95,7 +95,7 @@ class RouteHandler:
         if not self._is_auto_mode:
             return
 
-        if self._prev_autoware_state == "WaitingForEngage" and  autoware_state == "Driving":
+        if self._prev_autoware_state == "WaitingForEngage" and autoware_state == "Driving":
             self._is_driving = True
             self._is_stopping = False
 
@@ -202,7 +202,9 @@ class RouteHandler:
             self._schedule_id = data["schedule_id"]
             self._fms_check_time = self._node.get_clock().now()
         except Exception as e:
-            self._node.get_logger().warning("Unable to get the task from FMS, ERROR: " + str(e), throttle_duration_sec=5)
+            self._node.get_logger().warning(
+                "Unable to get the task from FMS, ERROR: " + str(e), throttle_duration_sec=5
+            )
 
     def arrived_goal(self):
         try:
@@ -213,7 +215,9 @@ class RouteHandler:
 
             if not self.task_list.todo_list:
                 # Reach final station
-                self._current_task_details.departure_station = self._current_task_details.arrival_station
+                self._current_task_details.departure_station = (
+                    self._current_task_details.arrival_station
+                )
                 self._current_task_details.arrival_station = ["", ""]
                 self._reach_final = True
                 return
@@ -272,10 +276,7 @@ class RouteHandler:
 
             remain_minute = 100
             remain_minute = int(
-                (
-                    self._current_task_details.depart_time
-                    - self._node.get_clock().now().to_msg().sec
-                )
+                (self._current_task_details.depart_time - self._node.get_clock().now().to_msg().sec)
                 / 60
             )
             if remain_minute > 0:
@@ -309,7 +310,9 @@ class RouteHandler:
         try:
             self._viewController.clock_string = datetime.now().strftime("%H:%M")
             self._viewController.route_name = self._route_name
-            self._viewController.departure_station_name = self._current_task_details.departure_station
+            self._viewController.departure_station_name = (
+                self._current_task_details.departure_station
+            )
             self._viewController.arrival_station_name = self._current_task_details.arrival_station
             self._viewController.previous_station_name = self._previous_station_name
             self._viewController.next_station_list = self._next_station_list

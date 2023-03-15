@@ -32,7 +32,10 @@ class AutowareStateInterface:
             DoorStatus, "/api/external/get/door", self.vehicle_door_callback, 10
         )
         self._sub_hazard_status = node.create_subscription(
-            HazardStatusStamped, "/system/emergency/hazard_status", self.sub_hazard_status_callback, 10
+            HazardStatusStamped,
+            "/system/emergency/hazard_status",
+            self.sub_hazard_status_callback,
+            10,
         )
         self._sub_path_distance = node.create_subscription(
             Float64Stamped,

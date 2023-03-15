@@ -13,11 +13,13 @@ from datetime import datetime
 from dateutil import parser
 from itertools import cycle
 
+
 @dataclass
 class TaskList:
     doing_list: list
     todo_list: list
     done_list: list
+
 
 @dataclass
 class CurrentTask:
@@ -27,10 +29,12 @@ class CurrentTask:
 
 
 def init_task_list():
-    return TaskList([],[],[])
+    return TaskList([], [], [])
+
 
 def init_current_task():
     return CurrentTask(["", ""], ["", ""], 0)
+
 
 def process_tag(tags_list, key):
     for item in tags_list:
@@ -70,16 +74,12 @@ def seperate_task_list(task_list):
 
 def process_current_task(task):
     if task.get("origin", "").get("name", ""):
-        departure_station = split_name(
-            task.get("origin", "").get("name", "")
-        )
+        departure_station = split_name(task.get("origin", "").get("name", ""))
     else:
         departure_station = split_name(DEFAULT_DEPARTURE_NAME)
 
     if task.get("destination", "").get("name", ""):
-        arrival_station = split_name(
-            task.get("destination", "").get("name", "")
-        )
+        arrival_station = split_name(task.get("destination", "").get("name", ""))
     else:
         arrival_station = split_name(DEFAULT_ARRIVAL_NAME)
 
@@ -109,9 +109,7 @@ def auto_add_empty_list(station_list):
         station_list.append(["", ""])
 
 
-def create_next_station_list(
-    current_task_details, todo_list, call_type, schedule_type=""
-):
+def create_next_station_list(current_task_details, todo_list, call_type, schedule_type=""):
     station_list = [current_task_details.arrival_station]
 
     for task in todo_list:
