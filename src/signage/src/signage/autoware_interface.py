@@ -21,7 +21,7 @@ class AutowareInformation:
     goal_distance: float = 1000.0
 
 
-class AutowareStateInterface:
+class AutowareInterface:
     def __init__(self, node):
         self._node = node
         self.information = AutowareInformation()

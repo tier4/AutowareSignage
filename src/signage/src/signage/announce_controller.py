@@ -25,16 +25,13 @@ PRIORITY_DICT = {
 
 
 class AnnounceControllerProperty:
-    def __init__(self, node, autoware_state_interface=None):
+    def __init__(self, node, autoware_interface=None):
         super(AnnounceControllerProperty, self).__init__()
 
         self._node = node
-        self._autoware = autoware_state_interface
-        self._prev_autoware_state = ""
-        self._prev_prev_autoware_state = ""
+        self._autoware = autoware_interface
         self._in_driving_state = False
         self._in_emergency_state = False
-        self._autoware_state = ""
         self._current_announce = ""
         self._is_auto_mode = False
         self._is_auto_running = False

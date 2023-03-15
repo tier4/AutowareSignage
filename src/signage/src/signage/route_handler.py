@@ -13,11 +13,11 @@ from autoware_adapi_v1_msgs.msg import RouteState, MrmState, OperationModeState
 
 
 class RouteHandler:
-    def __init__(self, node, viewController, announceController, autoware_state_interface):
+    def __init__(self, node, viewController, announceController, autoware_interface):
         self._node = node
         self._viewController = viewController
         self._announce_interface = announceController
-        self._autoware = autoware_state_interface
+        self._autoware = autoware_interface
         self.AUTOWARE_IP = os.getenv("AUTOWARE_IP", "localhost")
         self._fms_payload = {
             "method": "get",
