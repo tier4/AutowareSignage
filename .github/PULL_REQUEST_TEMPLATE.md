@@ -40,6 +40,5 @@ If you are adding new package following items are required:
 - [ ] All open points are addressed and tracked via issues or tickets
 - [ ] Write release notes
 
-
 [commit-guidelines]: https://www.conventionalcommits.org/en/v1.0.0/
 [spell-check-dict]: https://github.com/tier4/autoware-spell-check-dict#how-to-contribute
