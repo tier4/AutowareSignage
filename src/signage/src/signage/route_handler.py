@@ -168,8 +168,6 @@ class RouteHandler:
                 data.get("tags", []),
             )
 
-            self._node.get_logger().error(str(self._display_details))
-
             self.task_list = utils.seperate_task_list(data.get("tasks", []))
 
             if not self.task_list.doing_list:
