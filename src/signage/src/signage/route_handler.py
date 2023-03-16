@@ -9,18 +9,31 @@ from datetime import datetime
 from rclpy.duration import Duration
 import signage.signage_utils as utils
 from tier4_external_api_msgs.msg import DoorStatus
-from autoware_adapi_v1_msgs.msg import RouteState, MrmState, OperationModeState
+from autoware_adapi_v1_msgs.msg import (
+    RouteState,
+    MrmState,
+    OperationModeState,
+    MotionState,
+    LocalizationInitializationState,
+)
 
 
 class RouteHandler:
     def __init__(
-        self, node, viewController, announceController, autoware_interface, parameter_interface
+        self,
+        node,
+        viewController,
+        announceController,
+        autoware_interface,
+        parameter_interface,
+        ros_service_interface,
     ):
         self._node = node
         self._viewController = viewController
         self._announce_interface = announceController
         self._autoware = autoware_interface
         self._parameter = parameter_interface.parameter
+        self._service_interface = ros_service_interface
         self.AUTOWARE_IP = os.getenv("AUTOWARE_IP", "localhost")
         self._fms_payload = {
             "method": "get",
@@ -47,6 +60,7 @@ class RouteHandler:
         self._announced_going_to_arrive = False
         self._pre_door_announce_status = DoorStatus.UNKNOWN
         self._fms_check_time = 0
+        self._prev_motion_state = 0
 
         self.process_station_list_from_fms()
 
@@ -55,6 +69,7 @@ class RouteHandler:
         self._node.create_timer(1, self.view_mode_callback)
         self._node.create_timer(1, self.calculate_time_callback)
         self._node.create_timer(1, self.door_status_callback)
+        self._node.create_timer(0.2, self.announce_engage_when_starting)
 
     def emergency_checker_callback(self):
         if self._parameter.ignore_emergency:
@@ -94,6 +109,44 @@ class RouteHandler:
             self._pre_door_announce_status = door_status
         else:
             self._pre_door_announce_status = door_status
+
+    def announce_engage_when_starting(self):
+        try:
+            if not self._parameter.signage_stand_alone:
+                return
+
+            if (
+                self._autoware.information.localization_init_state
+                == LocalizationInitializationState.UNINITIALIZED
+            ):
+                self._prev_motion_state = 0
+                return
+
+            if (
+                self._autoware.information.motion_state
+                in [MotionState.STARTING, MotionState.MOVING]
+                and self._prev_motion_state == 1
+            ):
+                self._announce_interface.send_announce("engage")
+
+                if self._autoware.information.motion_state == MotionState.STARTING:
+                    self._service_interface.accept_start()
+
+            # Check to see if it has not stopped waiting for start acceptance
+            if self._autoware.information.motion_state != MotionState.STARTING:
+                self._accept_start_time = self._node.get_clock().now()
+
+            # Send again when stopped in starting state for a certain period of time
+            if (
+                self._autoware.information.motion_state == MotionState.STARTING
+                and self._node.get_clock().now() - self._accept_start_time
+                > Duration(seconds=self._mute_timeout["accept_start"])
+            ):
+                self._service_interface.accept_start()
+
+            self._prev_motion_state = self._autoware.information.motion_state
+        except Exception as e:
+            self._node.get_logger().error("not able to play the announce, ERROR: {}".format(str(e)))
 
     def process_station_list_from_fms(self):
         try:

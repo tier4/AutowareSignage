@@ -29,45 +29,12 @@ class AnnounceControllerProperty:
         super(AnnounceControllerProperty, self).__init__()
 
         self._node = node
-        self._autoware = autoware_interface
         self._parameter = parameter_interface.parameter
-        self._in_driving_state = False
-        self._in_emergency_state = False
         self._current_announce = ""
-        self._is_auto_mode = False
-        self._is_auto_running = False
-        self._door_announce = True
         self._pending_announce_list = []
-        self._emergency_trigger_time = 0
         self._sound = QSound("")
         self._package_path = get_package_share_directory("signage") + "/resource/sound/"
         self._check_playing_timer = self._node.create_timer(1, self.check_playing_callback)
-        self._srv = self._node.create_service(
-            Announce, "/api/signage/set/announce", self.announce_service
-        )
-
-    def announce_service(self, request, response):
-        try:
-            if self._parameter.signage_stand_alone:
-                filename = ""
-                annouce_type = request.kind
-
-                self._is_auto_running = self._autoware.information.velocity > 0
-
-                if annouce_type == 1:
-                    filename = self._package_path + "engage.wav"
-                elif annouce_type == 2 and self._is_auto_running:
-                    filename = self._package_path + "restart_engage.wav"
-                if filename:
-                    wave_obj = sa.WaveObject.from_wave_file(filename)
-                    play_obj = wave_obj.play()
-                    play_obj.wait_done()
-                self._node.get_logger().info(
-                    "return announce response: {}".format(str(annouce_type))
-                )
-        except Exception as e:
-            self._node.get_logger().error("not able to play the annoucen, ERROR: {}".format(str(e)))
-        return response
 
     def process_pending_announce(self):
         try:

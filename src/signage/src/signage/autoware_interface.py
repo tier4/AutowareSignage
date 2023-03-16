@@ -3,7 +3,13 @@
 
 import rclpy
 from dataclasses import dataclass
-from autoware_adapi_v1_msgs.msg import RouteState, MrmState, OperationModeState
+from autoware_adapi_v1_msgs.msg import (
+    RouteState,
+    MrmState,
+    OperationModeState,
+    MotionState,
+    LocalizationInitializationState,
+)
 from tier4_debug_msgs.msg import Float64Stamped
 from tier4_api_msgs.msg import AwapiVehicleStatus
 from tier4_external_api_msgs.msg import DoorStatus
@@ -19,6 +25,8 @@ class AutowareInformation:
     velocity: float = 0.0
     door_status: int = 0
     goal_distance: float = 1000.0
+    motion_state: int = 0
+    localization_init_state: int = 0
 
 
 class AutowareInterface:
@@ -72,6 +80,15 @@ class AutowareInterface:
             self.sub_path_distance_callback,
             sub_qos,
         )
+        self._sub_motion_state = node.create_subscription(
+            MotionState, "/api/motion/state", self.sub_motion_state_callback, api_qos
+        )
+        self._sub_localiztion_initializtion_state = node.create_subscription(
+            LocalizationInitializationState,
+            "/api/localization/initialization_state",
+            self.sub_localization_initialization_state_callback,
+            api_qos,
+        )
 
     def sub_operation_mode_callback(self, msg):
         try:
@@ -110,3 +127,17 @@ class AutowareInterface:
             self.information.goal_distance = msg.data
         except Exception as e:
             self._node.get_logger().error("Unable to get the goal distance, ERROR: " + str(e))
+
+    def sub_motion_state_callback(self, msg):
+        try:
+            self.information.motion_state = msg.state
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the motion state, ERROR: " + str(e))
+
+    def sub_localization_initialization_state_callback(self, msg):
+        try:
+            self.information.localization_init_state = msg.state
+        except Exception as e:
+            self._node.get_logger().error(
+                "Unable to get the localization init state, ERROR: " + str(e)
+            )
