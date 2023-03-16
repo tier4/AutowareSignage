@@ -334,13 +334,13 @@ class RouteHandler:
             self._viewController.remain_depart_time_text = self._remain_depart_time_text
             self._viewController.display_time = self._display_time
 
-            if self._is_emergency_mode:
-                view_mode = "emergency_stopped"
-            elif (
+            if (
                 not self._autoware.information.autoware_control
                 and not self._parameter.ignore_manual_driving
             ):
                 view_mode = "manual_driving"
+            elif self._is_emergency_mode:
+                view_mode = "emergency_stopped"
             elif self._is_stopping and self._current_task_details.departure_station != ["", ""]:
                 view_mode = "stopping"
             elif self._is_driving and self._current_task_details.arrival_station != ["", ""]:
