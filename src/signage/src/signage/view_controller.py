@@ -23,7 +23,7 @@ class ViewControllerProperty(QObject):
     _get_monitor_width_signal = pyqtSignal(int)
     _get_size_ratio_signal = pyqtSignal(float)
 
-    def __init__(self, node=None):
+    def __init__(self, node, parameter_interface):
         super(ViewControllerProperty, self).__init__()
         self._node = node
         self._view_mode = ""
@@ -35,15 +35,12 @@ class ViewControllerProperty(QObject):
         self._remain_arrive_time_text = ""
         self._remain_depart_time_text = ""
         self._display_time = False
-        self._node.declare_parameter("monitor_width", 1920)
-        self._monitor_width = (
-            self._node.get_parameter("monitor_width").get_parameter_value().integer_value
-        )
-        self._node.declare_parameter("monitor_height", 360)
-        self._monitor_height = (
-            self._node.get_parameter("monitor_height").get_parameter_value().integer_value
-        )
-        self._size_ratio = (self._monitor_height / 360.0) * (self._monitor_width / 1920) * 0.8
+        self._monitor_width = 1920
+        self._monitor_height = 540
+        self._size_ratio = 1
+        self.monitor_width = parameter_interface.parameter.monitor_width
+        self.monitor_height = parameter_interface.parameter.monitor_height
+        self.size_ratio = (self._monitor_height / 360.0) * (self._monitor_width / 1920) * 0.8
         self._clock_string = ""
 
     @pyqtProperty(str, notify=_view_mode_changed_signal)

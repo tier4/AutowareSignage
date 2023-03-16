@@ -13,11 +13,14 @@ from autoware_adapi_v1_msgs.msg import RouteState, MrmState, OperationModeState
 
 
 class RouteHandler:
-    def __init__(self, node, viewController, announceController, autoware_interface):
+    def __init__(
+        self, node, viewController, announceController, autoware_interface, parameter_interface
+    ):
         self._node = node
         self._viewController = viewController
         self._announce_interface = announceController
         self._autoware = autoware_interface
+        self._parameter = parameter_interface.parameter
         self.AUTOWARE_IP = os.getenv("AUTOWARE_IP", "localhost")
         self._fms_payload = {
             "method": "get",
@@ -45,31 +48,6 @@ class RouteHandler:
         self._pre_door_announce_status = DoorStatus.UNKNOWN
         self._fms_check_time = 0
 
-        self._node.declare_parameter("ignore_manual_driving", False)
-        self._ignore_manual_driving = (
-            self._node.get_parameter("ignore_manual_driving").get_parameter_value().bool_value
-        )
-        self._node.declare_parameter("check_fms_time", 5)
-        self._check_fms_time = (
-            self._node.get_parameter("check_fms_time").get_parameter_value().integer_value
-        )
-        self._node.declare_parameter("ignore_emergency_stoppped", False)
-        self._ignore_emergency_stoppped = (
-            self._node.get_parameter("ignore_emergency_stoppped").get_parameter_value().bool_value
-        )
-        self._node.declare_parameter("set_goal_by_distance", False)
-        self._set_goal_by_distance = (
-            self._node.get_parameter("set_goal_by_distance").get_parameter_value().bool_value
-        )
-        self._node.declare_parameter("goal_distance", 1)
-        self._goal_distance = (
-            self._node.get_parameter("goal_distance").get_parameter_value().integer_value
-        )
-        self._node.declare_parameter("emergency_repeat_period", 180)
-        self._emergency_repeat_period = (
-            self._node.get_parameter("emergency_repeat_period").get_parameter_value().integer_value
-        )
-
         self.process_station_list_from_fms()
 
         self._node.create_timer(1, self.route_checker_callback)
@@ -79,7 +57,7 @@ class RouteHandler:
         self._node.create_timer(1, self.door_status_callback)
 
     def emergency_checker_callback(self):
-        if self._ignore_emergency_stoppped:
+        if self._parameter.ignore_emergency:
             self._is_emergency_mode = False
         else:
             self._is_emergency_mode = (
@@ -95,7 +73,7 @@ class RouteHandler:
             if not self._emergency_trigger_time:
                 self._emergency_trigger_time = self._node.get_clock().now()
             elif self._node.get_clock().now() - self._emergency_trigger_time > Duration(
-                seconds=self._emergency_repeat_period
+                seconds=self._parameter.emergency_repeat_period
             ):
                 self._announce_interface.announce_emergency("in_emergency")
                 self._emergency_trigger_time = 0
@@ -216,7 +194,7 @@ class RouteHandler:
             if not self._fms_check_time:
                 self.process_station_list_from_fms()
             elif self._node.get_clock().now() - self._fms_check_time > Duration(
-                seconds=self._check_fms_time
+                seconds=self._parameter.check_fms_time
             ):
                 self.process_station_list_from_fms()
 
@@ -225,10 +203,10 @@ class RouteHandler:
 
             if (
                 not self._autoware.information.autoware_control
-                and self._ignore_manual_driving
-                and self._set_goal_by_distance
+                and self._parameter.ignore_manual_driving
+                and self._parameter.set_goal_by_distance
             ):
-                if self._autoware.information.goal_distance < self._goal_distance:
+                if self._autoware.information.goal_distance < self._parameter.goal_distance:
                     self._is_stopping = True
                     self._is_driving = False
 
@@ -306,7 +284,8 @@ class RouteHandler:
             if self._is_emergency_mode:
                 view_mode = "emergency_stopped"
             elif (
-                not self._autoware.information.autoware_control and not self._ignore_manual_driving
+                not self._autoware.information.autoware_control
+                and not self._parameter.ignore_manual_driving
             ):
                 view_mode = "manual_driving"
             elif self._is_stopping and self._current_task_details.departure_station != ["", ""]:

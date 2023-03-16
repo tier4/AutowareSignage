@@ -25,11 +25,12 @@ PRIORITY_DICT = {
 
 
 class AnnounceControllerProperty:
-    def __init__(self, node, autoware_interface=None):
+    def __init__(self, node, autoware_interface, parameter_interface):
         super(AnnounceControllerProperty, self).__init__()
 
         self._node = node
         self._autoware = autoware_interface
+        self._parameter = parameter_interface.parameter
         self._in_driving_state = False
         self._in_emergency_state = False
         self._current_announce = ""
@@ -39,10 +40,6 @@ class AnnounceControllerProperty:
         self._pending_announce_list = []
         self._emergency_trigger_time = 0
         self._sound = QSound("")
-        self._node.declare_parameter("signage_stand_alone", False)
-        self._signage_stand_alone = (
-            self._node.get_parameter("signage_stand_alone").get_parameter_value().bool_value
-        )
         self._package_path = get_package_share_directory("signage") + "/resource/sound/"
         self._check_playing_timer = self._node.create_timer(1, self.check_playing_callback)
         self._srv = self._node.create_service(
@@ -51,7 +48,7 @@ class AnnounceControllerProperty:
 
     def announce_service(self, request, response):
         try:
-            if self._signage_stand_alone:
+            if self._parameter.signage_stand_alone:
                 filename = ""
                 annouce_type = request.kind
 
@@ -76,12 +73,12 @@ class AnnounceControllerProperty:
         try:
             for play_sound in self._pending_announce_list:
                 time_diff = self._node.get_clock().now() - play_sound["requested_time"]
-                if not self._signage_stand_alone and time_diff > Duration(seconds=5):
+                if not self._parameter.signage_stand_alone and time_diff > Duration(seconds=5):
                     # delay the announce for going to depart when the signage is not stand alone
                     self.play_sound(play_sound["message"])
                     self._pending_announce_list.remove(play_sound)
                     break
-                elif self._signage_stand_alone and time_diff <= Duration(seconds=10):
+                elif self._parameter.signage_stand_alone and time_diff <= Duration(seconds=10):
                     self.play_sound(play_sound["message"])
                     self._pending_announce_list.remove(play_sound)
                     break
@@ -126,11 +123,11 @@ class AnnounceControllerProperty:
         self._current_announce = message
 
     def announce_arrived(self):
-        if self._signage_stand_alone:
+        if self._parameter.signage_stand_alone:
             self.send_announce("arrived")
 
     def announce_emergency(self, message):
-        if self._signage_stand_alone:
+        if self._parameter.signage_stand_alone:
             self.send_announce(message)
 
     def announce_going_to_depart_and_arrive(self, message):
