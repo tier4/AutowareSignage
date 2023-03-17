@@ -48,7 +48,6 @@ class RouteHandler:
         self._task_list = utils.init_TaskList()
         self._remain_arrive_time_text = ""
         self._remain_depart_time_text = ""
-        self._display_time = False
         self._is_emergency_mode = False
         self._in_emergency_state = False
         self._emergency_trigger_time = 0
@@ -308,15 +307,6 @@ class RouteHandler:
                 if remain_minute < 1 and not self._announced_going_to_depart:
                     self._announce_interface.announce_going_to_depart_and_arrive("going_to_depart")
                     self._announced_going_to_depart = True
-
-            if (
-                remain_minute < 5
-                or self._autoware.information.goal_distance < 100
-                or self._reach_final
-            ):
-                self._display_time = True
-            else:
-                self._display_time = False
         except Exception as e:
             self._node.get_logger().error("Error in getting calculate the time: " + str(e))
 
@@ -332,7 +322,6 @@ class RouteHandler:
             self._viewController.next_station_list = self._display_details.next_station_list
             self._viewController.remain_arrive_time_text = self._remain_arrive_time_text
             self._viewController.remain_depart_time_text = self._remain_depart_time_text
-            self._viewController.display_time = self._display_time
 
             if (
                 not self._autoware.information.autoware_control

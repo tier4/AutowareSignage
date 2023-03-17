@@ -17,7 +17,6 @@ class ViewControllerProperty(QObject):
     _get_previous_station_name_signal = pyqtSignal(list)
     _get_remain_arrive_time_text_signal = pyqtSignal(str)
     _get_remain_depart_time_text_signal = pyqtSignal(str)
-    _get_display_time_signal = pyqtSignal(bool)
     _get_clock_string_signal = pyqtSignal(str)
     _get_monitor_height_signal = pyqtSignal(int)
     _get_monitor_width_signal = pyqtSignal(int)
@@ -34,7 +33,6 @@ class ViewControllerProperty(QObject):
         self._previous_station_name = ["", ""]
         self._remain_arrive_time_text = ""
         self._remain_depart_time_text = ""
-        self._display_time = False
         self._monitor_width = 1920
         self._monitor_height = 540
         self._size_ratio = 1
@@ -137,18 +135,6 @@ class ViewControllerProperty(QObject):
             return
         self._remain_depart_time_text = remain_depart_time_text
         self._get_remain_depart_time_text_signal.emit(remain_depart_time_text)
-
-    # QMLへのsignal
-    @pyqtProperty(bool, notify=_get_display_time_signal)
-    def display_time(self):
-        return self._display_time
-
-    @display_time.setter
-    def display_time(self, display_time):
-        if self._display_time == display_time:
-            return
-        self._display_time = display_time
-        self._get_display_time_signal.emit(display_time)
 
     # QMLへroute_nameを反映させる
     @pyqtProperty("QString", notify=_get_clock_string_signal)
