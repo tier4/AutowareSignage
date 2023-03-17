@@ -46,17 +46,14 @@ class RouteHandler:
         self._display_details = utils.init_DisplayDetails()
         self._current_task_details = utils.init_CurrentTask()
         self._task_list = utils.init_TaskList()
-        self._remain_arrive_time_text = ""
-        self._remain_depart_time_text = ""
+        self._display_phrase = ""
         self._is_emergency_mode = False
         self._in_emergency_state = False
         self._emergency_trigger_time = 0
-        self._is_stopping = False
+        self._is_stopping = True
         self._is_driving = False
         self._previous_driving_status = False
         self._reach_final = False
-        self._announced_going_to_depart = False
-        self._announced_going_to_arrive = False
         self._pre_door_announce_status = DoorStatus.UNKNOWN
         self._fms_check_time = 0
         self._prev_motion_state = 0
@@ -239,9 +236,9 @@ class RouteHandler:
                 self._is_driving = True
                 self._is_stopping = False
             elif self._autoware.information.route_state == RouteState.ARRIVED:
-                # Flip the flag when the vehicle arrive to goal
-                self._is_stopping = True
+                # Check whether the vehicle arrive to goal
                 self._is_driving = False
+                self._is_stopping = True
 
             if not self._fms_check_time:
                 self.process_station_list_from_fms()
@@ -280,33 +277,32 @@ class RouteHandler:
             if self._current_task_details == utils.init_CurrentTask():
                 return
 
-            remain_minute = 100
-            remain_minute = int(
-                (self._current_task_details.depart_time - self._node.get_clock().now().to_msg().sec)
-                / 60
+            remain_minute = utils.get_remain_minute(
+                self._current_task_details.depart_time, self._node.get_clock().now().to_msg().sec
             )
-            if remain_minute > 0:
-                self._remain_depart_time_text = "このバスはあと{}分程で出発します".format(str(remain_minute))
-            else:
-                self._remain_depart_time_text = "間もなく出発します"
 
             if self._reach_final:
-                self._remain_depart_time_text = "終点です。\nご乗車ありがとうございました"
-            elif self._is_driving:
-                self._announced_going_to_depart = False
-                if (
-                    self._autoware.information.goal_distance < 100
-                    and not self._announced_going_to_arrive
-                ):
-                    self._announce_interface.announce_going_to_depart_and_arrive("going_to_arrive")
-                    self._announced_going_to_arrive = True
-                    self._remain_arrive_time_text = "間もなく到着します"
+                # display arrive to final station
+                self._display_phrase = utils.handle_phrase("final")
             elif self._is_stopping:
-                self._remain_arrive_time_text = ""
-                self._announced_going_to_arrive = False
-                if remain_minute < 1 and not self._announced_going_to_depart:
+                # handle text and announce while bus is stopping
+                if remain_minute > 1:
+                    # display the text with the remaining time for departure
+                    self._display_phrase = utils.handle_phrase("remain_minute", remain_minute)
+                else:
+                    # the departure time is close (within 1 min), announce going to depart
+                    self._display_phrase = utils.handle_phrase("departing")
                     self._announce_interface.announce_going_to_depart_and_arrive("going_to_depart")
-                    self._announced_going_to_depart = True
+            elif self._is_driving:
+                # handle text and announce while bus is running
+                if self._autoware.information.goal_distance < 100:
+                    # display text and announce if the goal is within 100m
+                    self._display_phrase = utils.handle_phrase("arriving")
+                    self._announce_interface.announce_going_to_depart_and_arrive("going_to_arrive")
+                else:
+                    self._display_phrase = ""
+            else:
+                self._display_phrase = ""
         except Exception as e:
             self._node.get_logger().error("Error in getting calculate the time: " + str(e))
 
@@ -320,8 +316,7 @@ class RouteHandler:
             self._viewController.arrival_station_name = self._current_task_details.arrival_station
             self._viewController.previous_station_name = self._display_details.previous_station
             self._viewController.next_station_list = self._display_details.next_station_list
-            self._viewController.remain_arrive_time_text = self._remain_arrive_time_text
-            self._viewController.remain_depart_time_text = self._remain_depart_time_text
+            self._viewController.display_phrase = self._display_phrase
 
             if (
                 not self._autoware.information.autoware_control

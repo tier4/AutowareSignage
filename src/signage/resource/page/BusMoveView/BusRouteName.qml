@@ -135,13 +135,13 @@ Rectangle {
 
     Text {
         id: remainingTime
-        text: viewController.remain_arrive_time_text
+        text: viewController.display_phrase
         anchors.top: centerBar.bottom
         anchors.topMargin: 10*viewController.size_ratio
         anchors.horizontalCenter: parent.horizontalCenter
         font.bold: true
         font.pixelSize: 48*viewController.size_ratio
-        visible: checkVisible(viewController.remain_arrive_time_text)
+        visible: checkVisible(viewController.display_phrase)
     }
 
     function getTextWidth() {

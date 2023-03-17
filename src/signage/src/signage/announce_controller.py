@@ -30,6 +30,7 @@ class AnnounceControllerProperty:
         self._current_announce = ""
         self._pending_announce_list = []
         self._sound = QSound("")
+        self._prev_depart_and_arrive_type = ""
         self._package_path = get_package_share_directory("signage") + "/resource/sound/"
         self._check_playing_timer = self._node.create_timer(1, self.check_playing_callback)
 
@@ -95,4 +96,7 @@ class AnnounceControllerProperty:
             self.send_announce(message)
 
     def announce_going_to_depart_and_arrive(self, message):
-        self.send_announce(message)
+        if self._prev_depart_and_arrive_type != message:
+            # To stop repeat announcement
+            self.send_announce(message)
+            self._prev_depart_and_arrive_type = message

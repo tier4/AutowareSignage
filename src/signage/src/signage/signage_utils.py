@@ -161,3 +161,16 @@ def create_next_station_list(current_task_details, todo_list, call_type, schedul
     auto_add_empty_list(station_list)
 
     return station_list[: NEXT_STATION_DISPLAY_AMOUNT - 1]
+
+
+def get_remain_minute(depart_time, current_time):
+    return int((depart_time - current_time) / 60)
+
+
+def handle_phrase(phrase_type, remain_minute=0):
+    return {
+        "final": "終点です。\nご乗車ありがとうございました",
+        "remain_minute": "このバスはあと{}分程で出発します".format(str(remain_minute)),
+        "departing": "間もなく出発します",
+        "arriving": "間もなく到着します",
+    }.get(phrase_type, "")

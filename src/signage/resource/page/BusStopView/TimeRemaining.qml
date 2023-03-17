@@ -18,7 +18,7 @@ Rectangle {
         width: viewController.monitor_width - 200
         height: viewController.monitor_height
         color: "#000000"
-        text: viewController.remain_depart_time_text
+        text: viewController.display_phrase
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
         horizontalAlignment: Text.AlignHCenter

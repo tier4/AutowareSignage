@@ -15,8 +15,7 @@ class ViewControllerProperty(QObject):
     _get_arrival_station_name_signal = pyqtSignal(list)
     _get_next_station_list_signal = pyqtSignal(list)
     _get_previous_station_name_signal = pyqtSignal(list)
-    _get_remain_arrive_time_text_signal = pyqtSignal(str)
-    _get_remain_depart_time_text_signal = pyqtSignal(str)
+    _get_display_phrase_signal = pyqtSignal(str)
     _get_clock_string_signal = pyqtSignal(str)
     _get_monitor_height_signal = pyqtSignal(int)
     _get_monitor_width_signal = pyqtSignal(int)
@@ -31,8 +30,7 @@ class ViewControllerProperty(QObject):
         self._arrival_station_name = ["", ""]
         self._next_station_list = [["", ""], ["", ""], ["", ""], ["", ""], ["", ""]]
         self._previous_station_name = ["", ""]
-        self._remain_arrive_time_text = ""
-        self._remain_depart_time_text = ""
+        self._display_phrase = ""
         self._monitor_width = 1920
         self._monitor_height = 540
         self._size_ratio = 1
@@ -112,29 +110,17 @@ class ViewControllerProperty(QObject):
         self._previous_station_name = previous_station_name
         self._get_previous_station_name_signal.emit(previous_station_name)
 
-    # QMLへroute_nameを反映させる
-    @pyqtProperty("QString", notify=_get_remain_arrive_time_text_signal)
-    def remain_arrive_time_text(self):
-        return self._remain_arrive_time_text
+    # display the phrase in the qml
+    @pyqtProperty("QString", notify=_get_display_phrase_signal)
+    def display_phrase(self):
+        return self._display_phrase
 
-    @remain_arrive_time_text.setter
-    def remain_arrive_time_text(self, remain_arrive_time_text):
-        if self._remain_arrive_time_text == remain_arrive_time_text:
+    @display_phrase.setter
+    def display_phrase(self, display_phrase):
+        if self._display_phrase == display_phrase:
             return
-        self._remain_arrive_time_text = remain_arrive_time_text
-        self._get_remain_arrive_time_text_signal.emit(remain_arrive_time_text)
-
-    # QMLへroute_nameを反映させる
-    @pyqtProperty("QString", notify=_get_remain_depart_time_text_signal)
-    def remain_depart_time_text(self):
-        return self._remain_depart_time_text
-
-    @remain_depart_time_text.setter
-    def remain_depart_time_text(self, remain_depart_time_text):
-        if self._remain_depart_time_text == remain_depart_time_text:
-            return
-        self._remain_depart_time_text = remain_depart_time_text
-        self._get_remain_depart_time_text_signal.emit(remain_depart_time_text)
+        self._display_phrase = display_phrase
+        self._get_display_phrase_signal.emit(display_phrase)
 
     # QMLへroute_nameを反映させる
     @pyqtProperty("QString", notify=_get_clock_string_signal)
