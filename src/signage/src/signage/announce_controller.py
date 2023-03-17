@@ -3,11 +3,8 @@
 # This Python file uses the following encoding: utf-8
 
 from PyQt5.QtMultimedia import QSound
-
-import simpleaudio as sa
 from rclpy.duration import Duration
 from ament_index_python.packages import get_package_share_directory
-from tier4_hmi_msgs.srv import Announce
 
 # The higher the value, the higher the priority
 PRIORITY_DICT = {
