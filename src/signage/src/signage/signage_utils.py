@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from dateutil import parser
 from itertools import cycle
+from rclpy.duration import Duration
 
 
 @dataclass
@@ -174,3 +175,7 @@ def handle_phrase(phrase_type, remain_minute=0):
         "departing": "間もなく出発します",
         "arriving": "間もなく到着します",
     }.get(phrase_type, "")
+
+
+def check_timeout(current_time, trigger_time, duration):
+    return current_time - trigger_time > Duration(seconds=duration)

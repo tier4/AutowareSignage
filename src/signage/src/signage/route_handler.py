@@ -6,7 +6,6 @@ import os
 import requests
 import json
 from datetime import datetime
-from rclpy.duration import Duration
 import signage.signage_utils as utils
 from tier4_external_api_msgs.msg import DoorStatus
 from autoware_adapi_v1_msgs.msg import (
@@ -48,8 +47,8 @@ class RouteHandler:
         self._task_list = utils.init_TaskList()
         self._display_phrase = ""
         self._is_emergency_mode = False
-        self._in_emergency_state = False
-        self._emergency_trigger_time = 0
+        self._prev_emergency_mode = False
+        self._emergency_trigger_time = self._node.get_clock().now()
         self._is_stopping = True
         self._is_driving = False
         self._previous_driving_status = False
@@ -75,19 +74,18 @@ class RouteHandler:
                 self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
             )
 
-        if self._is_emergency_mode and not self._in_emergency_state:
+        if self._is_emergency_mode and not self._prev_emergency_mode:
             self._announce_interface.announce_emergency("emergency")
-            self._in_emergency_state = True
-        elif not self._is_emergency_mode and self._in_emergency_state:
-            self._in_emergency_state = False
-        elif self._is_emergency_mode and self._in_emergency_state:
-            if not self._emergency_trigger_time:
-                self._emergency_trigger_time = self._node.get_clock().now()
-            elif self._node.get_clock().now() - self._emergency_trigger_time > Duration(
-                seconds=self._parameter.emergency_repeat_period
+        elif self._is_emergency_mode and self._prev_emergency_mode:
+            if utils.check_timeout(
+                self._node.get_clock().now(),
+                self._emergency_trigger_time,
+                self._parameter.emergency_repeat_period,
             ):
                 self._announce_interface.announce_emergency("in_emergency")
-                self._emergency_trigger_time = 0
+                self._emergency_trigger_time = self._node.get_clock().now()
+
+        self._prev_emergency_mode = self._is_emergency_mode
 
     def door_status_callback(self):
         door_status = self._autoware.information.door_status
@@ -135,8 +133,11 @@ class RouteHandler:
             # Send again when stopped in starting state for a certain period of time
             if (
                 self._autoware.information.motion_state == MotionState.STARTING
-                and self._node.get_clock().now() - self._accept_start_time
-                > Duration(seconds=self._mute_timeout["accept_start"])
+                and utils.check_timeout(
+                    self._node.get_clock().now(),
+                    self._accept_start_time,
+                    self._parameter.accept_start,
+                )
             ):
                 self._service_interface.accept_start()
 
@@ -242,8 +243,8 @@ class RouteHandler:
 
             if not self._fms_check_time:
                 self.process_station_list_from_fms()
-            elif self._node.get_clock().now() - self._fms_check_time > Duration(
-                seconds=self._parameter.check_fms_time
+            elif utils.check_timeout(
+                self._node.get_clock().now(), self._fms_check_time, self._parameter.check_fms_time
             ):
                 self.process_station_list_from_fms()
 
