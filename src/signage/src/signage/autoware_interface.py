@@ -11,7 +11,6 @@ from autoware_adapi_v1_msgs.msg import (
     LocalizationInitializationState,
 )
 from tier4_debug_msgs.msg import Float64Stamped
-from tier4_api_msgs.msg import AwapiVehicleStatus
 from tier4_external_api_msgs.msg import DoorStatus
 
 
@@ -21,8 +20,6 @@ class AutowareInformation:
     operation_mode: int = 0
     mrm_behavior: int = 0
     route_state: int = 0
-    turn_signal: int = 0
-    velocity: float = 0.0
     door_status: int = 0
     goal_distance: float = 1000.0
     motion_state: int = 0
@@ -65,12 +62,6 @@ class AutowareInterface:
             self.sub_mrm_callback,
             sub_qos,
         )
-        self._sub_vehicle_state = node.create_subscription(
-            AwapiVehicleStatus,
-            "/awapi/vehicle/get/status",
-            self.sub_vehicle_state_callback,
-            sub_qos,
-        )
         self._sub_vehicle_door = node.create_subscription(
             DoorStatus, "/api/external/get/door", self.sub_vehicle_door_callback, sub_qos
         )
@@ -108,13 +99,6 @@ class AutowareInterface:
             self.information.mrm_behavior = msg.behavior
         except Exception as e:
             self._node.get_logger().error("Unable to get the mrm behavior, ERROR: " + str(e))
-
-    def sub_vehicle_state_callback(self, msg):
-        try:
-            self.information.turn_signal = msg.turn_signal
-            self.information.velocity = msg.velocity
-        except Exception as e:
-            self._node.get_logger().error("Unable to get the vehicle state, ERROR: " + str(e))
 
     def sub_vehicle_door_callback(self, msg):
         try:
