@@ -46,8 +46,7 @@ class RouteHandler:
         self._current_task_details = utils.init_CurrentTask()
         self._task_list = utils.init_TaskList()
         self._display_phrase = ""
-        self._is_emergency_mode = False
-        self._prev_emergency_mode = False
+        self._in_emergency_state = False
         self._emergency_trigger_time = self._node.get_clock().now()
         self._is_stopping = True
         self._is_driving = False
@@ -68,15 +67,13 @@ class RouteHandler:
 
     def emergency_checker_callback(self):
         if self._parameter.ignore_emergency:
-            self._is_emergency_mode = False
+            in_emergency = False
         else:
-            self._is_emergency_mode = (
-                self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
-            )
+            in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
 
-        if self._is_emergency_mode and not self._prev_emergency_mode:
+        if in_emergency and not self._in_emergency_state:
             self._announce_interface.announce_emergency("emergency")
-        elif self._is_emergency_mode and self._prev_emergency_mode:
+        elif in_emergency and self._in_emergency_state:
             if utils.check_timeout(
                 self._node.get_clock().now(),
                 self._emergency_trigger_time,
@@ -85,7 +82,7 @@ class RouteHandler:
                 self._announce_interface.announce_emergency("in_emergency")
                 self._emergency_trigger_time = self._node.get_clock().now()
 
-        self._prev_emergency_mode = self._is_emergency_mode
+        self._in_emergency_state = in_emergency
 
     def door_status_callback(self):
         door_status = self._autoware.information.door_status
@@ -246,7 +243,7 @@ class RouteHandler:
             ):
                 self.process_station_list_from_fms()
 
-            if self._is_emergency_mode:
+            if self._in_emergency_state:
                 return
 
             if (
@@ -322,7 +319,7 @@ class RouteHandler:
                 and not self._parameter.ignore_manual_driving
             ):
                 view_mode = "manual_driving"
-            elif self._is_emergency_mode:
+            elif self._in_emergency_state:
                 view_mode = "emergency_stopped"
             elif self._is_stopping and self._current_task_details.departure_station != ["", ""]:
                 view_mode = "stopping"
