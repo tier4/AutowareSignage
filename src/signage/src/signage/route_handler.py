@@ -96,13 +96,11 @@ class RouteHandler:
         if door_status == DoorStatus.OPENING:
             # Should able to give warning everytime the door is opening
             self._announce_interface.send_announce("door_open")
-            self._pre_door_announce_status = door_status
         elif door_status == DoorStatus.CLOSING:
             # Should able to give warning everytime the door is closing
             self._announce_interface.send_announce("door_close")
-            self._pre_door_announce_status = door_status
-        else:
-            self._pre_door_announce_status = door_status
+
+        self._pre_door_announce_status = door_status
 
     def announce_engage_when_starting(self):
         try:
