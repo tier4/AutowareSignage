@@ -55,6 +55,7 @@ class RouteHandler:
         self._pre_door_announce_status = DoorStatus.UNKNOWN
         self._fms_check_time = 0
         self._prev_motion_state = 0
+        self._prev_route_state = 0
 
         self.process_station_list_from_fms()
 
@@ -140,7 +141,7 @@ class RouteHandler:
         except Exception as e:
             self._node.get_logger().error("not able to play the announce, ERROR: {}".format(str(e)))
 
-    def process_station_list_from_fms(self):
+    def process_station_list_from_fms(self, force_update=False):
         try:
             respond = requests.post(
                 "http://{}:4711/v1/services/order".format(self.AUTOWARE_IP),
@@ -152,7 +153,7 @@ class RouteHandler:
 
             if not data:
                 raise Exception("No data from fms")
-            elif utils.check_schedule_update(self._schedule_details, data):
+            elif utils.check_schedule_update(self._schedule_details, data) and not force_update:
                 self._fms_check_time = self._node.get_clock().now()
                 raise Exception("same schedule, skip")
 
@@ -236,6 +237,10 @@ class RouteHandler:
                 self._is_driving = False
                 self._is_stopping = True
 
+            if self._prev_route_state != RouteState.SET:
+                if self._autoware.information.route_state == RouteState.SET:
+                    self.process_station_list_from_fms(force_update=True)
+
             if not self._fms_check_time:
                 self.process_station_list_from_fms()
             elif utils.check_timeout(
@@ -265,6 +270,8 @@ class RouteHandler:
 
             if self._is_driving:
                 self._previous_driving_status = self._is_driving
+
+            self._prev_route_state = self._autoware.information.route_state
         except Exception as e:
             self._node.get_logger().error("Error unable to check the route: " + str(e))
 
