@@ -7,9 +7,9 @@
   <maintainer email="makoto.yabuta@tier4.jp">yabuta</maintainer>
 
   <license>Apache License 2.0</license>
-  <exec_depend>signage_version</exec_depend>
   <exec_depend>ament_index_python</exec_depend>
-
+  <exec_depend>signage_version</exec_depend>
+  <depend>autoware_auto_system_msgs</depend>
   <depend>rclpy</depend>
   <depend>tier4_api_msgs</depend>
   <depend>tier4_debug_msgs</depend>

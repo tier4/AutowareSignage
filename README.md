@@ -11,7 +11,6 @@
 
 ### Install Autoware
 refer to here
-
 <https://autowarefoundation.github.io/autoware-documentation/main/installation/>
 
 ### setup
@@ -22,6 +21,7 @@ bash setup.sh
 ```
 
 IF you wont to use other FMS Domain, change environment variable.
+
 ```bash
 export FMS_URL=fms.web.auto
 ```
