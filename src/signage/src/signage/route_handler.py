@@ -6,16 +6,33 @@ import os
 import requests
 import json
 from datetime import datetime
-from rclpy.duration import Duration
 import signage.signage_utils as utils
 from tier4_external_api_msgs.msg import DoorStatus
+from autoware_adapi_v1_msgs.msg import (
+    RouteState,
+    MrmState,
+    OperationModeState,
+    MotionState,
+    LocalizationInitializationState,
+)
 
 
 class RouteHandler:
-    def __init__(self, node, viewController, announceController, autoware_state_interface):
+    def __init__(
+        self,
+        node,
+        viewController,
+        announceController,
+        autoware_interface,
+        parameter_interface,
+        ros_service_interface,
+    ):
         self._node = node
         self._viewController = viewController
         self._announce_interface = announceController
+        self._autoware = autoware_interface
+        self._parameter = parameter_interface.parameter
+        self._service_interface = ros_service_interface
         self.AUTOWARE_IP = os.getenv("AUTOWARE_IP", "localhost")
         self._fms_payload = {
             "method": "get",
@@ -28,102 +45,48 @@ class RouteHandler:
         self._display_details = utils.init_DisplayDetails()
         self._current_task_details = utils.init_CurrentTask()
         self._task_list = utils.init_TaskList()
-        self._remain_arrive_time_text = ""
-        self._remain_depart_time_text = ""
-        self._display_time = False
-        self._is_auto_mode = False
-        self._is_emergency_mode = False
+        self._display_phrase = ""
         self._in_emergency_state = False
-        self._emergency_trigger_time = 0
-        self._is_stopping = False
+        self._emergency_trigger_time = self._node.get_clock().now()
+        self._is_stopping = True
         self._is_driving = False
         self._previous_driving_status = False
         self._reach_final = False
-        self._prev_autoware_state = ""
-        self._prev_prev_autoware_state = ""
-        self._announced_going_to_depart = False
-        self._announced_going_to_arrive = False
-        self._distance = 1000
         self._pre_door_announce_status = DoorStatus.UNKNOWN
         self._fms_check_time = 0
-
-        self._node.declare_parameter("ignore_manual_driving", False)
-        self._ignore_manual_driving = (
-            self._node.get_parameter("ignore_manual_driving").get_parameter_value().bool_value
-        )
-        self._node.declare_parameter("check_fms_time", 5)
-        self._check_fms_time = (
-            self._node.get_parameter("check_fms_time").get_parameter_value().integer_value
-        )
-        self._node.declare_parameter("ignore_emergency_stoppped", False)
-        self._ignore_emergency_stoppped = (
-            self._node.get_parameter("ignore_emergency_stoppped").get_parameter_value().bool_value
-        )
-        self._node.declare_parameter("set_goal_by_distance", False)
-        self._set_goal_by_distance = (
-            self._node.get_parameter("set_goal_by_distance").get_parameter_value().bool_value
-        )
-        self._node.declare_parameter("goal_distance", 1)
-        self._goal_distance = (
-            self._node.get_parameter("goal_distance").get_parameter_value().integer_value
-        )
-        self._node.declare_parameter("emergency_repeat_period", 180)
-        self._emergency_repeat_period = (
-            self._node.get_parameter("emergency_repeat_period").get_parameter_value().integer_value
-        )
+        self._prev_motion_state = 0
+        self._prev_route_state = 0
 
         self.process_station_list_from_fms()
 
-        autoware_state_interface.set_autoware_state_callback(self.sub_autoware_state)
-        autoware_state_interface.set_control_mode_callback(self.sub_control_mode)
-        autoware_state_interface.set_emergency_stopped_callback(self.sub_emergency)
-        autoware_state_interface.set_distance_callback(self.sub_distance)
-        autoware_state_interface.set_door_status_callback(self.sub_door_status)
-        autoware_state_interface.set_routing_state_callback(self.sub_routing_state)
+        self._node.create_timer(1, self.route_checker_callback)
+        self._node.create_timer(1, self.emergency_checker_callback)
+        self._node.create_timer(1, self.view_mode_callback)
+        self._node.create_timer(1, self.calculate_time_callback)
+        self._node.create_timer(1, self.door_status_callback)
+        self._node.create_timer(0.2, self.announce_engage_when_starting)
 
-        route_checker = self._node.create_timer(1, self.route_checker_callback)
-        view_mode_update = self._node.create_timer(1, self.view_mode_callback)
-        calculate_time = self._node.create_timer(1, self.calculate_time_callback)
-
-    # ============== Subsciber callback ==================
-
-    def sub_autoware_state(self, autoware_state):
-        if not self._is_auto_mode:
-            return
-
-        if self._prev_autoware_state == "WaitingForEngage" and autoware_state == "Driving":
-            self._is_driving = True
-            self._is_stopping = False
-
-        self._prev_autoware_state = autoware_state
-
-    def sub_control_mode(self, control_mode):
-        self._is_auto_mode = control_mode == 1
-
-    def sub_emergency(self, emergency_stopped):
-        if self._ignore_emergency_stoppped:
-            self._is_emergency_mode = False
+    def emergency_checker_callback(self):
+        if self._parameter.ignore_emergency:
+            in_emergency = False
         else:
-            self._is_emergency_mode = emergency_stopped
+            in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
 
-        if self._is_emergency_mode and not self._in_emergency_state:
+        if in_emergency and not self._in_emergency_state:
             self._announce_interface.announce_emergency("emergency")
-            self._in_emergency_state = True
-        elif not self._is_emergency_mode and self._in_emergency_state:
-            self._in_emergency_state = False
-        elif self._is_emergency_mode and self._in_emergency_state:
-            if not self._emergency_trigger_time:
-                self._emergency_trigger_time = self._node.get_clock().now()
-            elif self._node.get_clock().now() - self._emergency_trigger_time > Duration(
-                seconds=self._emergency_repeat_period
+        elif in_emergency and self._in_emergency_state:
+            if utils.check_timeout(
+                self._node.get_clock().now(),
+                self._emergency_trigger_time,
+                self._parameter.emergency_repeat_period,
             ):
                 self._announce_interface.announce_emergency("in_emergency")
-                self._emergency_trigger_time = 0
+                self._emergency_trigger_time = self._node.get_clock().now()
 
-    def sub_distance(self, distance):
-        self._distance = distance
+        self._in_emergency_state = in_emergency
 
-    def sub_door_status(self, door_status):
+    def door_status_callback(self):
+        door_status = self._autoware.information.door_status
         if self._pre_door_announce_status == door_status:
             # same announce, return
             return
@@ -131,22 +94,54 @@ class RouteHandler:
         if door_status == DoorStatus.OPENING:
             # Should able to give warning everytime the door is opening
             self._announce_interface.send_announce("door_open")
-            self._pre_door_announce_status = door_status
         elif door_status == DoorStatus.CLOSING:
             # Should able to give warning everytime the door is closing
             self._announce_interface.send_announce("door_close")
-            self._pre_door_announce_status = door_status
-        else:
-            self._pre_door_announce_status = door_status
 
-    def sub_routing_state(self, routing_state):
-        if routing_state == 3:
-            self._is_stopping = True
-            self._is_driving = False
+        self._pre_door_announce_status = door_status
 
-    # ============== Subsciber callback ==================
+    def announce_engage_when_starting(self):
+        try:
+            if not self._parameter.signage_stand_alone:
+                return
 
-    def process_station_list_from_fms(self):
+            if (
+                self._autoware.information.localization_init_state
+                == LocalizationInitializationState.UNINITIALIZED
+            ):
+                self._prev_motion_state = 0
+                return
+
+            if (
+                self._autoware.information.motion_state
+                in [MotionState.STARTING, MotionState.MOVING]
+                and self._prev_motion_state == 1
+            ):
+                self._announce_interface.send_announce("engage")
+
+                if self._autoware.information.motion_state == MotionState.STARTING:
+                    self._service_interface.accept_start()
+
+            # Check to see if it has not stopped waiting for start acceptance
+            if self._autoware.information.motion_state != MotionState.STARTING:
+                self._accept_start_time = self._node.get_clock().now()
+
+            # Send again when stopped in starting state for a certain period of time
+            if (
+                self._autoware.information.motion_state == MotionState.STARTING
+                and utils.check_timeout(
+                    self._node.get_clock().now(),
+                    self._accept_start_time,
+                    self._parameter.accept_start,
+                )
+            ):
+                self._service_interface.accept_start()
+
+            self._prev_motion_state = self._autoware.information.motion_state
+        except Exception as e:
+            self._node.get_logger().error("not able to play the announce, ERROR: {}".format(str(e)))
+
+    def process_station_list_from_fms(self, force_update=False):
         try:
             respond = requests.post(
                 "http://{}:4711/v1/services/order".format(self.AUTOWARE_IP),
@@ -158,7 +153,7 @@ class RouteHandler:
 
             if not data:
                 raise Exception("No data from fms")
-            elif utils.check_schedule_update(self._schedule_details, data):
+            elif utils.check_schedule_update(self._schedule_details, data) and not force_update:
                 self._fms_check_time = self._node.get_clock().now()
                 raise Exception("same schedule, skip")
 
@@ -233,22 +228,35 @@ class RouteHandler:
 
     def route_checker_callback(self):
         try:
+            if self._autoware.information.operation_mode == OperationModeState.AUTONOMOUS:
+                # Check whether the vehicle is move in autonomous
+                self._is_driving = True
+                self._is_stopping = False
+            elif self._autoware.information.route_state == RouteState.ARRIVED:
+                # Check whether the vehicle arrive to goal
+                self._is_driving = False
+                self._is_stopping = True
+
+            if self._prev_route_state != RouteState.SET:
+                if self._autoware.information.route_state == RouteState.SET:
+                    self.process_station_list_from_fms(force_update=True)
+
             if not self._fms_check_time:
                 self.process_station_list_from_fms()
-            elif self._node.get_clock().now() - self._fms_check_time > Duration(
-                seconds=self._check_fms_time
+            elif utils.check_timeout(
+                self._node.get_clock().now(), self._fms_check_time, self._parameter.check_fms_time
             ):
                 self.process_station_list_from_fms()
 
-            if self._is_emergency_mode:
+            if self._in_emergency_state:
                 return
 
             if (
-                not self._is_auto_mode
-                and self._ignore_manual_driving
-                and self._set_goal_by_distance
+                not self._autoware.information.autoware_control
+                and self._parameter.ignore_manual_driving
+                and self._parameter.set_goal_by_distance
             ):
-                if self._distance < self._goal_distance:
+                if self._autoware.information.goal_distance < self._parameter.goal_distance:
                     self._is_stopping = True
                     self._is_driving = False
 
@@ -262,6 +270,8 @@ class RouteHandler:
 
             if self._is_driving:
                 self._previous_driving_status = self._is_driving
+
+            self._prev_route_state = self._autoware.information.route_state
         except Exception as e:
             self._node.get_logger().error("Error unable to check the route: " + str(e))
 
@@ -270,35 +280,32 @@ class RouteHandler:
             if self._current_task_details == utils.init_CurrentTask():
                 return
 
-            remain_minute = 100
-            remain_minute = int(
-                (self._current_task_details.depart_time - self._node.get_clock().now().to_msg().sec)
-                / 60
+            remain_minute = utils.get_remain_minute(
+                self._current_task_details.depart_time, self._node.get_clock().now().to_msg().sec
             )
-            if remain_minute > 0:
-                self._remain_depart_time_text = "このバスはあと{}分程で出発します".format(str(remain_minute))
-            else:
-                self._remain_depart_time_text = "間もなく出発します"
 
             if self._reach_final:
-                self._remain_depart_time_text = "終点です。\nご乗車ありがとうございました"
-            elif self._is_driving:
-                self._announced_going_to_depart = False
-                if self._distance < 100 and not self._announced_going_to_arrive:
-                    self._announce_interface.announce_going_to_depart_and_arrive("going_to_arrive")
-                    self._announced_going_to_arrive = True
-                    self._remain_arrive_time_text = "間もなく到着します"
+                # display arrive to final station
+                self._display_phrase = utils.handle_phrase("final")
             elif self._is_stopping:
-                self._remain_arrive_time_text = ""
-                self._announced_going_to_arrive = False
-                if remain_minute < 1 and not self._announced_going_to_depart:
+                # handle text and announce while bus is stopping
+                if remain_minute > 1:
+                    # display the text with the remaining time for departure
+                    self._display_phrase = utils.handle_phrase("remain_minute", remain_minute)
+                else:
+                    # the departure time is close (within 1 min), announce going to depart
+                    self._display_phrase = utils.handle_phrase("departing")
                     self._announce_interface.announce_going_to_depart_and_arrive("going_to_depart")
-                    self._announced_going_to_depart = True
-
-            if remain_minute < 5 or self._distance < 100 or self._reach_final:
-                self._display_time = True
+            elif self._is_driving:
+                # handle text and announce while bus is running
+                if self._autoware.information.goal_distance < 100:
+                    # display text and announce if the goal is within 100m
+                    self._display_phrase = utils.handle_phrase("arriving")
+                    self._announce_interface.announce_going_to_depart_and_arrive("going_to_arrive")
+                else:
+                    self._display_phrase = ""
             else:
-                self._display_time = False
+                self._display_phrase = ""
         except Exception as e:
             self._node.get_logger().error("Error in getting calculate the time: " + str(e))
 
@@ -312,14 +319,15 @@ class RouteHandler:
             self._viewController.arrival_station_name = self._current_task_details.arrival_station
             self._viewController.previous_station_name = self._display_details.previous_station
             self._viewController.next_station_list = self._display_details.next_station_list
-            self._viewController.remain_arrive_time_text = self._remain_arrive_time_text
-            self._viewController.remain_depart_time_text = self._remain_depart_time_text
-            self._viewController.display_time = self._display_time
+            self._viewController.display_phrase = self._display_phrase
 
-            if self._is_emergency_mode:
-                view_mode = "emergency_stopped"
-            elif not self._is_auto_mode and not self._ignore_manual_driving:
+            if (
+                not self._autoware.information.autoware_control
+                and not self._parameter.ignore_manual_driving
+            ):
                 view_mode = "manual_driving"
+            elif self._in_emergency_state:
+                view_mode = "emergency_stopped"
             elif self._is_stopping and self._current_task_details.departure_station != ["", ""]:
                 view_mode = "stopping"
             elif self._is_driving and self._current_task_details.arrival_station != ["", ""]:

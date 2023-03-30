@@ -3,11 +3,8 @@
 # This Python file uses the following encoding: utf-8
 
 from PyQt5.QtMultimedia import QSound
-
-import simpleaudio as sa
 from rclpy.duration import Duration
 from ament_index_python.packages import get_package_share_directory
-from tier4_hmi_msgs.srv import Announce
 
 # The higher the value, the higher the priority
 PRIORITY_DICT = {
@@ -25,63 +22,28 @@ PRIORITY_DICT = {
 
 
 class AnnounceControllerProperty:
-    def __init__(self, node, autoware_state_interface=None):
+    def __init__(self, node, autoware_interface, parameter_interface):
         super(AnnounceControllerProperty, self).__init__()
 
         self._node = node
-        self._prev_autoware_state = ""
-        self._prev_prev_autoware_state = ""
-        self._in_driving_state = False
-        self._in_emergency_state = False
-        self._autoware_state = ""
+        self._parameter = parameter_interface.parameter
         self._current_announce = ""
-        self._is_auto_mode = False
-        self._is_auto_running = False
-        self._door_announce = True
         self._pending_announce_list = []
-        self._emergency_trigger_time = 0
         self._sound = QSound("")
-        self._node.declare_parameter("signage_stand_alone", False)
-        self._signage_stand_alone = (
-            self._node.get_parameter("signage_stand_alone").get_parameter_value().bool_value
-        )
+        self._prev_depart_and_arrive_type = ""
         self._package_path = get_package_share_directory("signage") + "/resource/sound/"
         self._check_playing_timer = self._node.create_timer(1, self.check_playing_callback)
-        self._srv = self._node.create_service(
-            Announce, "/api/signage/set/announce", self.announce_service
-        )
-        autoware_state_interface.set_velocity_callback(self.sub_velocity)
-
-    def announce_service(self, request, response):
-        try:
-            if self._signage_stand_alone:
-                filename = ""
-                annouce_type = request.kind
-                if annouce_type == 1:
-                    filename = self._package_path + "engage.wav"
-                elif annouce_type == 2 and self._is_auto_running:
-                    filename = self._package_path + "restart_engage.wav"
-                if filename:
-                    wave_obj = sa.WaveObject.from_wave_file(filename)
-                    play_obj = wave_obj.play()
-                    play_obj.wait_done()
-                self._node.get_logger().info(
-                    "return announce response: {}".format(str(annouce_type))
-                )
-        except Exception as e:
-            self._node.get_logger().error("not able to play the annoucen, ERROR: {}".format(str(e)))
-        return response
 
     def process_pending_announce(self):
         try:
             for play_sound in self._pending_announce_list:
                 time_diff = self._node.get_clock().now() - play_sound["requested_time"]
-                if not self._signage_stand_alone and time_diff > Duration(seconds=5):
+                if not self._parameter.signage_stand_alone and time_diff > Duration(seconds=5):
                     # delay the announce for going to depart when the signage is not stand alone
                     self.play_sound(play_sound["message"])
                     self._pending_announce_list.remove(play_sound)
                     break
-                elif self._signage_stand_alone and time_diff <= Duration(seconds=10):
+                elif self._parameter.signage_stand_alone and time_diff <= Duration(seconds=10):
                     self.play_sound(play_sound["message"])
                     self._pending_announce_list.remove(play_sound)
                     break
@@ -125,19 +87,16 @@ class AnnounceControllerProperty:
                 )
         self._current_announce = message
 
-    def sub_velocity(self, velocity):
-        if velocity > 0:
-            self._is_auto_running = True
-        elif velocity < 0:
-            self._is_auto_running = False
-
     def announce_arrived(self):
-        if self._signage_stand_alone:
+        if self._parameter.signage_stand_alone:
             self.send_announce("arrived")
 
     def announce_emergency(self, message):
-        if self._signage_stand_alone:
+        if self._parameter.signage_stand_alone:
             self.send_announce(message)
 
     def announce_going_to_depart_and_arrive(self, message):
-        self.send_announce(message)
+        if self._prev_depart_and_arrive_type != message:
+            # To stop repeat announcement
+            self.send_announce(message)
+            self._prev_depart_and_arrive_type = message
