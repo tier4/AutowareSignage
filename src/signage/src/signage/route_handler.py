@@ -300,7 +300,9 @@ class RouteHandler:
                 # handle text and announce while bus is stopping
                 if remain_minute > 1:
                     # display the text with the remaining time for departure
-                    self._display_phrase = utils.handle_phrase("remain_minute", remain_minute)
+                    self._display_phrase = utils.handle_phrase(
+                        "remain_minute", round(remain_minute)
+                    )
                 else:
                     # the departure time is close (within 1 min), announce going to depart
                     self._display_phrase = utils.handle_phrase("departing")
