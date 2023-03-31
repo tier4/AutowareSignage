@@ -171,6 +171,15 @@ class RouteHandler:
             for task in self.task_list.doing_list:
                 self._current_task_details = utils.process_current_task(task)
 
+            if force_update and self._schedule_details.schedule_type != "loop":
+                # Currently loop do not provide done list for previous station so we cannot remove the it
+                if not self.task_list.done_list:
+                    self._display_details.previous_station = ["", ""]
+                else:
+                    self._display_details.previous_station = (
+                        utils.get_prevous_station_name_from_fms(self.task_list.done_list)
+                    )
+
             if self._display_details.previous_station == ["", ""] and self.task_list.done_list:
                 self._display_details.previous_station = utils.get_prevous_station_name_from_fms(
                     self.task_list.done_list
