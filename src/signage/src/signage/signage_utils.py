@@ -165,7 +165,7 @@ def create_next_station_list(current_task_details, todo_list, call_type, schedul
 
 
 def get_remain_minute(depart_time, current_time):
-    return int((depart_time - current_time) / 60)
+    return (depart_time - current_time) / 60
 
 
 def handle_phrase(phrase_type, remain_minute=0):

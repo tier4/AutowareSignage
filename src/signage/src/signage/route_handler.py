@@ -171,6 +171,15 @@ class RouteHandler:
             for task in self.task_list.doing_list:
                 self._current_task_details = utils.process_current_task(task)
 
+            if force_update and self._schedule_details.schedule_type != "loop":
+                # Currently loop do not provide done list for previous station so we cannot remove the it
+                if not self.task_list.done_list:
+                    self._display_details.previous_station = ["", ""]
+                else:
+                    self._display_details.previous_station = (
+                        utils.get_prevous_station_name_from_fms(self.task_list.done_list)
+                    )
+
             if self._display_details.previous_station == ["", ""] and self.task_list.done_list:
                 self._display_details.previous_station = utils.get_prevous_station_name_from_fms(
                     self.task_list.done_list
@@ -291,7 +300,9 @@ class RouteHandler:
                 # handle text and announce while bus is stopping
                 if remain_minute > 1:
                     # display the text with the remaining time for departure
-                    self._display_phrase = utils.handle_phrase("remain_minute", remain_minute)
+                    self._display_phrase = utils.handle_phrase(
+                        "remain_minute", round(remain_minute)
+                    )
                 else:
                     # the departure time is close (within 1 min), announce going to depart
                     self._display_phrase = utils.handle_phrase("departing")
