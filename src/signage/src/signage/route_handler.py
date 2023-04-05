@@ -152,6 +152,9 @@ class RouteHandler:
             data = json.loads(respond.text)
 
             if not data:
+                self._schedule_details = utils.init_ScheduleDetails()
+                self._display_details = utils.init_DisplayDetails()
+                self._current_task_details = utils.init_CurrentTask()
                 raise Exception("No data from fms")
             elif utils.check_schedule_update(self._schedule_details, data) and not force_update:
                 self._fms_check_time = self._node.get_clock().now()
@@ -166,6 +169,9 @@ class RouteHandler:
             self.task_list = utils.seperate_task_list(data.get("tasks", []))
 
             if not self.task_list.doing_list:
+                self._schedule_details = utils.init_ScheduleDetails()
+                self._display_details = utils.init_DisplayDetails()
+                self._current_task_details = utils.init_CurrentTask()
                 raise Exception("doing_list is not found, skip")
 
             for task in self.task_list.doing_list:
