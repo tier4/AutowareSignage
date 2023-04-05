@@ -27,7 +27,7 @@ def main(args=None):
 
     autoware_interface = AutowareInterface(node)
     parameter_interface = ParameterInterface(node)
-    ros_service_interface = RosServiceInterface(node)
+    ros_service_interface = RosServiceInterface(node, parameter_interface)
     viewController = ViewControllerProperty(node, parameter_interface)
     announceController = AnnounceControllerProperty(node, autoware_interface, parameter_interface)
     route_handler = RouteHandler(
