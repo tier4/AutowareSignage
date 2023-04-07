@@ -9,8 +9,10 @@ from rclpy.node import Node
 
 from signage.view_controller import ViewControllerProperty
 from signage.announce_controller import AnnounceControllerProperty
-from signage.autoware_state_interface import AutowareStateInterface
+from signage.autoware_interface import AutowareInterface
+from signage.parameter_interface import ParameterInterface
 from signage.route_handler import RouteHandler
+from signage.ros_service_interface import RosServiceInterface
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -23,10 +25,19 @@ def main(args=None):
     app = QApplication(sys.argv)
     engine = QQmlApplicationEngine()
 
-    autoware_state_interface = AutowareStateInterface(node)
-    viewController = ViewControllerProperty(node)
-    announceController = AnnounceControllerProperty(node, autoware_state_interface)
-    route_handler = RouteHandler(node, viewController, announceController, autoware_state_interface)
+    autoware_interface = AutowareInterface(node)
+    parameter_interface = ParameterInterface(node)
+    ros_service_interface = RosServiceInterface(node, parameter_interface)
+    viewController = ViewControllerProperty(node, parameter_interface)
+    announceController = AnnounceControllerProperty(node, autoware_interface, parameter_interface)
+    route_handler = RouteHandler(
+        node,
+        viewController,
+        announceController,
+        autoware_interface,
+        parameter_interface,
+        ros_service_interface,
+    )
 
     ctx = engine.rootContext()
     ctx.setContextProperty("viewController", viewController)
