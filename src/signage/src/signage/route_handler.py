@@ -152,6 +152,9 @@ class RouteHandler:
             data = json.loads(respond.text)
 
             if not data:
+                self._schedule_details = utils.init_ScheduleDetails()
+                self._display_details = utils.init_DisplayDetails()
+                self._current_task_details = utils.init_CurrentTask()
                 raise Exception("No data from fms")
             elif utils.check_schedule_update(self._schedule_details, data) and not force_update:
                 self._fms_check_time = self._node.get_clock().now()
@@ -166,10 +169,22 @@ class RouteHandler:
             self.task_list = utils.seperate_task_list(data.get("tasks", []))
 
             if not self.task_list.doing_list:
+                self._schedule_details = utils.init_ScheduleDetails()
+                self._display_details = utils.init_DisplayDetails()
+                self._current_task_details = utils.init_CurrentTask()
                 raise Exception("doing_list is not found, skip")
 
             for task in self.task_list.doing_list:
                 self._current_task_details = utils.process_current_task(task)
+
+            if force_update and self._schedule_details.schedule_type != "loop":
+                # Currently loop do not provide done list for previous station so we cannot remove the it
+                if not self.task_list.done_list:
+                    self._display_details.previous_station = ["", ""]
+                else:
+                    self._display_details.previous_station = (
+                        utils.get_prevous_station_name_from_fms(self.task_list.done_list)
+                    )
 
             if self._display_details.previous_station == ["", ""] and self.task_list.done_list:
                 self._display_details.previous_station = utils.get_prevous_station_name_from_fms(
@@ -291,7 +306,9 @@ class RouteHandler:
                 # handle text and announce while bus is stopping
                 if remain_minute > 1:
                     # display the text with the remaining time for departure
-                    self._display_phrase = utils.handle_phrase("remain_minute", remain_minute)
+                    self._display_phrase = utils.handle_phrase(
+                        "remain_minute", round(remain_minute)
+                    )
                 else:
                     # the departure time is close (within 1 min), announce going to depart
                     self._display_phrase = utils.handle_phrase("departing")

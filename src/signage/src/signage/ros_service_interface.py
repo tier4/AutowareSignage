@@ -23,17 +23,20 @@ from std_srvs.srv import Trigger
 
 
 class RosServiceInterface:
-    def __init__(self, node):
+    def __init__(self, node, parameter_interface):
         self._node = node
         self._created_client_dict = {}
         self._lock = threading.RLock()
 
-        self._cli_accept_start = self.__create_client(AcceptStart, "/api/motion/accept_start")
+        self._parameter = parameter_interface.parameter
+        if self._parameter.signage_stand_alone:
+            self._cli_accept_start = self.__create_client(AcceptStart, "/api/motion/accept_start")
 
     # service call function
     def accept_start(self):
-        request = AcceptStart.Request()
-        self.__service_call(self._cli_accept_start, request, True)
+        if self._parameter.signage_stand_alone:
+            request = AcceptStart.Request()
+            self.__service_call(self._cli_accept_start, request, True)
 
     # common denominator
     def __create_client(self, service_type, service_name):
