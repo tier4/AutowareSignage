@@ -304,7 +304,7 @@ class RouteHandler:
                 self._display_phrase = utils.handle_phrase("final")
             elif self._is_stopping:
                 # handle text and announce while bus is stopping
-                if remain_minute > 1:
+                if remain_minute > 2:
                     # display the text with the remaining time for departure
                     self._display_phrase = utils.handle_phrase(
                         "remain_minute", round(remain_minute)
