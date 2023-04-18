@@ -10,6 +10,7 @@ from autoware_adapi_v1_msgs.msg import (
     MotionState,
     LocalizationInitializationState,
 )
+import signage.signage_utils as utils
 from tier4_debug_msgs.msg import Float64Stamped
 from tier4_external_api_msgs.msg import DoorStatus
 
@@ -60,7 +61,7 @@ class AutowareInterface:
             MrmState,
             "/api/fail_safe/mrm_state",
             self.sub_mrm_callback,
-            sub_qos,
+            api_qos,
         )
         self._sub_vehicle_door = node.create_subscription(
             DoorStatus, "/api/external/get/door", self.sub_vehicle_door_callback, sub_qos
@@ -80,6 +81,12 @@ class AutowareInterface:
             self.sub_localization_initialization_state_callback,
             api_qos,
         )
+        self._autoware_connection_time = self._node.get_clock().now()
+        self._node.create_timer(0.2, self.reset_timer)
+
+    def reset_timer(self):
+        if utils.check_timeout(self._node.get_clock().now(), self._autoware_connection_time, 2):
+            self.information = AutowareInformation()
 
     def sub_operation_mode_callback(self, msg):
         try:
@@ -109,6 +116,7 @@ class AutowareInterface:
     def sub_path_distance_callback(self, msg):
         try:
             self.information.goal_distance = msg.data
+            self._autoware_connection_time = self._node.get_clock().now()
         except Exception as e:
             self._node.get_logger().error("Unable to get the goal distance, ERROR: " + str(e))
 
