@@ -150,6 +150,7 @@ class RouteHandler:
             )
 
             data = json.loads(respond.text)
+            self._fms_check_time = self._node.get_clock().now()
 
             if not data:
                 self._schedule_details = utils.init_ScheduleDetails()
@@ -168,7 +169,7 @@ class RouteHandler:
 
             self.task_list = utils.seperate_task_list(data.get("tasks", []))
 
-            if not self.task_list.doing_list:
+            if not self.task_list.doing_list and not self.task_list.todo_list:
                 self._schedule_details = utils.init_ScheduleDetails()
                 self._display_details = utils.init_DisplayDetails()
                 self._current_task_details = utils.init_CurrentTask()
