@@ -87,6 +87,7 @@ class AutowareInterface:
     def reset_timer(self):
         if utils.check_timeout(self._node.get_clock().now(), self._autoware_connection_time, 2):
             self.information = AutowareInformation()
+            self._node.get_logger().error("Autoware disconnected")
 
     def sub_operation_mode_callback(self, msg):
         try:
