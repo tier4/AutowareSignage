@@ -59,11 +59,11 @@ class RouteHandler:
 
         self.process_station_list_from_fms()
 
-        self._node.create_timer(1, self.route_checker_callback)
-        self._node.create_timer(1, self.emergency_checker_callback)
-        self._node.create_timer(1, self.view_mode_callback)
-        self._node.create_timer(1, self.calculate_time_callback)
-        self._node.create_timer(1, self.door_status_callback)
+        self._node.create_timer(0.2, self.route_checker_callback)
+        self._node.create_timer(0.2, self.emergency_checker_callback)
+        self._node.create_timer(0.2, self.view_mode_callback)
+        self._node.create_timer(0.2, self.calculate_time_callback)
+        self._node.create_timer(0.2, self.door_status_callback)
         self._node.create_timer(0.2, self.announce_engage_when_starting)
 
     def emergency_checker_callback(self):
@@ -150,6 +150,7 @@ class RouteHandler:
             )
 
             data = json.loads(respond.text)
+            self._fms_check_time = self._node.get_clock().now()
 
             if not data:
                 self._schedule_details = utils.init_ScheduleDetails()
@@ -168,7 +169,7 @@ class RouteHandler:
 
             self.task_list = utils.seperate_task_list(data.get("tasks", []))
 
-            if not self.task_list.doing_list:
+            if not self.task_list.doing_list and not self.task_list.todo_list:
                 self._schedule_details = utils.init_ScheduleDetails()
                 self._display_details = utils.init_DisplayDetails()
                 self._current_task_details = utils.init_CurrentTask()
@@ -304,7 +305,7 @@ class RouteHandler:
                 self._display_phrase = utils.handle_phrase("final")
             elif self._is_stopping:
                 # handle text and announce while bus is stopping
-                if remain_minute > 1:
+                if remain_minute > 2:
                     # display the text with the remaining time for departure
                     self._display_phrase = utils.handle_phrase(
                         "remain_minute", round(remain_minute)
