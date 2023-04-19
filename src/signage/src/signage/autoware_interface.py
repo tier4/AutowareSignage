@@ -116,8 +116,8 @@ class AutowareInterface:
 
     def sub_path_distance_callback(self, msg):
         try:
-            self.information.goal_distance = msg.data
             self._autoware_connection_time = self._node.get_clock().now()
+            self.information.goal_distance = msg.data
         except Exception as e:
             self._node.get_logger().error("Unable to get the goal distance, ERROR: " + str(e))
 
