@@ -56,6 +56,8 @@ class RouteHandler:
         self._fms_check_time = 0
         self._prev_motion_state = 0
         self._prev_route_state = 0
+        self._skip_announce = False
+        self._announce_engage = False
 
         self.process_station_list_from_fms()
 
@@ -120,7 +122,10 @@ class RouteHandler:
                 in [MotionState.STARTING, MotionState.MOVING]
                 and self._prev_motion_state == 1
             ):
-                self._announce_interface.send_announce("engage")
+                if self._announce_engage and not self._skip_announce:
+                    self._skip_announce = True
+                else:
+                    self._announce_interface.send_announce("engage")
 
                 if self._autoware.information.motion_state == MotionState.STARTING:
                     self._service_interface.accept_start()
@@ -251,10 +256,15 @@ class RouteHandler:
                 # Check whether the vehicle is move in autonomous
                 self._is_driving = True
                 self._is_stopping = False
+                if not self._announce_engage and self._parameter.signage_stand_alone:
+                    self._announce_interface.send_announce("engage")
+                    self._announce_engage = True
             elif self._autoware.information.route_state == RouteState.ARRIVED:
                 # Check whether the vehicle arrive to goal
                 self._is_driving = False
                 self._is_stopping = True
+                self._skip_announce = False
+                self._announce_engage = False
 
             if self._prev_route_state != RouteState.SET:
                 if self._autoware.information.route_state == RouteState.SET:
