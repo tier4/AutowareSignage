@@ -211,6 +211,8 @@ class RouteHandler:
 
     def arrived_goal(self):
         try:
+            self._announce_interface.announce_arrived()
+
             if self._current_task_details == utils.init_CurrentTask():
                 raise Exception("No current task details")
 
@@ -235,7 +237,6 @@ class RouteHandler:
                 "local",
                 self._schedule_details.schedule_type,
             )
-            self._announce_interface.announce_arrived()
         except Exception as e:
             self._node.get_logger().error("Unable to update the goal, ERROR: " + str(e))
 
