@@ -172,7 +172,7 @@ def handle_phrase(phrase_type, remain_minute=0):
     return {
         "final": "終点です。\nご乗車ありがとうございました",
         "remain_minute": "このバスはあと{}分程で出発します".format(str(remain_minute)),
-        "departing": "間もなく出発します",
+        "departing": "間もなく発車時刻です",
         "arriving": "間もなく到着します",
     }.get(phrase_type, "")
 
