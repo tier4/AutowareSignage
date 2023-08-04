@@ -89,7 +89,7 @@ class AnnounceControllerProperty:
 
     def announce_arrived(self):
         if self._parameter.signage_stand_alone:
-            self.send_announce("arrived")
+            self.send_announce("thank_you")
 
     def announce_emergency(self, message):
         if self._parameter.signage_stand_alone:

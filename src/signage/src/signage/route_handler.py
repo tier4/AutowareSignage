@@ -56,21 +56,26 @@ class RouteHandler:
         self._fms_check_time = 0
         self._prev_motion_state = 0
         self._prev_route_state = 0
+        self._skip_announce = False
+        self._announce_engage = False
 
         self.process_station_list_from_fms()
 
-        self._node.create_timer(1, self.route_checker_callback)
-        self._node.create_timer(1, self.emergency_checker_callback)
-        self._node.create_timer(1, self.view_mode_callback)
-        self._node.create_timer(1, self.calculate_time_callback)
-        self._node.create_timer(1, self.door_status_callback)
+        self._node.create_timer(0.2, self.route_checker_callback)
+        self._node.create_timer(0.2, self.emergency_checker_callback)
+        self._node.create_timer(0.2, self.view_mode_callback)
+        self._node.create_timer(0.2, self.calculate_time_callback)
+        self._node.create_timer(0.2, self.door_status_callback)
         self._node.create_timer(0.2, self.announce_engage_when_starting)
 
     def emergency_checker_callback(self):
         if self._parameter.ignore_emergency:
             in_emergency = False
         else:
-            in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
+            in_emergency = (
+                self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
+                or self._autoware.information.mrm_behavior == MrmState.COMFORTABLE_STOP
+            )
 
         if in_emergency and not self._in_emergency_state:
             self._announce_interface.announce_emergency("emergency")
@@ -117,7 +122,10 @@ class RouteHandler:
                 in [MotionState.STARTING, MotionState.MOVING]
                 and self._prev_motion_state == 1
             ):
-                self._announce_interface.send_announce("engage")
+                if self._announce_engage and not self._skip_announce:
+                    self._skip_announce = True
+                else:
+                    self._announce_interface.send_announce("engage")
 
                 if self._autoware.information.motion_state == MotionState.STARTING:
                     self._service_interface.accept_start()
@@ -150,6 +158,7 @@ class RouteHandler:
             )
 
             data = json.loads(respond.text)
+            self._fms_check_time = self._node.get_clock().now()
 
             if not data:
                 self._schedule_details = utils.init_ScheduleDetails()
@@ -168,7 +177,7 @@ class RouteHandler:
 
             self.task_list = utils.seperate_task_list(data.get("tasks", []))
 
-            if not self.task_list.doing_list:
+            if not self.task_list.doing_list and not self.task_list.todo_list:
                 self._schedule_details = utils.init_ScheduleDetails()
                 self._display_details = utils.init_DisplayDetails()
                 self._current_task_details = utils.init_CurrentTask()
@@ -211,6 +220,8 @@ class RouteHandler:
 
     def arrived_goal(self):
         try:
+            self._announce_interface.announce_arrived()
+
             if self._current_task_details == utils.init_CurrentTask():
                 raise Exception("No current task details")
 
@@ -235,7 +246,6 @@ class RouteHandler:
                 "local",
                 self._schedule_details.schedule_type,
             )
-            self._announce_interface.announce_arrived()
         except Exception as e:
             self._node.get_logger().error("Unable to update the goal, ERROR: " + str(e))
 
@@ -247,10 +257,15 @@ class RouteHandler:
                 # Check whether the vehicle is move in autonomous
                 self._is_driving = True
                 self._is_stopping = False
+                if not self._announce_engage and self._parameter.signage_stand_alone:
+                    self._announce_interface.send_announce("engage")
+                    self._announce_engage = True
             elif self._autoware.information.route_state == RouteState.ARRIVED:
                 # Check whether the vehicle arrive to goal
                 self._is_driving = False
                 self._is_stopping = True
+                self._skip_announce = False
+                self._announce_engage = False
 
             if self._prev_route_state != RouteState.SET:
                 if self._autoware.information.route_state == RouteState.SET:
@@ -304,7 +319,7 @@ class RouteHandler:
                 self._display_phrase = utils.handle_phrase("final")
             elif self._is_stopping:
                 # handle text and announce while bus is stopping
-                if remain_minute > 1:
+                if remain_minute > 2:
                     # display the text with the remaining time for departure
                     self._display_phrase = utils.handle_phrase(
                         "remain_minute", round(remain_minute)
