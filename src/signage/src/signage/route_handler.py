@@ -75,7 +75,9 @@ class RouteHandler:
         else:
             in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
 
-        self._in_slow_stop_state = self._autoware.information.mrm_behavior == MrmState.COMFORTABLE_STOP
+        self._in_slow_stop_state = (
+            self._autoware.information.mrm_behavior == MrmState.COMFORTABLE_STOP
+        )
 
         if in_emergency and not self._in_emergency_state:
             self._announce_interface.announce_emergency("emergency")
