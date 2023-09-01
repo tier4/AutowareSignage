@@ -7,7 +7,7 @@ Rectangle {
     id: slowStopView
     width: viewController.monitor_width
     height: viewController.monitor_height
-    color: "#ffff00"
+    color: "#ffffff"
 
     CurrentTime {
         id: displayCurrentTime
@@ -16,7 +16,7 @@ Rectangle {
     Text {
         id: slowStopText
         color: "#000000"
-        text: qsTr("減速します。ご注意ください")
+        text: qsTr("減速します")
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.verticalCenter
         horizontalAlignment: Text.AlignHCenter
@@ -29,7 +29,7 @@ Rectangle {
     Text {
         id: autoDrivingEnText
         color: "#000000"
-        text: qsTr("Slowing down. Please be careful")
+        text: qsTr("Slowing down")
         anchors.top: autoDrivingText.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         horizontalAlignment: Text.AlignHCenter
