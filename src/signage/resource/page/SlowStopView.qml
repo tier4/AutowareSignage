@@ -16,7 +16,7 @@ Rectangle {
     Text {
         id: slowStopText
         color: "#000000"
-        text: qsTr("減速します")
+        text: qsTr("安全確認のため停車中です")
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.verticalCenter
         horizontalAlignment: Text.AlignHCenter
@@ -29,7 +29,7 @@ Rectangle {
     Text {
         id: autoDrivingEnText
         color: "#000000"
-        text: qsTr("Slowing down")
+        text: qsTr("Stop for safety check")
         anchors.top: autoDrivingText.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         horizontalAlignment: Text.AlignHCenter
