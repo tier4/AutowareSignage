@@ -27,10 +27,10 @@ Rectangle {
     }
 
     Text {
-        id: autoDrivingEnText
+        id: slowStopEnText
         color: "#000000"
         text: qsTr("Stop for safety check")
-        anchors.top: autoDrivingText.bottom
+        anchors.top: slowStopText.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
