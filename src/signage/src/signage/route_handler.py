@@ -178,7 +178,7 @@ class RouteHandler:
                 data.get("tags", []),
             )
 
-            self.task_list = utils.seperate_task_list(data.get("tasks", []))
+            self.task_list = utils.separate_task_list(data.get("tasks", []))
 
             if not self.task_list.doing_list and not self.task_list.todo_list:
                 self._schedule_details = utils.init_ScheduleDetails()
@@ -195,11 +195,11 @@ class RouteHandler:
                     self._display_details.previous_station = ["", ""]
                 else:
                     self._display_details.previous_station = (
-                        utils.get_prevous_station_name_from_fms(self.task_list.done_list)
+                        utils.get_previous_station_name_from_fms(self.task_list.done_list)
                     )
 
             if self._display_details.previous_station == ["", ""] and self.task_list.done_list:
-                self._display_details.previous_station = utils.get_prevous_station_name_from_fms(
+                self._display_details.previous_station = utils.get_previous_station_name_from_fms(
                     self.task_list.done_list
                 )
 
