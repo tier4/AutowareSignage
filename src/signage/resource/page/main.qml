@@ -24,6 +24,11 @@ Window {
         visible: viewController.view_mode === "slow_stop"
     }
 
+    SlowingView {
+        id: slowingView
+        visible: viewController.view_mode === "slowing"
+    }
+
     ManualDriving {
         id: manualDriving
         visible: viewController.view_mode === "manual_driving"

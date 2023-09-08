@@ -59,6 +59,7 @@ class RouteHandler:
         self._skip_announce = False
         self._announce_engage = False
         self._in_slow_stop_state = False
+        self._in_slowing_state = False
 
         self.process_station_list_from_fms()
 
@@ -74,6 +75,11 @@ class RouteHandler:
             in_emergency = False
         else:
             in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
+
+        self._in_slowing_state = (
+            self._autoware.information.mrm_behavior == MrmState.COMFORTABLE_STOP
+            and self._autoware.information.motion_state == MotionState.MOVING
+        )
 
         self._in_slow_stop_state = (
             self._autoware.information.mrm_behavior == MrmState.COMFORTABLE_STOP
@@ -363,6 +369,8 @@ class RouteHandler:
                 view_mode = "manual_driving"
             elif self._in_emergency_state:
                 view_mode = "emergency_stopped"
+            elif self._in_slowing_state:
+                view_mode = "slowing"
             elif self._in_slow_stop_state:
                 view_mode = "slow_stop"
             elif self._is_stopping and self._current_task_details.departure_station != ["", ""]:
