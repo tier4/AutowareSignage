@@ -91,7 +91,7 @@ def get_route_name(tag_list):
     return split_name(route_name)
 
 
-def seperate_task_list(task_list):
+def separate_task_list(task_list):
     doing_list = []
     todo_list = []
     done_list = []
@@ -126,7 +126,7 @@ def process_current_task(task):
     return CurrentTask(departure_station, arrival_station, depart_time)
 
 
-def get_prevous_station_name_from_fms(done_list):
+def get_previous_station_name_from_fms(done_list):
     previous_station_task = done_list[PREVIOUS_STATION_INDEX]
     return split_name(previous_station_task.get("origin", "").get("name", DEFAULT_DEPARTURE_NAME))
 
