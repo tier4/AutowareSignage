@@ -5,6 +5,10 @@
 from PyQt5.QtMultimedia import QSound
 from rclpy.duration import Duration
 from ament_index_python.packages import get_package_share_directory
+from pulsectl import Pulse
+
+from tier4_hmi_msgs.srv import Volume
+from tier4_external_api_msgs.msg import ResponseStatus
 
 # The higher the value, the higher the priority
 PRIORITY_DICT = {
@@ -33,6 +37,11 @@ class AnnounceControllerProperty:
         self._prev_depart_and_arrive_type = ""
         self._package_path = get_package_share_directory("signage") + "/resource/sound/"
         self._check_playing_timer = self._node.create_timer(1, self.check_playing_callback)
+
+        self._pulse = Pulse()
+        # Get default sink at startup
+        self._sink = self._pulse.get_sink_by_name(self._pulse.server_info().default_sink_name)
+        self._node.create_service(Volume, "~/volume", self.set_volume)
 
     def process_pending_announce(self):
         try:
@@ -100,3 +109,11 @@ class AnnounceControllerProperty:
             # To stop repeat announcement
             self.send_announce(message)
             self._prev_depart_and_arrive_type = message
+
+    def set_volume(self, request, response):
+        try:
+            self._pulse.volume_set_all_chans(self._sink, request.volume)
+            response.status.code = ResponseStatus.SUCCESS
+        except Exception:
+            response.status.code = ResponseStatus.ERROR
+        return response
