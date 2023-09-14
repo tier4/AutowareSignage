@@ -58,6 +58,8 @@ class RouteHandler:
         self._prev_route_state = 0
         self._skip_announce = False
         self._announce_engage = False
+        self._in_slow_stop_state = False
+        self._in_slowing_state = False
 
         self.process_station_list_from_fms()
 
@@ -72,10 +74,17 @@ class RouteHandler:
         if self._parameter.ignore_emergency:
             in_emergency = False
         else:
-            in_emergency = (
-                self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
-                or self._autoware.information.mrm_behavior == MrmState.COMFORTABLE_STOP
-            )
+            in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
+
+        self._in_slowing_state = (
+            self._autoware.information.mrm_behavior == MrmState.COMFORTABLE_STOP
+            and self._autoware.information.motion_state == MotionState.MOVING
+        )
+
+        self._in_slow_stop_state = (
+            self._autoware.information.mrm_behavior == MrmState.COMFORTABLE_STOP
+            and self._autoware.information.motion_state == MotionState.STOPPED
+        )
 
         if in_emergency and not self._in_emergency_state:
             self._announce_interface.announce_emergency("emergency")
@@ -175,7 +184,7 @@ class RouteHandler:
                 data.get("tags", []),
             )
 
-            self.task_list = utils.seperate_task_list(data.get("tasks", []))
+            self.task_list = utils.separate_task_list(data.get("tasks", []))
 
             if not self.task_list.doing_list and not self.task_list.todo_list:
                 self._schedule_details = utils.init_ScheduleDetails()
@@ -192,11 +201,11 @@ class RouteHandler:
                     self._display_details.previous_station = ["", ""]
                 else:
                     self._display_details.previous_station = (
-                        utils.get_prevous_station_name_from_fms(self.task_list.done_list)
+                        utils.get_previous_station_name_from_fms(self.task_list.done_list)
                     )
 
             if self._display_details.previous_station == ["", ""] and self.task_list.done_list:
-                self._display_details.previous_station = utils.get_prevous_station_name_from_fms(
+                self._display_details.previous_station = utils.get_previous_station_name_from_fms(
                     self.task_list.done_list
                 )
 
@@ -360,6 +369,10 @@ class RouteHandler:
                 view_mode = "manual_driving"
             elif self._in_emergency_state:
                 view_mode = "emergency_stopped"
+            elif self._in_slowing_state:
+                view_mode = "slowing"
+            elif self._in_slow_stop_state:
+                view_mode = "slow_stop"
             elif self._is_stopping and self._current_task_details.departure_station != ["", ""]:
                 view_mode = "stopping"
             elif self._is_driving and self._current_task_details.arrival_station != ["", ""]:
