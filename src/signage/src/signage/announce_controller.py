@@ -7,7 +7,7 @@ from rclpy.duration import Duration
 from ament_index_python.packages import get_package_share_directory
 from pulsectl import Pulse
 
-from tier4_hmi_msgs.srv import Volume
+from tier4_hmi_msgs.srv import GetVolume, SetVolume
 from tier4_external_api_msgs.msg import ResponseStatus
 
 # The higher the value, the higher the priority
@@ -41,7 +41,8 @@ class AnnounceControllerProperty:
         self._pulse = Pulse()
         # Get default sink at startup
         self._sink = self._pulse.get_sink_by_name(self._pulse.server_info().default_sink_name)
-        self._node.create_service(Volume, "~/volume", self.set_volume)
+        self._node.create_service(GetVolume, "~/get/volume", self.get_volume)
+        self._node.create_service(SetVolume, "~/set/volume", self.set_volume)
 
     def process_pending_announce(self):
         try:
@@ -109,6 +110,15 @@ class AnnounceControllerProperty:
             # To stop repeat announcement
             self.send_announce(message)
             self._prev_depart_and_arrive_type = message
+
+    def get_volume(self, _, response):
+        try:
+            volume = self._sink.volume.value_flat
+            response.status.code = ResponseStatus.SUCCESS
+            response.volume = volume
+        except Exception:
+            response.status.code = ResponseStatus.ERROR
+        return response
 
     def set_volume(self, request, response):
         try:
