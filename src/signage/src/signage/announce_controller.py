@@ -4,11 +4,14 @@
 
 from PyQt5.QtMultimedia import QSound
 from rclpy.duration import Duration
+from rclpy.qos import QoSProfile, DurabilityPolicy
 from ament_index_python.packages import get_package_share_directory
 from pulsectl import Pulse
 
-from tier4_hmi_msgs.srv import GetVolume, SetVolume
+from std_msgs.msg import Float32
+from tier4_hmi_msgs.srv import SetVolume
 from tier4_external_api_msgs.msg import ResponseStatus
+
 
 # The higher the value, the higher the priority
 PRIORITY_DICT = {
@@ -41,8 +44,14 @@ class AnnounceControllerProperty:
         self._pulse = Pulse()
         # Get default sink at startup
         self._sink = self._pulse.get_sink_by_name(self._pulse.server_info().default_sink_name)
-        self._node.create_service(GetVolume, "~/get/volume", self.get_volume)
+        self._get_volume_pub = self._node.create_publisher(
+            Float32,
+            "~/get/volume",
+            QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL),
+        )
         self._node.create_service(SetVolume, "~/set/volume", self.set_volume)
+
+        self._get_volume_pub.publish(Float32(data=self._sink.volume.value_flat))
 
     def process_pending_announce(self):
         try:
@@ -111,18 +120,10 @@ class AnnounceControllerProperty:
             self.send_announce(message)
             self._prev_depart_and_arrive_type = message
 
-    def get_volume(self, _, response):
-        try:
-            volume = self._sink.volume.value_flat
-            response.status.code = ResponseStatus.SUCCESS
-            response.volume = volume
-        except Exception:
-            response.status.code = ResponseStatus.ERROR
-        return response
-
     def set_volume(self, request, response):
         try:
             self._pulse.volume_set_all_chans(self._sink, request.volume)
+            self._get_volume_pub.publish(Float32(data=self._sink.volume.value_flat))
             response.status.code = ResponseStatus.SUCCESS
         except Exception:
             response.status.code = ResponseStatus.ERROR
