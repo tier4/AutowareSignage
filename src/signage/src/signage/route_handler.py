@@ -48,6 +48,7 @@ class RouteHandler:
         self._display_phrase = ""
         self._in_emergency_state = False
         self._emergency_trigger_time = self._node.get_clock().now()
+        self._engage_trigger_time = self._node.get_clock().now()
         self._is_stopping = True
         self._is_driving = False
         self._previous_driving_status = False
@@ -135,8 +136,13 @@ class RouteHandler:
             ):
                 if self._announce_engage and not self._skip_announce:
                     self._skip_announce = True
-                else:
+                elif utils.check_timeout(
+                    self._node.get_clock().now(),
+                    self._engage_trigger_time,
+                    self._parameter.accept_start,
+                ):
                     self._announce_interface.send_announce("engage")
+                    self._engage_trigger_time = self._node.get_clock().now()
 
                 if self._autoware.information.motion_state == MotionState.STARTING:
                     self._service_interface.accept_start()
