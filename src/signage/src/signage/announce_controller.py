@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # This Python file uses the following encoding: utf-8
 
+import os
+
 from PyQt5.QtMultimedia import QSound
 from rclpy.duration import Duration
 from ament_index_python.packages import get_package_share_directory
@@ -26,6 +28,8 @@ PRIORITY_DICT = {
     "going_to_arrive": 1,
 }
 
+CURRENT_VOLUME_PATH = "/opt/autoware/volume.txt"
+
 
 class AnnounceControllerProperty:
     def __init__(self, node, autoware_interface, parameter_interface):
@@ -41,6 +45,13 @@ class AnnounceControllerProperty:
         self._check_playing_timer = self._node.create_timer(1, self.check_playing_callback)
 
         self._pulse = Pulse()
+        if os.path.isfile(CURRENT_VOLUME_PATH):
+            with open(CURRENT_VOLUME_PATH, "r") as f:
+                self._sink = self._pulse.get_sink_by_name(
+                    self._pulse.server_info().default_sink_name
+                )
+                self._pulse.volume_set_all_chans(self._sink, float(f.readline()))
+
         self._get_volume_pub = self._node.create_publisher(Float32, "~/get/volume", 1)
         self._node.create_timer(1.0, self.publish_volume_callback)
         self._node.create_service(SetVolume, "~/set/volume", self.set_volume)
@@ -120,6 +131,8 @@ class AnnounceControllerProperty:
         try:
             self._sink = self._pulse.get_sink_by_name(self._pulse.server_info().default_sink_name)
             self._pulse.volume_set_all_chans(self._sink, request.volume)
+            with open(CURRENT_VOLUME_PATH, "w") as f:
+                f.write(f"{self._sink.volume.value_flat}\n")
             response.status.code = ResponseStatus.SUCCESS
         except Exception:
             response.status.code = ResponseStatus.ERROR
