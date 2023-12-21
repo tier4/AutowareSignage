@@ -16,5 +16,5 @@ class Heartbeat:
         )
 
     def handle_heartbeat_diagnostics(self, stat):
-        stat.summary(DiagnosticStatus.OK, "controller change to keyboard")
+        stat.summary(DiagnosticStatus.OK, "signage is working")
         return stat
