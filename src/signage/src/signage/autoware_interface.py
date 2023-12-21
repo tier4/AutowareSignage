@@ -14,7 +14,6 @@ from autoware_adapi_v1_msgs.msg import (
 import signage.signage_utils as utils
 from tier4_debug_msgs.msg import Float64Stamped
 from tier4_external_api_msgs.msg import DoorStatus
-# from autoware_auto_system_msgs.msg import HazardStatusStamped
 
 @dataclass
 class AutowareInformation:
