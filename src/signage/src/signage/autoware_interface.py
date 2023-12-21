@@ -9,11 +9,12 @@ from autoware_adapi_v1_msgs.msg import (
     OperationModeState,
     MotionState,
     LocalizationInitializationState,
+    VelocityFactorArray,
 )
 import signage.signage_utils as utils
 from tier4_debug_msgs.msg import Float64Stamped
 from tier4_external_api_msgs.msg import DoorStatus
-
+# from autoware_auto_system_msgs.msg import HazardStatusStamped
 
 @dataclass
 class AutowareInformation:
@@ -31,6 +32,7 @@ class AutowareInterface:
     def __init__(self, node):
         self._node = node
         self.information = AutowareInformation()
+        self.is_disconnected = False
 
         sub_qos = rclpy.qos.QoSProfile(
             history=rclpy.qos.QoSHistoryPolicy.KEEP_LAST,
@@ -81,6 +83,12 @@ class AutowareInterface:
             self.sub_localization_initialization_state_callback,
             api_qos,
         )
+        self._sub_velocity_factors = node.create_subscription(
+            VelocityFactorArray,
+            "/api/planning/velocity_factors",
+            self.sub_velocity_factors_callback,
+            sub_qos,
+        )
         self._autoware_connection_time = self._node.get_clock().now()
         self._node.create_timer(2, self.reset_timer)
 
@@ -88,6 +96,9 @@ class AutowareInterface:
         if utils.check_timeout(self._node.get_clock().now(), self._autoware_connection_time, 10):
             self.information = AutowareInformation()
             self._node.get_logger().error("Autoware disconnected", throttle_duration_sec=10)
+            self.is_disconnected = True
+        else:
+            self.is_disconnected = False
 
     def sub_operation_mode_callback(self, msg):
         try:
@@ -116,7 +127,6 @@ class AutowareInterface:
 
     def sub_path_distance_callback(self, msg):
         try:
-            self._autoware_connection_time = self._node.get_clock().now()
             self.information.goal_distance = msg.data
         except Exception as e:
             self._node.get_logger().error("Unable to get the goal distance, ERROR: " + str(e))
@@ -134,3 +144,9 @@ class AutowareInterface:
             self._node.get_logger().error(
                 "Unable to get the localization init state, ERROR: " + str(e)
             )
+
+    def sub_velocity_factors_callback(self, msg):
+        try:
+            self._autoware_connection_time = self._node.get_clock().now()
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the velocity factors, ERROR: " + str(e))
