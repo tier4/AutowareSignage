@@ -7,6 +7,7 @@ from PyQt5.QtQml import QQmlApplicationEngine
 import rclpy
 from rclpy.node import Node
 
+from signage.heartbeat import Heartbeat
 from signage.view_controller import ViewControllerProperty
 from signage.announce_controller import AnnounceControllerProperty
 from signage.autoware_interface import AutowareInterface
@@ -25,6 +26,8 @@ def main(args=None):
     app = QApplication(sys.argv)
     engine = QQmlApplicationEngine()
 
+    heartbeat = Heartbeat(node)
+    autoware_interface = AutowareInterface(node)
     autoware_interface = AutowareInterface(node)
     parameter_interface = ParameterInterface(node)
     ros_service_interface = RosServiceInterface(node, parameter_interface)
