@@ -89,7 +89,6 @@ class AnnounceControllerProperty:
     # skip announce by setting
     def check_announce_or_not(self, message):
         try:
-            self._node.get_logger().info(message)
             return asdict(self._announce_settings).get(message, False)
         except Exception as e:
             self._node.get_logger().error("check announce or not: " + str(e))
