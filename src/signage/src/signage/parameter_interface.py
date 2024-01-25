@@ -18,10 +18,23 @@ class SignageParameter:
     monitor_width: int = 1920
     monitor_height: int = 540
 
+@dataclass
+class AnnounceParameter:
+    emergency: bool = True
+    restart_engage: bool = True
+    door_close: bool = True
+    door_open: bool = True
+    engage: bool = True
+    arrived: bool = True
+    thank_you: bool = True
+    in_emergency: bool = True
+    going_to_depart: bool = True
+    going_to_arrive: bool = True
 
 class ParameterInterface:
     def __init__(self, node):
         self.parameter = SignageParameter()
+        self.announce_settings = AnnounceParameter()
 
         node.declare_parameter("signage_stand_alone", False)
         node.declare_parameter("ignore_manual_driving", False)
@@ -33,6 +46,17 @@ class ParameterInterface:
         node.declare_parameter("emergency_repeat_period", 180.0)
         node.declare_parameter("monitor_width", 1920)
         node.declare_parameter("monitor_height", 540)
+
+        node.declare_parameter("emergency", True)
+        node.declare_parameter("restart_engage", True)
+        node.declare_parameter("door_close", True)
+        node.declare_parameter("door_open", True)
+        node.declare_parameter("engage", True)
+        node.declare_parameter("thank_you", True)
+        node.declare_parameter("in_emergency", True)
+        node.declare_parameter("going_to_depart", True)
+        node.declare_parameter("going_to_arrive", True)
+
 
         self.parameter.signage_stand_alone = (
             node.get_parameter("signage_stand_alone").get_parameter_value().bool_value
@@ -64,3 +88,32 @@ class ParameterInterface:
         self.parameter.monitor_height = (
             node.get_parameter("monitor_height").get_parameter_value().integer_value
         )
+
+        self.announce_settings.emergency = (
+            node.get_parameter("emergency").get_parameter_value().bool_value
+        )
+        self.announce_settings.restart_engage = (
+            node.get_parameter("restart_engage").get_parameter_value().bool_value
+        )
+        self.announce_settings.door_close = (
+            node.get_parameter("door_close").get_parameter_value().bool_value
+        )
+        self.announce_settings.door_open = (
+            node.get_parameter("door_open").get_parameter_value().bool_value
+        )
+        self.announce_settings.engage = (
+            node.get_parameter("engage").get_parameter_value().bool_value
+        )
+        self.announce_settings.thank_you = (
+            node.get_parameter("thank_you").get_parameter_value().bool_value
+        )
+        self.announce_settings.in_emergency = (
+            node.get_parameter("in_emergency").get_parameter_value().bool_value
+        )
+        self.announce_settings.going_to_depart = (
+            node.get_parameter("going_to_depart").get_parameter_value().bool_value
+        )
+        self.announce_settings.going_to_arrive = (
+            node.get_parameter("going_to_arrive").get_parameter_value().bool_value
+        )
+
