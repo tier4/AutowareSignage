@@ -5,6 +5,7 @@
 from PyQt5.QtMultimedia import QSound
 from rclpy.duration import Duration
 from ament_index_python.packages import get_package_share_directory
+from dataclasses import asdict
 
 # The higher the value, the higher the priority
 PRIORITY_DICT = {
@@ -27,6 +28,7 @@ class AnnounceControllerProperty:
 
         self._node = node
         self._parameter = parameter_interface.parameter
+        self._announce_settings = parameter_interface.announce_settings
         self._current_announce = ""
         self._pending_announce_list = []
         self._sound = QSound("")
@@ -62,9 +64,21 @@ class AnnounceControllerProperty:
         self._sound = QSound(self._package_path + message + ".wav")
         self._sound.play()
 
+    # skip announce by setting
+    def check_announce_or_not(self, message):
+        try:
+            self._node.get_logger().info(message)
+            return asdict(self._announce_settings).get(message, False)
+        except Exception as e:
+            self._node.get_logger().error("check announce or not: " + str(e))
+            return False
+
     def send_announce(self, message):
         priority = PRIORITY_DICT.get(message, 0)
         previous_priority = PRIORITY_DICT.get(self._current_announce, 0)
+
+        if not self.check_announce_or_not(message):
+            return
 
         if priority == 3:
             self._sound.stop()

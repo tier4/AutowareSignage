@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="signage_param" default="$(find-pkg-share signage)/config/signage_param.yaml" />
+  <arg name="announce_settings_param" default="$(find-pkg-share signage)/config/announce_settings.yaml" />
   <node pkg="signage" exec="signage"  output="screen">
     <param from="$(var signage_param)"/>
+    <param from="$(var announce_settings_param)"/>
   </node>
 </launch>
