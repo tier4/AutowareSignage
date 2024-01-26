@@ -47,17 +47,6 @@ class ParameterInterface:
         node.declare_parameter("monitor_width", 1920)
         node.declare_parameter("monitor_height", 540)
 
-        node.declare_parameter("emergency", True)
-        node.declare_parameter("restart_engage", True)
-        node.declare_parameter("door_close", True)
-        node.declare_parameter("door_open", True)
-        node.declare_parameter("engage", True)
-        node.declare_parameter("thank_you", True)
-        node.declare_parameter("in_emergency", True)
-        node.declare_parameter("going_to_depart", True)
-        node.declare_parameter("going_to_arrive", True)
-
-
         self.parameter.signage_stand_alone = (
             node.get_parameter("signage_stand_alone").get_parameter_value().bool_value
         )
@@ -89,31 +78,22 @@ class ParameterInterface:
             node.get_parameter("monitor_height").get_parameter_value().integer_value
         )
 
-        self.announce_settings.emergency = (
-            node.get_parameter("emergency").get_parameter_value().bool_value
-        )
-        self.announce_settings.restart_engage = (
-            node.get_parameter("restart_engage").get_parameter_value().bool_value
-        )
-        self.announce_settings.door_close = (
-            node.get_parameter("door_close").get_parameter_value().bool_value
-        )
-        self.announce_settings.door_open = (
-            node.get_parameter("door_open").get_parameter_value().bool_value
-        )
-        self.announce_settings.engage = (
-            node.get_parameter("engage").get_parameter_value().bool_value
-        )
-        self.announce_settings.thank_you = (
-            node.get_parameter("thank_you").get_parameter_value().bool_value
-        )
-        self.announce_settings.in_emergency = (
-            node.get_parameter("in_emergency").get_parameter_value().bool_value
-        )
-        self.announce_settings.going_to_depart = (
-            node.get_parameter("going_to_depart").get_parameter_value().bool_value
-        )
-        self.announce_settings.going_to_arrive = (
-            node.get_parameter("going_to_arrive").get_parameter_value().bool_value
-        )
+        node.declare_parameter("announce.emergency", True)
+        node.declare_parameter("announce.restart_engage", True)
+        node.declare_parameter("announce.door_close", True)
+        node.declare_parameter("announce.door_open", True)
+        node.declare_parameter("announce.engage", True)
+        node.declare_parameter("announce.thank_you", True)
+        node.declare_parameter("announce.in_emergency", True)
+        node.declare_parameter("announce.going_to_depart", True)
+        node.declare_parameter("gannounce.oing_to_arrive", True)
+
+        announce_prefix = node.get_parameters_by_prefix("announce")
+
+        for key in announce_prefix.keys():
+            setattr(
+                self.announce_settings,
+                key,
+                announce_prefix[key].get_parameter_value().bool_value,
+            )
 
