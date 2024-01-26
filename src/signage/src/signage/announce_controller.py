@@ -13,8 +13,6 @@ from std_msgs.msg import Float32
 from tier4_hmi_msgs.srv import SetVolume
 from tier4_external_api_msgs.msg import ResponseStatus
 
-from dataclasses import asdict
-
 # The higher the value, the higher the priority
 PRIORITY_DICT = {
     "emergency": 3,
@@ -89,7 +87,7 @@ class AnnounceControllerProperty:
     # skip announce by setting
     def check_announce_or_not(self, message):
         try:
-            return asdict(self._announce_settings).get(message, False)
+            return getattr(self._announce_settings, message)
         except Exception as e:
             self._node.get_logger().error("check announce or not: " + str(e))
             return False
