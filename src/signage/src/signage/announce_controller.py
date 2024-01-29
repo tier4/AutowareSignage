@@ -27,6 +27,7 @@ class AnnounceControllerProperty:
 
         self._node = node
         self._parameter = parameter_interface.parameter
+        self._announce_settings = parameter_interface.announce_settings
         self._current_announce = ""
         self._pending_announce_list = []
         self._sound = QSound("")
@@ -62,9 +63,20 @@ class AnnounceControllerProperty:
         self._sound = QSound(self._package_path + message + ".wav")
         self._sound.play()
 
+    # skip announce by setting
+    def check_announce_or_not(self, message):
+        try:
+            return getattr(self._announce_settings, message)
+        except Exception as e:
+            self._node.get_logger().error("check announce or not: " + str(e))
+            return False
+
     def send_announce(self, message):
         priority = PRIORITY_DICT.get(message, 0)
         previous_priority = PRIORITY_DICT.get(self._current_announce, 0)
+
+        if not self.check_announce_or_not(message):
+            return
 
         if priority == 3:
             self._sound.stop()

@@ -141,7 +141,7 @@ class RouteHandler:
                     self._engage_trigger_time,
                     self._parameter.accept_start,
                 ):
-                    self._announce_interface.send_announce("engage")
+                    self._announce_interface.send_announce("restart_engage")
                     self._engage_trigger_time = self._node.get_clock().now()
 
                 if self._autoware.information.motion_state == MotionState.STARTING:
