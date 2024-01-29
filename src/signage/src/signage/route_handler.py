@@ -370,7 +370,9 @@ class RouteHandler:
             self._viewController.next_station_list = self._display_details.next_station_list
             self._viewController.display_phrase = self._display_phrase
 
-            if (
+            if self._autoware.is_disconnected:
+                view_mode = "emergency_stopped"
+            elif (
                 not self._autoware.information.autoware_control
                 and not self._parameter.ignore_manual_driving
             ):
