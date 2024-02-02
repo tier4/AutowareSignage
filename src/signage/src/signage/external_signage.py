@@ -4,6 +4,8 @@ import time
 import sys
 import signage.packet_tools as packet_tools
 import signal
+from dataclasses import dataclass
+from ament_index_python.packages import get_package_share_directory
 
 
 @dataclass
@@ -31,8 +33,8 @@ class ConstantProtocol:
     SIDE_ADDR2 = 0x6F
     SIDE_ACK_QueryACK = [0xAA, SIDE_ADDR1, SIDE_ADDR2, 0x07, 0x12, 0x02, 0x1A, 0x01, 0x55]
     SIDE_ACK_DataChunk = [0xAA, SIDE_ADDR1, SIDE_ADDR2, 0x07, 0x20, 0x30, 0x56, 0x01, 0x55]
-    SIDE_HEIGHT = 16
-    SIDE_WIDTH = 128
+    SIDE_HEIGHT = 24
+    SIDE_WIDTH = 80
 
     # Color Code
     SEND_COLOR = "\x1B[34;1m"
@@ -56,7 +58,7 @@ class ExternalSignage:
         self._bus = serial.Serial(
             "/dev/ttyUSB0", baudrate=38400, parity=serial.PARITY_EVEN, timeout=0.2, exclusive=False
         )
-        self._parser = packet_tools.parser(bus)
+        self._parser = packet_tools.parser(self._bus)
         self._FRONT_AUTO = packet_tools.td5_data(
             package_path + "/automatic_128x16.td5",
             self.protocol.FRONT_ADDR1,
@@ -65,14 +67,14 @@ class ExternalSignage:
             self.protocol.FRONT_WIDTH,
         )
         self._BACK_AUTO = packet_tools.td5_data(
-            package_path + "/automatic_80x24.td5",
+            package_path + "/automatic_128x16.td5",
             self.protocol.BACK_ADDR1,
             self.protocol.BACK_ADDR2,
             self.protocol.BACK_HEIGHT,
             self.protocol.BACK_WIDTH,
         )
         self._SIDE_AUTO = packet_tools.td5_data(
-            package_path + "/automatic_128x16.td5",
+            package_path + "/automatic_80x24.td5",
             self.protocol.SIDE_ADDR1,
             self.protocol.SIDE_ADDR2,
             self.protocol.SIDE_HEIGHT,
@@ -101,14 +103,15 @@ class ExternalSignage:
             self.protocol.SIDE_WIDTH,
         )
 
-        signal.signal(signal.SIGALRM, heartbeat_handler)
-        signal.setitimer(signal.ITIMER_REAL, 1, 1)
+        # signal.signal(signal.SIGALRM, heartbeat_handler)
+        # signal.setitimer(signal.ITIMER_REAL, 1, 1)
 
     def send_data(self, data, ACK_QueryACK, ACK_DataChunk):
         stop_hb = False
         sent = False
         nightmode = False
         delaytime = 0.02
+        count_hb = 2
         while True:
             if (count_hb >= 2) and (stop_hb != True):
                 timestamp = datetime.datetime.now()
@@ -135,7 +138,7 @@ class ExternalSignage:
                     packet_tools.dump_packet(packet, None, self.protocol.SEND_COLOR)
                     self._bus.write(packet)
                     buf = self._parser.wait_ack()
-                    if lists_match(buf, ACK_DataChunk):
+                    if packet_tools.lists_match(buf, ACK_DataChunk):
                         packet_tools.dump_packet(buf, None, self.protocol.RECV_COLOR)
                     else:
                         if len(buf) == 0:
@@ -151,9 +154,11 @@ class ExternalSignage:
         self.send_data(
             self._FRONT_AUTO, self.protocol.FRONT_ACK_QueryACK, self.protocol.FRONT_ACK_DataChunk
         )
+        time.sleep(1)
         self.send_data(
             self._BACK_AUTO, self.protocol.BACK_ACK_QueryACK, self.protocol.BACK_ACK_DataChunk
         )
+        time.sleep(1)
         self.send_data(
             self._SIDE_AUTO, self.protocol.SIDE_ACK_QueryACK, self.protocol.SIDE_ACK_DataChunk
         )

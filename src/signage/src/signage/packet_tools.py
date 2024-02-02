@@ -2,6 +2,9 @@ import datetime
 import operator
 from functools import reduce
 
+SOT = 0xAA
+EOT = 0x55
+
 
 def dump_packet(packet, timestamp=None, color=None):
     """
@@ -166,6 +169,12 @@ def gen_name_time_packet(linename, timestamp, nightmode):
     return packet
 
 
+def lists_match(l1, l2):
+    if len(l1) != len(l2):
+        return False
+    return all(x == y and type(x) == type(y) for x, y in zip(l1, l2))
+
+
 class td5_data:
     def __init__(self, filename, addr1, addr2, height, width):
         self.width = width
@@ -186,7 +195,7 @@ class td5_data:
                 data, raw_linedatalen, height, width, addr1, addr2
             )
 
-    def gen_heartbeat_packet(data, linedatalen, height, width, addr1, addr2):
+    def gen_heartbeat_packet(self, data, linedatalen, height, width, addr1, addr2):
         """
         Generate a packet of heartbeat
 
@@ -269,9 +278,3 @@ class parser:
                 timestamp = datetime.datetime.now()
                 return self.buf
         return []
-
-
-def lists_match(l1, l2):
-    if len(l1) != len(l2):
-        return False
-    return all(x == y and type(x) == type(y) for x, y in zip(l1, l2))
