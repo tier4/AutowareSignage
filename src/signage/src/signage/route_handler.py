@@ -26,6 +26,7 @@ class RouteHandler:
         autoware_interface,
         parameter_interface,
         ros_service_interface,
+        external_signage,
     ):
         self._node = node
         self._viewController = viewController
@@ -33,6 +34,7 @@ class RouteHandler:
         self._autoware = autoware_interface
         self._parameter = parameter_interface.parameter
         self._service_interface = ros_service_interface
+        self._external_signage = external_signage
         self.AUTOWARE_IP = os.getenv("AUTOWARE_IP", "localhost")
         self._fms_payload = {
             "method": "get",
@@ -142,6 +144,7 @@ class RouteHandler:
                     self._parameter.accept_start,
                 ):
                     self._announce_interface.send_announce("engage")
+                    self._external_signage.tigger()
                     self._engage_trigger_time = self._node.get_clock().now()
 
                 if self._autoware.information.motion_state == MotionState.STARTING:
@@ -276,6 +279,7 @@ class RouteHandler:
                 self._is_stopping = False
                 if not self._announce_engage and self._parameter.signage_stand_alone:
                     self._announce_interface.send_announce("engage")
+                    self._external_signage.tigger()
                     self._announce_engage = True
             elif self._autoware.information.route_state == RouteState.ARRIVED:
                 # Check whether the vehicle arrive to goal
@@ -283,6 +287,9 @@ class RouteHandler:
                 self._is_stopping = True
                 self._skip_announce = False
                 self._announce_engage = False
+
+            if self._autoware.information.operation_mode != OperationModeState.AUTONOMOUS:
+                self._external_signage.close()
 
             if self._prev_route_state != RouteState.SET:
                 if self._autoware.information.route_state == RouteState.SET:
