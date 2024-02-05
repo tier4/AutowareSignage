@@ -86,7 +86,7 @@ class ParameterInterface:
         node.declare_parameter("announce.thank_you", True)
         node.declare_parameter("announce.in_emergency", True)
         node.declare_parameter("announce.going_to_depart", True)
-        node.declare_parameter("gannounce.oing_to_arrive", True)
+        node.declare_parameter("announce.going_to_arrive", True)
 
         announce_prefix = node.get_parameters_by_prefix("announce")
 
