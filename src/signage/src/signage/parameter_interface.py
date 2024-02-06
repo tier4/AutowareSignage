@@ -18,10 +18,23 @@ class SignageParameter:
     monitor_width: int = 1920
     monitor_height: int = 540
 
+@dataclass
+class AnnounceParameter:
+    emergency: bool = True
+    restart_engage: bool = True
+    door_close: bool = True
+    door_open: bool = True
+    engage: bool = True
+    arrived: bool = True
+    thank_you: bool = True
+    in_emergency: bool = True
+    going_to_depart: bool = True
+    going_to_arrive: bool = True
 
 class ParameterInterface:
     def __init__(self, node):
         self.parameter = SignageParameter()
+        self.announce_settings = AnnounceParameter()
 
         node.declare_parameter("signage_stand_alone", False)
         node.declare_parameter("ignore_manual_driving", False)
@@ -64,3 +77,23 @@ class ParameterInterface:
         self.parameter.monitor_height = (
             node.get_parameter("monitor_height").get_parameter_value().integer_value
         )
+
+        node.declare_parameter("announce.emergency", True)
+        node.declare_parameter("announce.restart_engage", True)
+        node.declare_parameter("announce.door_close", True)
+        node.declare_parameter("announce.door_open", True)
+        node.declare_parameter("announce.engage", True)
+        node.declare_parameter("announce.thank_you", True)
+        node.declare_parameter("announce.in_emergency", True)
+        node.declare_parameter("announce.going_to_depart", True)
+        node.declare_parameter("announce.going_to_arrive", True)
+
+        announce_prefix = node.get_parameters_by_prefix("announce")
+
+        for key in announce_prefix.keys():
+            setattr(
+                self.announce_settings,
+                key,
+                announce_prefix[key].get_parameter_value().bool_value,
+            )
+
