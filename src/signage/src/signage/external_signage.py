@@ -1,175 +1,137 @@
-import serial
+from dataclasses import dataclass
 import datetime
 import time
-import sys
-import signage.packet_tools as packet_tools
-import signal
-from dataclasses import dataclass
+import serial
 from ament_index_python.packages import get_package_share_directory
+import packet_tools
 
 
 @dataclass
-class ConstantProtocol:
-    # Start of Transmission, End of Transmission
+class Display:
+    address1: int
+    address2: int
+    height: int
+    width: int
+    ack_query_ack: list
+    ack_data_chunk: list
+
+
+class Protocol:
     SOT = 0xAA
     EOT = 0x55
-
-    # Address, ACK setting
-    FRONT_ADDR1 = 0x70
-    FRONT_ADDR2 = 0x8F
-    FRONT_ACK_QueryACK = [0xAA, FRONT_ADDR1, FRONT_ADDR2, 0x07, 0x12, 0x02, 0x1A, 0x01, 0x55]
-    FRONT_ACK_DataChunk = [0xAA, FRONT_ADDR1, FRONT_ADDR2, 0x07, 0x20, 0x30, 0x56, 0x01, 0x55]
-    FRONT_HEIGHT = 16
-    FRONT_WIDTH = 128
-
-    BACK_ADDR1 = 0x80
-    BACK_ADDR2 = 0x7F
-    BACK_ACK_QueryACK = [0xAA, BACK_ADDR1, BACK_ADDR2, 0x07, 0x12, 0x02, 0x1A, 0x01, 0x55]
-    BACK_ACK_DataChunk = [0xAA, BACK_ADDR1, BACK_ADDR2, 0x07, 0x20, 0x30, 0x56, 0x01, 0x55]
-    BACK_HEIGHT = 16
-    BACK_WIDTH = 128
-
-    SIDE_ADDR1 = 0x90
-    SIDE_ADDR2 = 0x6F
-    SIDE_ACK_QueryACK = [0xAA, SIDE_ADDR1, SIDE_ADDR2, 0x07, 0x12, 0x02, 0x1A, 0x01, 0x55]
-    SIDE_ACK_DataChunk = [0xAA, SIDE_ADDR1, SIDE_ADDR2, 0x07, 0x20, 0x30, 0x56, 0x01, 0x55]
-    SIDE_HEIGHT = 24
-    SIDE_WIDTH = 80
-
-    # Color Code
     SEND_COLOR = "\x1B[34;1m"
     RECV_COLOR = "\x1B[32;1m"
     ERR_COLOR = "\x1B[31;1m"
 
+    def __init__(self):
+        self.front = Display(
+            address1=0x70,
+            address2=0x8F,
+            height=16,
+            width=128,
+            ack_query_ack=[0xAA, 0x70, 0x8F, 0x07, 0x12, 0x02, 0x1A, 0x01, 0x55],
+            ack_data_chunk=[0xAA, 0x70, 0x8F, 0x07, 0x20, 0x30, 0x56, 0x01, 0x55],
+        )
+        self.back = Display(
+            address1=0x80,
+            address2=0x7F,
+            height=16,
+            width=128,
+            ack_query_ack=[0xAA, 0x80, 0x7F, 0x07, 0x12, 0x02, 0x1A, 0x01, 0x55],
+            ack_data_chunk=[0xAA, 0x80, 0x7F, 0x07, 0x20, 0x30, 0x56, 0x01, 0x55],
+        )
+        self.side = Display(
+            address1=0x90,
+            address2=0x6F,
+            height=24,
+            width=80,
+            ack_query_ack=[0xAA, 0x90, 0x6F, 0x07, 0x12, 0x02, 0x1A, 0x01, 0x55],
+            ack_data_chunk=[0xAA, 0x90, 0x6F, 0x07, 0x20, 0x30, 0x56, 0x01, 0x55],
+        )
 
-count_hb = 2
 
+class DataSender:
+    def __init__(self, bus, parser, protocol, node_logger):
+        self._bus = bus
+        self._parser = parser
+        self._protocol = protocol
+        self._logger = node_logger
+        self._delay_time = 0.02
 
-def heartbeat_handler(signum, frame):
-    global count_hb, count_fig
-    count_hb += 1
+    def _send_heartbeat(self, data, ACK_QueryACK):
+        timestamp = datetime.datetime.now()
+        name_time_packet = packet_tools.gen_name_time_packet(data.linename, timestamp, False)
+        self._bus.write(name_time_packet)
+        packet_tools.dump_packet(name_time_packet, None, self._protocol.SEND_COLOR)
+        time.sleep(self._delay_time)
+        self._bus.write(data.heartbeat_packet)
+        packet_tools.dump_packet(data.heartbeat_packet, None, self._protocol.SEND_COLOR)
+        buf = self._parser.wait_ack()
+        if not packet_tools.lists_match(buf, ACK_QueryACK):
+            if len(buf) == 0:
+                self._logger.error("No ACK received for heartbeat.")
+            else:
+                packet_tools.dump_packet(buf, None, self._protocol.ERR_COLOR)
+
+    def _send_data_packets(self, data, ACK_DataChunk):
+        for packet in data.data_packets:
+            packet_tools.dump_packet(packet, None, self._protocol.SEND_COLOR)
+            self._bus.write(packet)
+            buf = self._parser.wait_ack()
+            if not packet_tools.lists_match(buf, ACK_DataChunk):
+                if len(buf) == 0:
+                    self._logger.error("No ACK received for data packet.")
+                else:
+                    packet_tools.dump_packet(buf, None, self._protocol.ERR_COLOR)
+
+    def send(self, data, ACK_QueryACK, ACK_DataChunk):
+        while True:
+            self._send_heartbeat(data, ACK_QueryACK)
+            self._send_data_packets(data, ACK_DataChunk)
+            return  # Exit after sending all data packets
 
 
 class ExternalSignage:
     def __init__(self, node):
-        self._node = node
-        self.protocol = ConstantProtocol()
+        self.node = node
+        self.protocol = Protocol()
         package_path = get_package_share_directory("signage") + "/resource/td5_file/"
-        self._bus = serial.Serial(
+        self.bus = serial.Serial(
             "/dev/ttyUSB0", baudrate=38400, parity=serial.PARITY_EVEN, timeout=0.2, exclusive=False
         )
-        self._parser = packet_tools.parser(self._bus)
-        self._FRONT_AUTO = packet_tools.td5_data(
-            package_path + "/automatic_128x16.td5",
-            self.protocol.FRONT_ADDR1,
-            self.protocol.FRONT_ADDR2,
-            self.protocol.FRONT_HEIGHT,
-            self.protocol.FRONT_WIDTH,
-        )
-        self._BACK_AUTO = packet_tools.td5_data(
-            package_path + "/automatic_128x16.td5",
-            self.protocol.BACK_ADDR1,
-            self.protocol.BACK_ADDR2,
-            self.protocol.BACK_HEIGHT,
-            self.protocol.BACK_WIDTH,
-        )
-        self._SIDE_AUTO = packet_tools.td5_data(
-            package_path + "/automatic_80x24.td5",
-            self.protocol.SIDE_ADDR1,
-            self.protocol.SIDE_ADDR2,
-            self.protocol.SIDE_HEIGHT,
-            self.protocol.SIDE_WIDTH,
-        )
+        self.parser = packet_tools.Parser(self.bus)
 
-        self._FRONT_NULL = packet_tools.td5_data(
-            package_path + "/null_128x16.td5",
-            self.protocol.FRONT_ADDR1,
-            self.protocol.FRONT_ADDR2,
-            self.protocol.FRONT_HEIGHT,
-            self.protocol.FRONT_WIDTH,
-        )
-        self._BACK_NULL = packet_tools.td5_data(
-            package_path + "/null_128x16.td5",
-            self.protocol.BACK_ADDR1,
-            self.protocol.BACK_ADDR2,
-            self.protocol.BACK_HEIGHT,
-            self.protocol.BACK_WIDTH,
-        )
-        self._SIDE_NULL = packet_tools.td5_data(
-            package_path + "/null_80x24.td5",
-            self.protocol.SIDE_ADDR1,
-            self.protocol.SIDE_ADDR2,
-            self.protocol.SIDE_HEIGHT,
-            self.protocol.SIDE_WIDTH,
-        )
+        self.displays = {
+            "front": self._load_display_data(self.protocol.front, package_path),
+            "back": self._load_display_data(self.protocol.back, package_path),
+            "side": self._load_display_data(self.protocol.side, package_path),
+        }
 
-        # signal.signal(signal.SIGALRM, heartbeat_handler)
-        # signal.setitimer(signal.ITIMER_REAL, 1, 1)
+    def _load_display_data(self, display, package_path):
+        auto_path = package_path + f"/automatic_{display.width}x{display.height}.td5"
+        null_path = package_path + f"/null_{display.width}x{display.height}.td5"
+        return {
+            "auto": packet_tools.TD5Data(
+                auto_path, display.address1, display.address2, display.height, display.width
+            ),
+            "null": packet_tools.TD5Data(
+                null_path, display.address1, display.address2, display.height, display.width
+            ),
+        }
 
     def send_data(self, data, ACK_QueryACK, ACK_DataChunk):
-        stop_hb = False
-        sent = False
-        nightmode = False
-        delaytime = 0.02
-        count_hb = 2
-        while True:
-            if (count_hb >= 2) and (stop_hb != True):
-                timestamp = datetime.datetime.now()
-                name_time_packet = packet_tools.gen_name_time_packet(
-                    data.linename, timestamp, nightmode
-                )
-                self._bus.write(name_time_packet)
-                packet_tools.dump_packet(name_time_packet, None, self.protocol.SEND_COLOR)
-                time.sleep(delaytime)
-                self._bus.write(data.heartbeat_packet)
-                packet_tools.dump_packet(data.heartbeat_packet, None, self.protocol.SEND_COLOR)
-                buf = self._parser.wait_ack()
-                if packet_tools.lists_match(buf, ACK_QueryACK):
-                    packet_tools.dump_packet(buf, None, self.protocol.RECV_COLOR)
-                else:
-                    if len(buf) == 0:
-                        self._node.get_logger().error("error")
-                    else:
-                        packet_tools.dump_packet(buf, None, self.protocol.ERR_COLOR)
-                count_hb = 0
-
-            if sent != True:
-                for packet in data.data_packets:
-                    packet_tools.dump_packet(packet, None, self.protocol.SEND_COLOR)
-                    self._bus.write(packet)
-                    buf = self._parser.wait_ack()
-                    if packet_tools.lists_match(buf, ACK_DataChunk):
-                        packet_tools.dump_packet(buf, None, self.protocol.RECV_COLOR)
-                    else:
-                        if len(buf) == 0:
-                            self._node.get_logger().error("error2")
-                        else:
-                            packet_tools.dump_packet(buf, None, self.protocol.ERR_COLOR)
-                sent = True
-
-            if sent:
-                return
+        display = self.displays[display_key]
+        data = display[data_key]
+        ack_query_ack = self.protocol.__dict__[display_key].ack_query_ack
+        ack_data_chunk = self.protocol.__dict__[display_key].ack_data_chunk
+        sender = DataSender(self.bus, self.parser, self.protocol, self.node.get_logger())
+        sender.send(data, ack_query_ack, ack_data_chunk)
 
     def trigger(self):
-        self.send_data(
-            self._FRONT_AUTO, self.protocol.FRONT_ACK_QueryACK, self.protocol.FRONT_ACK_DataChunk
-        )
-        time.sleep(1)
-        self.send_data(
-            self._BACK_AUTO, self.protocol.BACK_ACK_QueryACK, self.protocol.BACK_ACK_DataChunk
-        )
-        time.sleep(1)
-        self.send_data(
-            self._SIDE_AUTO, self.protocol.SIDE_ACK_QueryACK, self.protocol.SIDE_ACK_DataChunk
-        )
+        for display_key in self.displays:
+            self.send_data(display_key, "auto")
+            time.sleep(1)
 
     def close(self):
-        self.send_data(
-            self._FRONT_NULL, self.protocol.FRONT_ACK_QueryACK, self.protocol.FRONT_ACK_DataChunk
-        )
-        self.send_data(
-            self._BACK_NULL, self.protocol.BACK_ACK_QueryACK, self.protocol.BACK_ACK_DataChunk
-        )
-        self.send_data(
-            self._SIDE_NULL, self.protocol.SIDE_ACK_QueryACK, self.protocol.SIDE_ACK_DataChunk
-        )
+        for display_key in self.displays:
+            self.send_data(display_key, "null")

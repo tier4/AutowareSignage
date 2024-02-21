@@ -2,180 +2,153 @@ import datetime
 import operator
 from functools import reduce
 
+# Packet start and end markers
 SOT = 0xAA
 EOT = 0x55
 
 
 def dump_packet(packet, timestamp=None, color=None):
     """
-    Display packet on stdout. The data displayed is splited by spaces as follows.
-    date time checksum_verified(True or False) data0 data1 ...
+    Prints a packet's contents in a formatted manner, optionally with color and timestamp.
 
-    Parameters
-    ----------
-    packet : list
-        list of int. raw packet include from SOT to EOT
-    timestamp : datetime.datetime
-        timestamp to show
-    color : str
-        Escape sequence to change character color
+    Parameters:
+    - packet: List[int], the packet data including start and end markers.
+    - timestamp: datetime.datetime, optional timestamp to prepend to the output.
+    - color: str, an optional terminal color code to apply to the output.
     """
     verified = verify_sum(packet)
-
-    if color != None:
+    if color:
         print(color, end="")
-    if timestamp != None:
+    if timestamp:
         print(timestamp, end=" ")
-    # print(verified, end=" ")
     for p in packet:
         print(f"{p:02x}", end=" ")
-    if color != None:
+    if color:
         print("\033[0m", end="")
     print()
 
 
 def calc_sum(payload):
     """
-    calculate checksum from payload.
+    Calculates the checksum of a given payload.
 
-    Parameters
-    ----------
-    payload : list
-        list of int. from address to data.
+    Parameters:
+    - payload: List[int], the payload data from which to calculate the checksum.
 
-    Returns
-    -------
-    sum : list
-        list of int. 2 bytes checksum in network byte order.
+    Returns:
+    - List[int], a two-element list containing the checksum bytes.
     """
     s = reduce(operator.add, payload)
-    sum = [s & 0xFF, (s & 0xFF00) >> 8]
-    return sum
+    return [s & 0xFF, (s & 0xFF00) >> 8]
 
 
 def verify_sum(packet):
     """
-    verify the checksum of a packet.
+    Verifies the checksum of a packet.
 
-    Parameters
-    ----------
-    packet : list
-        list of int. raw packet include from SOT to EOT
+    Parameters:
+    - packet: List[int], the complete packet including checksum and markers.
 
-    Returns
-    -------
-    verified : bool
-        True if checksum is valid.
+    Returns:
+    - bool, True if the checksum is correct, False otherwise.
     """
-    sum = calc_sum(packet[1 : len(packet) - 3])
-    return (packet[len(packet) - 3] == sum[0]) & (packet[len(packet) - 2] == sum[1])
+    sum = calc_sum(packet[1:-3])
+    return (packet[-3] == sum[0]) and (packet[-2] == sum[1])
 
 
 def gen_data_packet(data, seq, addr1, addr2):
     """
-    Generate one of packets to send a image
+    Generates a single data packet from given data and sequence number.
 
-    Parameters
-    ----------
-    data : list
-        raw data. must be 128 bytes and lower.
-    seq : int
-        sequence number of packet.
-    addr1 : int
-        address of screen
-    addr2 : int
-        address of screen
+    Parameters:
+    - data: List[int], the data to include in the packet.
+    - seq: int, the sequence number of the packet.
+    - addr1: int, the first part of the address.
+    - addr2: int, the second part of the address.
 
-    Returns
-    -------
-    packet : list
-        generated packet to send.
+    Returns:
+    - List[int], the assembled packet.
     """
     length = len(data) + 8
     cmd = 0x20
-    payload = [addr1, addr2, length, cmd, seq, 0x00]
-    payload.extend(list(data))
-
-    sum = calc_sum(payload)
-    packet = [SOT]
-    packet.extend(payload)
-    packet.extend(sum)
-    packet.append(EOT)
-    return packet
+    payload = [addr1, addr2, length, cmd, seq, 0x00] + list(data)
+    checksum = calc_sum(payload)
+    return [SOT] + payload + checksum + [EOT]
 
 
 def gen_data_packets(data, addr1, addr2):
     """
-    Generate packets to send a image
+    Generates a sequence of data packets from a larger dataset.
 
-    Parameters
-    ----------
-    data : list
-        raw data. part of td5 file.
-    addr1 : int
-        address of screen
-    addr2 : int
-        address of screen
+    Parameters:
+    - data: List[int], the complete set of data to be sent in packets.
+    - addr1: int, the first part of the address for the packets.
+    - addr2: int, the second part of the address for the packets.
 
-    Returns
-    -------
-    packets : list
-        list of list. generated packets to send.
+    Returns:
+    - List[List[int]], a list of assembled packets.
     """
     packets = []
     seq = 0
-    i = 0
-    while (len(data) - i) > 128:
-        packets.append(gen_data_packet(data[i : i + 128], seq, addr1, addr2))
+    for i in range(0, len(data), 128):
+        packet_data = data[i : i + 128]
+        packets.append(gen_data_packet(packet_data, seq, addr1, addr2))
         seq += 1
-        i += 128
-    packets.append(gen_data_packet(data[i : len(data)], seq, addr1, addr2))
     return packets
 
 
 def gen_name_time_packet(linename, timestamp, nightmode):
     """
-    Generate a packet of Line Name and current time.
+    Generates a packet containing a line name and the current time.
 
-    Parameters
-    ----------
-    linename : str
-        linename.
-    timestamp : datetime.datetime
-        current time to embed on packet.
+    Parameters:
+    - linename: str, the name of the line, must be 16 characters.
+    - timestamp: datetime.datetime, the current time.
+    - nightmode: bool, whether night mode is enabled.
 
-    Returns
-    -------
-    packet : list
-        generated packet to send.
+    Returns:
+    - List[int], the assembled packet.
     """
     addr1 = 0x60
     addr2 = 0x9F
     length = 0x24
     cmd = 0x01
-    payload = [addr1, addr2, length, cmd]
     if len(linename) != 16:
         raise ValueError("Line Name length invalid")
-    payload.extend(list(linename))
-    payload.extend(map(lambda x: int(x, 16), timestamp.strftime("%M %H %d %w %m %y").split()))
+    payload = [addr1, addr2, length, cmd] + list(map(ord, linename))
+    payload += map(lambda x: int(x, 16), timestamp.strftime("%M %H %d %w %m %y").split())
     payload.append(0x10 if nightmode else 0x00)
-    payload.extend([00, 00, 00, 00, 00, 00, 00])
-
-    sum = calc_sum(payload)
-    packet = [SOT]
-    packet.extend(payload)
-    packet.extend(sum)
-    packet.append(EOT)
-    return packet
+    payload.extend([0x00] * 7)
+    checksum = calc_sum(payload)
+    return [SOT] + payload + checksum + [EOT]
 
 
 def lists_match(l1, l2):
-    if len(l1) != len(l2):
-        return False
-    return all(x == y and type(x) == type(y) for x, y in zip(l1, l2))
+    """
+    Compares two lists for equality.
+
+    Parameters:
+    - l1: List, the first list to compare.
+    - l2: List, the second list to compare.
+
+    Returns:
+    - bool, True if the lists are equal, False otherwise.
+    """
+    return len(l1) == len(l2) and all(x == y for x, y in zip(l1, l2))
 
 
 class td5_data:
+    """
+    Represents data extracted from a .td5 file, including line name, data packets, and heartbeat packet.
+
+    Attributes:
+    - width: int, the width of the display.
+    - height: int, the height of the display.
+    - linename: bytes, the name of the line extracted from the file.
+    - data_packets: List[List[int]], the data packets ready for transmission.
+    - heartbeat_packet: List[int], the heartbeat packet for maintaining connection.
+    """
+
     def __init__(self, filename, addr1, addr2, height, width):
         self.width = width
         self.height = height
@@ -197,21 +170,18 @@ class td5_data:
 
     def gen_heartbeat_packet(self, data, linedatalen, height, width, addr1, addr2):
         """
-        Generate a packet of heartbeat
+        Generates a heartbeat packet based on the given parameters.
 
-        Parameters
-        ----------
-        data : list
-            raw data, which can be got from td5 file.
-        addr1 : int
-            address of screen
-        addr2 : int
-            address of screen
+        Parameters:
+        - data: bytes, part of the data extracted from the .td5 file.
+        - linedatalen: bytes, the length of the line data.
+        - height: int, the height of the display.
+        - width: int, the width of the display.
+        - addr1: int, the first part of the display address.
+        - addr2: int, the second part of the display address.
 
-        Returns
-        -------
-        packet : list
-            generated packet to send.
+        Returns:
+        - List[int], the assembled heartbeat packet.
         """
         cmd1 = 0x16
         cmd2 = 0x12
@@ -221,16 +191,18 @@ class td5_data:
         payload.extend([0x00, 0x00])
         payload.extend(data)
         payload.extend([0x00, 0x00, 0x53, 0x30, 0x30, 0x35])
-
-        sum = calc_sum(payload)
-        packet = [SOT]
-        packet.extend(payload)
-        packet.extend(sum)
-        packet.append(EOT)
-        return packet
+        checksum = calc_sum(payload)
+        return [SOT] + payload + checksum + [EOT]
 
 
-class parser:
+class Parser:
+    """
+    Parses incoming data from a serial bus into complete packets.
+
+    Attributes:
+    - bus: serial.Serial, the serial bus from which to read data.
+    """
+
     def __init__(self, bus):
         self.state = 0
         self.buf = []
@@ -239,42 +211,57 @@ class parser:
         self.bus = bus
 
     def read(self):
+        """
+        Reads a single byte from the serial bus.
+
+        Returns:
+        - int, the byte read, or None if no data is available.
+        """
         return self.bus.read(1)
 
     def parse(self, c):
-        if self.state == 0:
-            if c == 0xAA:
-                self.buf = []
-                self.buf.append(c)
-                self.state = 1
-                self.i = 0
-            else:
-                pass
-        elif self.state == 1:
+        """
+        Parse a single byte and update the state machine.
+
+        Parameters:
+        - c: int, the byte to parse.
+
+        Returns:
+        - int: 1 if a complete packet is parsed successfully, 0 otherwise.
+        """
+        if self.state == 0 and c == 0xAA:  # Start of packet
+            self.buf = [c]
+            self.state = 1
+        elif self.state == 1:  # Reading packet header
             self.buf.append(c)
             self.i += 1
-            if self.i == 2:
+            if self.i == 2:  # Length byte next
                 self.state = 2
-        elif self.state == 2:
+        elif self.state == 2:  # Reading packet length
             self.buf.append(c)
             self.datalen = int(c)
             self.state = 3
             self.i = 0
-        elif self.state == 3:
+        elif self.state == 3:  # Reading packet payload
             self.buf.append(c)
             self.i += 1
-            if self.i == (self.datalen - 2):
+            if self.i == (self.datalen - 2):  # Packet complete
                 self.state = 0
-                return 1
-        return 0
+                return 1  # Indicate a complete packet has been parsed
+        return 0  # Indicate parsing is ongoing
 
     def wait_ack(self):
+        """
+        Wait for an acknowledgement packet.
+
+        Returns:
+        - list: The received acknowledgement packet, or an empty list if none is received.
+        """
         while True:
             received = self.read()
-            if (received == None) or (len(received) == 0):
-                break
+            if not received or len(received) == 0:
+                break  # No more data available
             c = received[0]
             if self.parse(c):
-                timestamp = datetime.datetime.now()
-                return self.buf
-        return []
+                return self.buf  # Return the complete packet
+        return []  # No acknowledgement received
