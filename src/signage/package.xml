@@ -12,7 +12,6 @@
 
   <depend>autoware_auto_system_msgs</depend>
   <depend>diagnostic_updater</depend>
-  <depend>pyserial</depend>
   <depend>python-pulsectl-pip</depend>
   <depend>rclpy</depend>
   <depend>tier4_api_msgs</depend>

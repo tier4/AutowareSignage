@@ -63,6 +63,7 @@ class RouteHandler:
         self._announce_engage = False
         self._in_slow_stop_state = False
         self._in_slowing_state = False
+        self._trigger_external_signage = False
 
         self.process_station_list_from_fms()
 
@@ -145,6 +146,7 @@ class RouteHandler:
                 ):
                     self._announce_interface.send_announce("engage")
                     self._external_signage.tigger()
+                    self._trigger_external_signage = True
                     self._engage_trigger_time = self._node.get_clock().now()
 
                 if self._autoware.information.motion_state == MotionState.STARTING:
@@ -280,6 +282,7 @@ class RouteHandler:
                 if not self._announce_engage and self._parameter.signage_stand_alone:
                     self._announce_interface.send_announce("engage")
                     self._external_signage.tigger()
+                    self._trigger_external_signage = True
                     self._announce_engage = True
             elif self._autoware.information.route_state == RouteState.ARRIVED:
                 # Check whether the vehicle arrive to goal
@@ -288,8 +291,12 @@ class RouteHandler:
                 self._skip_announce = False
                 self._announce_engage = False
 
-            if self._autoware.information.operation_mode != OperationModeState.AUTONOMOUS:
+            if (
+                self._autoware.information.operation_mode != OperationModeState.AUTONOMOUS
+                and self._trigger_external_signage
+            ):
                 self._external_signage.close()
+                self._trigger_external_signage = False
 
             if self._prev_route_state != RouteState.SET:
                 if self._autoware.information.route_state == RouteState.SET:
