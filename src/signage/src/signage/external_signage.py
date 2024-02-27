@@ -3,7 +3,7 @@ import datetime
 import time
 import serial
 from ament_index_python.packages import get_package_share_directory
-import signage.packet_tools
+import signage.packet_tools as packet_tools
 
 
 @dataclass
@@ -119,7 +119,7 @@ class ExternalSignage:
             ),
         }
 
-    def send_data(self, data, ACK_QueryACK, ACK_DataChunk):
+    def send_data(self, display_key, data_key):
         display = self.displays[display_key]
         data = display[data_key]
         ack_query_ack = self.protocol.__dict__[display_key].ack_query_ack

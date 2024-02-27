@@ -137,7 +137,7 @@ def lists_match(l1, l2):
     return len(l1) == len(l2) and all(x == y for x, y in zip(l1, l2))
 
 
-class td5_data:
+class TD5Data:
     """
     Represents data extracted from a .td5 file, including line name, data packets, and heartbeat packet.
 
