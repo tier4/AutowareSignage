@@ -85,10 +85,9 @@ class DataSender:
                     packet_tools.dump_packet(buf, None, self._protocol.ERR_COLOR)
 
     def send(self, data, ACK_QueryACK, ACK_DataChunk):
-        while True:
-            self._send_heartbeat(data, ACK_QueryACK)
-            self._send_data_packets(data, ACK_DataChunk)
-            return  # Exit after sending all data packets
+        self._send_heartbeat(data, ACK_QueryACK)
+        self._send_data_packets(data, ACK_DataChunk)
+        return  # Exit after sending all data packets
 
 
 class ExternalSignage:

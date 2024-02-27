@@ -115,7 +115,7 @@ def gen_name_time_packet(linename, timestamp, nightmode):
     cmd = 0x01
     if len(linename) != 16:
         raise ValueError("Line Name length invalid")
-    payload = [addr1, addr2, length, cmd] + list(map(ord, linename))
+    payload = [addr1, addr2, length, cmd] + list(linename)
     payload += map(lambda x: int(x, 16), timestamp.strftime("%M %H %d %w %m %y").split())
     payload.append(0x10 if nightmode else 0x00)
     payload.extend([0x00] * 7)
