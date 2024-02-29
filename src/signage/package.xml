@@ -11,6 +11,8 @@
   <exec_depend>signage_version</exec_depend>
 
   <depend>autoware_auto_system_msgs</depend>
+  <depend>diagnostic_updater</depend>
+  <depend>python-pulsectl-pip</depend>
   <depend>rclpy</depend>
   <depend>tier4_api_msgs</depend>
   <depend>tier4_debug_msgs</depend>

@@ -26,6 +26,7 @@ class RouteHandler:
         autoware_interface,
         parameter_interface,
         ros_service_interface,
+        external_signage,
     ):
         self._node = node
         self._viewController = viewController
@@ -33,6 +34,7 @@ class RouteHandler:
         self._autoware = autoware_interface
         self._parameter = parameter_interface.parameter
         self._service_interface = ros_service_interface
+        self._external_signage = external_signage
         self.AUTOWARE_IP = os.getenv("AUTOWARE_IP", "localhost")
         self._fms_payload = {
             "method": "get",
@@ -48,6 +50,7 @@ class RouteHandler:
         self._display_phrase = ""
         self._in_emergency_state = False
         self._emergency_trigger_time = self._node.get_clock().now()
+        self._engage_trigger_time = self._node.get_clock().now()
         self._is_stopping = True
         self._is_driving = False
         self._previous_driving_status = False
@@ -60,6 +63,7 @@ class RouteHandler:
         self._announce_engage = False
         self._in_slow_stop_state = False
         self._in_slowing_state = False
+        self._trigger_external_signage = False
 
         self.process_station_list_from_fms()
 
@@ -72,6 +76,8 @@ class RouteHandler:
 
     def emergency_checker_callback(self):
         if self._parameter.ignore_emergency:
+            in_emergency = False
+        if self._autoware.information.operation_mode == OperationModeState.STOP:
             in_emergency = False
         else:
             in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
@@ -133,8 +139,15 @@ class RouteHandler:
             ):
                 if self._announce_engage and not self._skip_announce:
                     self._skip_announce = True
-                else:
-                    self._announce_interface.send_announce("engage")
+                elif utils.check_timeout(
+                    self._node.get_clock().now(),
+                    self._engage_trigger_time,
+                    self._parameter.accept_start,
+                ):
+                    self._announce_interface.send_announce("restart_engage")
+                    self._external_signage.trigger()
+                    self._trigger_external_signage = True
+                    self._engage_trigger_time = self._node.get_clock().now()
 
                 if self._autoware.information.motion_state == MotionState.STARTING:
                     self._service_interface.accept_start()
@@ -268,6 +281,8 @@ class RouteHandler:
                 self._is_stopping = False
                 if not self._announce_engage and self._parameter.signage_stand_alone:
                     self._announce_interface.send_announce("engage")
+                    self._external_signage.trigger()
+                    self._trigger_external_signage = True
                     self._announce_engage = True
             elif self._autoware.information.route_state == RouteState.ARRIVED:
                 # Check whether the vehicle arrive to goal
@@ -275,6 +290,13 @@ class RouteHandler:
                 self._is_stopping = True
                 self._skip_announce = False
                 self._announce_engage = False
+
+            if (
+                self._autoware.information.operation_mode != OperationModeState.AUTONOMOUS
+                and self._trigger_external_signage
+            ):
+                self._external_signage.close()
+                self._trigger_external_signage = False
 
             if self._prev_route_state != RouteState.SET:
                 if self._autoware.information.route_state == RouteState.SET:
@@ -362,7 +384,9 @@ class RouteHandler:
             self._viewController.next_station_list = self._display_details.next_station_list
             self._viewController.display_phrase = self._display_phrase
 
-            if (
+            if self._autoware.is_disconnected:
+                view_mode = "emergency_stopped"
+            elif (
                 not self._autoware.information.autoware_control
                 and not self._parameter.ignore_manual_driving
             ):

@@ -23,6 +23,7 @@ setup(
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name + "/resource/page", package_files("resource/page")),
         ("share/" + package_name + "/resource/sound", package_files("resource/sound")),
+        ("share/" + package_name + "/resource/td5_file", package_files("resource/td5_file")),
         (
             "share/" + package_name + "/resource/page/BusStopView",
             package_files("resource/page/BusStopView"),

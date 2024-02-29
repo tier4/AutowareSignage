@@ -2,9 +2,16 @@
 # -*- coding: utf-8 -*-
 # This Python file uses the following encoding: utf-8
 
+import os
+
 from PyQt5.QtMultimedia import QSound
 from rclpy.duration import Duration
 from ament_index_python.packages import get_package_share_directory
+from pulsectl import Pulse
+
+from std_msgs.msg import Float32
+from tier4_hmi_msgs.srv import SetVolume
+from tier4_external_api_msgs.msg import ResponseStatus
 
 # The higher the value, the higher the priority
 PRIORITY_DICT = {
@@ -20,6 +27,8 @@ PRIORITY_DICT = {
     "going_to_arrive": 1,
 }
 
+CURRENT_VOLUME_PATH = "/opt/autoware/volume.txt"
+
 
 class AnnounceControllerProperty:
     def __init__(self, node, autoware_interface, parameter_interface):
@@ -27,12 +36,25 @@ class AnnounceControllerProperty:
 
         self._node = node
         self._parameter = parameter_interface.parameter
+        self._announce_settings = parameter_interface.announce_settings
         self._current_announce = ""
         self._pending_announce_list = []
         self._sound = QSound("")
         self._prev_depart_and_arrive_type = ""
         self._package_path = get_package_share_directory("signage") + "/resource/sound/"
         self._check_playing_timer = self._node.create_timer(1, self.check_playing_callback)
+
+        self._pulse = Pulse()
+        if os.path.isfile(CURRENT_VOLUME_PATH):
+            with open(CURRENT_VOLUME_PATH, "r") as f:
+                self._sink = self._pulse.get_sink_by_name(
+                    self._pulse.server_info().default_sink_name
+                )
+                self._pulse.volume_set_all_chans(self._sink, float(f.readline()))
+
+        self._get_volume_pub = self._node.create_publisher(Float32, "~/get/volume", 1)
+        self._node.create_timer(1.0, self.publish_volume_callback)
+        self._node.create_service(SetVolume, "~/set/volume", self.set_volume)
 
     def process_pending_announce(self):
         try:
@@ -62,9 +84,20 @@ class AnnounceControllerProperty:
         self._sound = QSound(self._package_path + message + ".wav")
         self._sound.play()
 
+    # skip announce by setting
+    def check_announce_or_not(self, message):
+        try:
+            return getattr(self._announce_settings, message)
+        except Exception as e:
+            self._node.get_logger().error("check announce or not: " + str(e))
+            return False
+
     def send_announce(self, message):
         priority = PRIORITY_DICT.get(message, 0)
         previous_priority = PRIORITY_DICT.get(self._current_announce, 0)
+
+        if not self.check_announce_or_not(message):
+            return
 
         if priority == 3:
             self._sound.stop()
@@ -100,3 +133,18 @@ class AnnounceControllerProperty:
             # To stop repeat announcement
             self.send_announce(message)
             self._prev_depart_and_arrive_type = message
+
+    def publish_volume_callback(self):
+        self._sink = self._pulse.get_sink_by_name(self._pulse.server_info().default_sink_name)
+        self._get_volume_pub.publish(Float32(data=self._sink.volume.value_flat))
+
+    def set_volume(self, request, response):
+        try:
+            self._sink = self._pulse.get_sink_by_name(self._pulse.server_info().default_sink_name)
+            self._pulse.volume_set_all_chans(self._sink, request.volume)
+            with open(CURRENT_VOLUME_PATH, "w") as f:
+                f.write(f"{self._sink.volume.value_flat}\n")
+            response.status.code = ResponseStatus.SUCCESS
+        except Exception:
+            response.status.code = ResponseStatus.ERROR
+        return response
