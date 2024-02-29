@@ -10,3 +10,13 @@ signage:
     accept_start: 5.0 # second
     monitor_width: 1920
     monitor_height: 540
+    announce:
+      emergency: true
+      restart_engage: true
+      door_close: true
+      door_open: true
+      engage: true
+      thank_you: true
+      in_emergency: true
+      going_to_depart: true
+      going_to_arrive: true
