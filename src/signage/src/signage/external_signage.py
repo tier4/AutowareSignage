@@ -95,9 +95,18 @@ class ExternalSignage:
         self.node = node
         self.protocol = Protocol()
         package_path = get_package_share_directory("signage") + "/resource/td5_file/"
-        self.bus = serial.Serial(
-            "/dev/ttyUSB0", baudrate=38400, parity=serial.PARITY_EVEN, timeout=0.2, exclusive=False
-        )
+        try:
+            self.bus = serial.Serial(
+                "/dev/ttyUSB0",
+                baudrate=38400,
+                parity=serial.PARITY_EVEN,
+                timeout=0.2,
+                exclusive=False,
+            )
+            self._external_signage_available = True
+        except:
+            self._external_signage_available = False
+
         self.parser = packet_tools.Parser(self.bus)
 
         self.displays = {
@@ -127,10 +136,16 @@ class ExternalSignage:
         sender.send(data, ack_query_ack, ack_data_chunk)
 
     def trigger(self):
+        if not self._external_signage_available:
+            return
+
         for display_key in self.displays:
             self.send_data(display_key, "auto")
             time.sleep(1)
 
     def close(self):
+        if not self._external_signage_available:
+            return
+
         for display_key in self.displays:
             self.send_data(display_key, "null")
