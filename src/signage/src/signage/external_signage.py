@@ -103,11 +103,10 @@ class ExternalSignage:
                 timeout=0.2,
                 exclusive=False,
             )
+            self.parser = packet_tools.Parser(self.bus)
             self._external_signage_available = True
         except:
             self._external_signage_available = False
-
-        self.parser = packet_tools.Parser(self.bus)
 
         self.displays = {
             "front": self._load_display_data(self.protocol.front, package_path),
