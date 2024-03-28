@@ -4,7 +4,7 @@ import time
 import serial
 from std_srvs.srv import SetBool
 from ament_index_python.packages import get_package_share_directory
-import signage.packet_tools as packet_tools
+import external_signage.packet_tools as packet_tools
 
 
 @dataclass

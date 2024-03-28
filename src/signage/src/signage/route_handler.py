@@ -26,7 +26,6 @@ class RouteHandler:
         autoware_interface,
         parameter_interface,
         ros_service_interface,
-        external_signage,
     ):
         self._node = node
         self._viewController = viewController
@@ -34,7 +33,6 @@ class RouteHandler:
         self._autoware = autoware_interface
         self._parameter = parameter_interface.parameter
         self._service_interface = ros_service_interface
-        self._external_signage = external_signage
         self.AUTOWARE_IP = os.getenv("AUTOWARE_IP", "localhost")
         self._fms_payload = {
             "method": "get",
