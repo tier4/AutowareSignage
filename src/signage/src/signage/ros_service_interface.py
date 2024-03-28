@@ -43,7 +43,7 @@ class RosServiceInterface:
     def trigger_external_signage(self, on):
         request = SetBool.Request()
         request.data = on
-        self.__service_call(self._cli_accept_start, request, True)
+        self.__service_call(self._cli_trigger_external, request, True)
 
     # common denominator
     def __create_client(self, service_type, service_name):
