@@ -145,7 +145,7 @@ class RouteHandler:
                     self._parameter.accept_start,
                 ):
                     self._announce_interface.send_announce("restart_engage")
-                    self._external_signage.trigger()
+                    self._service_interface.trigger_external_signage(True)
                     self._trigger_external_signage = True
                     self._engage_trigger_time = self._node.get_clock().now()
 
@@ -281,7 +281,7 @@ class RouteHandler:
                 self._is_stopping = False
                 if not self._announce_engage and self._parameter.signage_stand_alone:
                     self._announce_interface.send_announce("engage")
-                    self._external_signage.trigger()
+                    self._service_interface.trigger_external_signage(True)
                     self._trigger_external_signage = True
                     self._announce_engage = True
             elif self._autoware.information.route_state == RouteState.ARRIVED:
@@ -295,7 +295,7 @@ class RouteHandler:
                 self._autoware.information.operation_mode != OperationModeState.AUTONOMOUS
                 and self._trigger_external_signage
             ):
-                self._external_signage.close()
+                self._service_interface.trigger_external_signage(False)
                 self._trigger_external_signage = False
 
             if self._prev_route_state != RouteState.SET:

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import datetime
 import time
 import serial
+from std_srvs.srv import SetBool
 from ament_index_python.packages import get_package_share_directory
 import signage.packet_tools as packet_tools
 
@@ -113,6 +114,7 @@ class ExternalSignage:
             "back": self._load_display_data(self.protocol.back, package_path),
             "side": self._load_display_data(self.protocol.side, package_path),
         }
+        node.create_service(SetBool, "/signage/trigger_external", self.trigger_external_signage)
 
     def _load_display_data(self, display, package_path):
         auto_path = package_path + f"/automatic_{display.width}x{display.height}.td5"
@@ -134,17 +136,15 @@ class ExternalSignage:
         sender = DataSender(self.bus, self.parser, self.protocol, self.node.get_logger())
         sender.send(data, ack_query_ack, ack_data_chunk)
 
-    def trigger(self):
+    def trigger_external_signage(self, request, response):
         if not self._external_signage_available:
-            return
+            return response
 
-        for display_key in self.displays:
-            self.send_data(display_key, "auto")
-            time.sleep(1)
-
-    def close(self):
-        if not self._external_signage_available:
-            return
-
-        for display_key in self.displays:
-            self.send_data(display_key, "null")
+        if request.data:
+            for display_key in self.displays:
+                self.send_data(display_key, "auto")
+                time.sleep(1)
+        else:
+            for display_key in self.displays:
+                self.send_data(display_key, "null")
+        return response
