@@ -4,4 +4,5 @@
   <node pkg="signage" exec="signage"  output="screen">
     <param from="$(var signage_param)"/>
   </node>
+  <node pkg="external_signage" exec="external_signage"  output="screen" />
 </launch>
