@@ -291,8 +291,8 @@ class RouteHandler:
 
             if (
                 self._autoware.information.operation_mode != OperationModeState.AUTONOMOUS
-                and self._trigger_external_signage
-            ):
+                or self._autoware.information.autoware_control != True
+            ) and self._trigger_external_signage:
                 self._service_interface.trigger_external_signage(False)
                 self._trigger_external_signage = False
 
