@@ -12,7 +12,7 @@ class Heartbeat:
             self._node,
             "/system/signage_connection : signage heartbeat",
             self.handle_heartbeat_diagnostics,
-            "none",
+            "signage",
         )
 
     def handle_heartbeat_diagnostics(self, stat):
