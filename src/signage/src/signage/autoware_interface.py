@@ -15,6 +15,8 @@ import signage.signage_utils as utils
 from tier4_debug_msgs.msg import Float64Stamped
 from tier4_external_api_msgs.msg import DoorStatus
 
+DISCONNECT_THRESHOLD = 2
+
 @dataclass
 class AutowareInformation:
     autoware_control: bool = False
@@ -89,12 +91,12 @@ class AutowareInterface:
             sub_qos,
         )
         self._autoware_connection_time = self._node.get_clock().now()
-        self._node.create_timer(2, self.reset_timer)
+        self._node.create_timer(1, self.reset_timer)
 
     def reset_timer(self):
-        if utils.check_timeout(self._node.get_clock().now(), self._autoware_connection_time, 10):
+        if utils.check_timeout(self._node.get_clock().now(), self._autoware_connection_time, DISCONNECT_THRESHOLD):
             self.information = AutowareInformation()
-            self._node.get_logger().error("Autoware disconnected", throttle_duration_sec=10)
+            self._node.get_logger().error("Autoware disconnected", throttle_duration_sec=DISCONNECT_THRESHOLD)
             self.is_disconnected = True
         else:
             self.is_disconnected = False
