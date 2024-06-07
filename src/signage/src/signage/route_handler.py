@@ -26,6 +26,7 @@ class RouteHandler:
         autoware_interface,
         parameter_interface,
         ros_service_interface,
+        external_signage,
     ):
         self._node = node
         self._viewController = viewController
@@ -33,6 +34,7 @@ class RouteHandler:
         self._autoware = autoware_interface
         self._parameter = parameter_interface.parameter
         self._service_interface = ros_service_interface
+        self._external_signage = external_signage
         self.AUTOWARE_IP = os.getenv("AUTOWARE_IP", "localhost")
         self._fms_payload = {
             "method": "get",
@@ -283,6 +285,8 @@ class RouteHandler:
                     self._trigger_external_signage = True
                 if not self._announce_engage and self._parameter.signage_stand_alone:
                     self._announce_interface.send_announce("engage")
+                    self._external_signage.trigger()
+                    self._trigger_external_signage = True
                     self._announce_engage = True
             elif self._autoware.information.route_state == RouteState.ARRIVED:
                 # Check whether the vehicle arrive to goal
