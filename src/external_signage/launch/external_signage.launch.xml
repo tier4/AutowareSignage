@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="external_signage" exec="external_signage"  output="screen" />
+</launch>

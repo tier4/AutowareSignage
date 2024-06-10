@@ -145,8 +145,6 @@ class RouteHandler:
                     self._parameter.accept_start,
                 ):
                     self._announce_interface.send_announce("restart_engage")
-                    self._external_signage.trigger()
-                    self._trigger_external_signage = True
                     self._engage_trigger_time = self._node.get_clock().now()
 
                 if self._autoware.information.motion_state == MotionState.STARTING:
@@ -279,6 +277,12 @@ class RouteHandler:
                 # Check whether the vehicle is move in autonomous
                 self._is_driving = True
                 self._is_stopping = False
+                if (
+                    not self._trigger_external_signage
+                    and self._autoware.information.autoware_control
+                ):
+                    self._service_interface.trigger_external_signage(True)
+                    self._trigger_external_signage = True
                 if not self._announce_engage and self._parameter.signage_stand_alone:
                     self._announce_interface.send_announce("engage")
                     self._external_signage.trigger()
@@ -293,9 +297,9 @@ class RouteHandler:
 
             if (
                 self._autoware.information.operation_mode != OperationModeState.AUTONOMOUS
-                and self._trigger_external_signage
-            ):
-                self._external_signage.close()
+                or self._autoware.information.autoware_control != True
+            ) and self._trigger_external_signage:
+                self._service_interface.trigger_external_signage(False)
                 self._trigger_external_signage = False
 
             if self._prev_route_state != RouteState.SET:
