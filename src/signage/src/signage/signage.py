@@ -14,6 +14,7 @@ from signage.autoware_interface import AutowareInterface
 from signage.parameter_interface import ParameterInterface
 from signage.route_handler import RouteHandler
 from signage.ros_service_interface import RosServiceInterface
+from signage.external_signage import ExternalSignage
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -33,6 +34,7 @@ def main(args=None):
     ros_service_interface = RosServiceInterface(node, parameter_interface)
     viewController = ViewControllerProperty(node, parameter_interface)
     announceController = AnnounceControllerProperty(node, autoware_interface, parameter_interface)
+    external_signage = ExternalSignage(node)
     route_handler = RouteHandler(
         node,
         viewController,
@@ -40,6 +42,7 @@ def main(args=None):
         autoware_interface,
         parameter_interface,
         ros_service_interface,
+        external_signage,
     )
 
     ctx = engine.rootContext()
