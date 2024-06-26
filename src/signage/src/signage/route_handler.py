@@ -26,7 +26,6 @@ class RouteHandler:
         autoware_interface,
         parameter_interface,
         ros_service_interface,
-        external_signage,
     ):
         self._node = node
         self._viewController = viewController
@@ -34,7 +33,6 @@ class RouteHandler:
         self._autoware = autoware_interface
         self._parameter = parameter_interface.parameter
         self._service_interface = ros_service_interface
-        self._external_signage = external_signage
         self.AUTOWARE_IP = os.getenv("AUTOWARE_IP", "localhost")
         self._fms_payload = {
             "method": "get",
@@ -84,13 +82,13 @@ class RouteHandler:
 
         self._in_slowing_state = (
             self._autoware.information.mrm_behavior == MrmState.COMFORTABLE_STOP
-            and self._autoware.information.motion_state == MotionState.MOVING
-        )
+            or self._autoware.information.mrm_behavior == MrmState.PULL_OVER
+        ) and self._autoware.information.motion_state == MotionState.MOVING
 
         self._in_slow_stop_state = (
             self._autoware.information.mrm_behavior == MrmState.COMFORTABLE_STOP
-            and self._autoware.information.motion_state == MotionState.STOPPED
-        )
+            or self._autoware.information.mrm_behavior == MrmState.PULL_OVER
+        ) and self._autoware.information.motion_state == MotionState.STOPPED
 
         if in_emergency and not self._in_emergency_state:
             self._announce_interface.announce_emergency("emergency")
@@ -285,7 +283,7 @@ class RouteHandler:
                     self._trigger_external_signage = True
                 if not self._announce_engage and self._parameter.signage_stand_alone:
                     self._announce_interface.send_announce("engage")
-                    self._external_signage.trigger()
+                    self._service_interface.trigger_external_signage(True)
                     self._trigger_external_signage = True
                     self._announce_engage = True
             elif self._autoware.information.route_state == RouteState.ARRIVED:
