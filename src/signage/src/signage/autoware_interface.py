@@ -17,7 +17,6 @@ from tier4_external_api_msgs.msg import DoorStatus
 
 DISCONNECT_THRESHOLD = 2
 
-
 @dataclass
 class AutowareInformation:
     autoware_control: bool = False
