@@ -282,7 +282,7 @@ class RouteHandler:
                 ):
                     self._service_interface.trigger_external_signage(True)
                     self._trigger_external_signage = True
-                if not self._announce_engage and self._parameter.signage_stand_alone:
+                if not self._announce_engage and self._parameter.signage_stand_alone and self._autoware.information.autoware_control:
                     self._announce_interface.send_announce("engage")
                     self._service_interface.trigger_external_signage(True)
                     self._trigger_external_signage = True
