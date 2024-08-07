@@ -278,7 +278,8 @@ class RouteHandler:
                 # Check whether the vehicle is move in autonomous
                 self._is_driving = True
                 self._is_stopping = False
-                self._announced_arrive = False
+                self._announced_depart = False
+                
                 if (
                     not self._trigger_external_signage
                     and self._autoware.information.autoware_control
@@ -300,7 +301,7 @@ class RouteHandler:
                 self._is_stopping = True
                 self._skip_announce = False
                 self._announce_engage = False
-                self._announced_depart = False
+                self._announced_arrive = False
 
             if (
                 self._autoware.information.operation_mode != OperationModeState.AUTONOMOUS
