@@ -129,10 +129,7 @@ class AnnounceControllerProperty:
             self.send_announce(message)
 
     def announce_going_to_depart_and_arrive(self, message):
-        if self._prev_depart_and_arrive_type != message:
-            # To stop repeat announcement
-            self.send_announce(message)
-            self._prev_depart_and_arrive_type = message
+        self.send_announce(message)
 
     def publish_volume_callback(self):
         self._sink = self._pulse.get_sink_by_name(self._pulse.server_info().default_sink_name)

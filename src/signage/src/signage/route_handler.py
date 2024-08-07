@@ -61,6 +61,8 @@ class RouteHandler:
         self._announce_engage = False
         self._in_slow_stop_state = False
         self._in_slowing_state = False
+        self._announced_depart = False
+        self._announced_arrive = False
         self._trigger_external_signage = False
 
         self.process_station_list_from_fms()
@@ -125,8 +127,8 @@ class RouteHandler:
 
             if (
                 self._autoware.information.localization_init_state
-                == LocalizationInitializationState.UNINITIALIZED or
-                self._autoware.information.autoware_control == False
+                == LocalizationInitializationState.UNINITIALIZED
+                or self._autoware.information.autoware_control == False
             ):
                 self._prev_motion_state = 0
                 return
@@ -276,13 +278,18 @@ class RouteHandler:
                 # Check whether the vehicle is move in autonomous
                 self._is_driving = True
                 self._is_stopping = False
+                self._announced_arrive = False
                 if (
                     not self._trigger_external_signage
                     and self._autoware.information.autoware_control
                 ):
                     self._service_interface.trigger_external_signage(True)
                     self._trigger_external_signage = True
-                if not self._announce_engage and self._parameter.signage_stand_alone and self._autoware.information.autoware_control:
+                if (
+                    not self._announce_engage
+                    and self._parameter.signage_stand_alone
+                    and self._autoware.information.autoware_control
+                ):
                     self._announce_interface.send_announce("engage")
                     self._service_interface.trigger_external_signage(True)
                     self._trigger_external_signage = True
@@ -293,6 +300,7 @@ class RouteHandler:
                 self._is_stopping = True
                 self._skip_announce = False
                 self._announce_engage = False
+                self._announced_depart = False
 
             if (
                 self._autoware.information.operation_mode != OperationModeState.AUTONOMOUS
@@ -323,6 +331,7 @@ class RouteHandler:
                 if self._autoware.information.goal_distance < self._parameter.goal_distance:
                     self._is_stopping = True
                     self._is_driving = False
+                    self._announced_depart = False
 
             if self._reach_final:
                 self._previous_driving_status = False
@@ -364,13 +373,21 @@ class RouteHandler:
                 else:
                     # the departure time is close (within 1 min), announce going to depart
                     self._display_phrase = utils.handle_phrase("departing")
-                    self._announce_interface.announce_going_to_depart_and_arrive("going_to_depart")
+                    if not self._announced_depart:
+                        self._announce_interface.announce_going_to_depart_and_arrive(
+                            "going_to_depart"
+                        )
+                        self._announced_depart = True
             elif self._is_driving:
                 # handle text and announce while bus is running
                 if self._autoware.information.goal_distance < 100:
                     # display text and announce if the goal is within 100m
                     self._display_phrase = utils.handle_phrase("arriving")
-                    self._announce_interface.announce_going_to_depart_and_arrive("going_to_arrive")
+                    if not self._announced_arrive:
+                        self._announce_interface.announce_going_to_depart_and_arrive(
+                            "going_to_arrive"
+                        )
+                        self._announced_arrive = True
                 else:
                     self._display_phrase = ""
             else:
