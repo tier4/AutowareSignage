@@ -431,6 +431,7 @@ class RouteHandler:
                 view_mode = "stopping"
             else:
                 view_mode = "out_of_service"
+                self._announced_depart = False
 
             self._viewController.view_mode = view_mode
         except Exception as e:
