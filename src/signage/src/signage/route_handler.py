@@ -6,6 +6,8 @@ import os
 import requests
 import json
 from datetime import datetime
+from threading import Thread
+
 import signage.signage_utils as utils
 from tier4_external_api_msgs.msg import DoorStatus
 from autoware_adapi_v1_msgs.msg import (
@@ -62,6 +64,7 @@ class RouteHandler:
         self._in_slow_stop_state = False
         self._in_slowing_state = False
         self._trigger_external_signage = False
+        self._processing_thread = False
 
         self.process_station_list_from_fms()
 
@@ -125,8 +128,8 @@ class RouteHandler:
 
             if (
                 self._autoware.information.localization_init_state
-                == LocalizationInitializationState.UNINITIALIZED or
-                self._autoware.information.autoware_control == False
+                == LocalizationInitializationState.UNINITIALIZED
+                or self._autoware.information.autoware_control == False
             ):
                 self._prev_motion_state = 0
                 return
@@ -169,6 +172,14 @@ class RouteHandler:
             self._node.get_logger().error("not able to play the announce, ERROR: {}".format(str(e)))
 
     def process_station_list_from_fms(self, force_update=False):
+        if not self._processing_thread:
+            self._processing_thread = True
+            thread = Thread(target=self.fms_thread, args=(force_update,))
+            thread.setDaemon(True)
+            thread.start()
+            self._processing_thread = False
+
+    def fms_thread(self, force_update=False):
         try:
             respond = requests.post(
                 "http://{}:4711/v1/services/order".format(self.AUTOWARE_IP),
@@ -282,7 +293,11 @@ class RouteHandler:
                 ):
                     self._service_interface.trigger_external_signage(True)
                     self._trigger_external_signage = True
-                if not self._announce_engage and self._parameter.signage_stand_alone and self._autoware.information.autoware_control:
+                if (
+                    not self._announce_engage
+                    and self._parameter.signage_stand_alone
+                    and self._autoware.information.autoware_control
+                ):
                     self._announce_interface.send_announce("engage")
                     self._service_interface.trigger_external_signage(True)
                     self._trigger_external_signage = True
