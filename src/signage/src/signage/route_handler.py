@@ -6,7 +6,8 @@ import os
 import requests
 import json
 from datetime import datetime
-from threading import Thread
+import aiohttp
+import asyncio
 
 import signage.signage_utils as utils
 from tier4_external_api_msgs.msg import DoorStatus
@@ -64,9 +65,8 @@ class RouteHandler:
         self._in_slow_stop_state = False
         self._in_slowing_state = False
         self._trigger_external_signage = False
-        self._processing_thread = False
 
-        self.process_station_list_from_fms()
+        asyncio.run(self.process_station_list_from_fms())
 
         self._node.create_timer(0.2, self.route_checker_callback)
         self._node.create_timer(0.2, self.emergency_checker_callback)
@@ -171,23 +171,16 @@ class RouteHandler:
         except Exception as e:
             self._node.get_logger().error("not able to play the announce, ERROR: {}".format(str(e)))
 
-    def process_station_list_from_fms(self, force_update=False):
-        if not self._processing_thread:
-            self._processing_thread = True
-            thread = Thread(target=self.fms_thread, args=(force_update,))
-            thread.setDaemon(True)
-            thread.start()
-            self._processing_thread = False
-
-    def fms_thread(self, force_update=False):
+    async def process_station_list_from_fms(self, force_update=False):
         try:
-            respond = requests.post(
-                "http://{}:4711/v1/services/order".format(self.AUTOWARE_IP),
-                json=self._fms_payload,
-                timeout=5,
-            )
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"http://{self.AUTOWARE_IP}:4711/v1/services/order",
+                    json=self._fms_payload,
+                    timeout=5,
+                ) as response:
+                    data = await response.json()
 
-            data = json.loads(respond.text)
             self._fms_check_time = self._node.get_clock().now()
 
             if not data:
@@ -318,14 +311,14 @@ class RouteHandler:
 
             if self._prev_route_state != RouteState.SET:
                 if self._autoware.information.route_state == RouteState.SET:
-                    self.process_station_list_from_fms(force_update=True)
+                    asyncio.run(self.process_station_list_from_fms(force_update=True))
 
             if not self._fms_check_time:
-                self.process_station_list_from_fms()
+                asyncio.run(self.process_station_list_from_fms())
             elif utils.check_timeout(
                 self._node.get_clock().now(), self._fms_check_time, self._parameter.check_fms_time
             ):
-                self.process_station_list_from_fms()
+                asyncio.run(self.process_station_list_from_fms())
 
             if self._in_emergency_state:
                 return
