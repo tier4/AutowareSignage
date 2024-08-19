@@ -73,22 +73,22 @@ class RouteHandler:
         self._node.create_timer(0.2, self.announce_engage_when_starting)
 
     def emergency_checker_callback(self):
-        if self._parameter.ignore_emergency:
+        if (
+            self._parameter.ignore_emergency
+            or self._autoware.information.operation_mode == OperationModeState.STOP
+        ):
             in_emergency = False
-        if self._autoware.information.operation_mode == OperationModeState.STOP:
-            in_emergency = False
+            self._in_slowing_state = False
+            self._in_slow_stop_state = False
         else:
             in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
 
-        self._in_slowing_state = (
-            self._autoware.information.mrm_behavior == MrmState.COMFORTABLE_STOP
-            or self._autoware.information.mrm_behavior == MrmState.PULL_OVER
-        ) and self._autoware.information.motion_state == MotionState.MOVING
-
-        self._in_slow_stop_state = (
-            self._autoware.information.mrm_behavior == MrmState.COMFORTABLE_STOP
-            or self._autoware.information.mrm_behavior == MrmState.PULL_OVER
-        ) and self._autoware.information.motion_state == MotionState.STOPPED
+            if self._autoware.information.mrm_behavior in [
+                MrmState.COMFORTABLE_STOP,
+                MrmState.PULL_OVER,
+            ]:
+                self._in_slowing_state == self._autoware.information.motion_state == MotionState.MOVING
+                self._in_slow_stop_state == self._autoware.information.motion_state == MotionState.STOPPED
 
         if in_emergency and not self._in_emergency_state:
             self._announce_interface.announce_emergency("emergency")
@@ -125,8 +125,8 @@ class RouteHandler:
 
             if (
                 self._autoware.information.localization_init_state
-                == LocalizationInitializationState.UNINITIALIZED or
-                self._autoware.information.autoware_control == False
+                == LocalizationInitializationState.UNINITIALIZED
+                or self._autoware.information.autoware_control == False
             ):
                 self._prev_motion_state = 0
                 return
@@ -282,7 +282,11 @@ class RouteHandler:
                 ):
                     self._service_interface.trigger_external_signage(True)
                     self._trigger_external_signage = True
-                if not self._announce_engage and self._parameter.signage_stand_alone and self._autoware.information.autoware_control:
+                if (
+                    not self._announce_engage
+                    and self._parameter.signage_stand_alone
+                    and self._autoware.information.autoware_control
+                ):
                     self._announce_interface.send_announce("engage")
                     self._service_interface.trigger_external_signage(True)
                     self._trigger_external_signage = True
