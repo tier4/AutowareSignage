@@ -83,15 +83,12 @@ class RouteHandler:
         else:
             in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
 
-            self._in_slowing_state = (
-                self._autoware.information.mrm_behavior == MrmState.COMFORTABLE_STOP
-                or self._autoware.information.mrm_behavior == MrmState.PULL_OVER
-            ) and self._autoware.information.motion_state == MotionState.MOVING
-
-            self._in_slow_stop_state = (
-                self._autoware.information.mrm_behavior == MrmState.COMFORTABLE_STOP
-                or self._autoware.information.mrm_behavior == MrmState.PULL_OVER
-            ) and self._autoware.information.motion_state == MotionState.STOPPED
+            if self._autoware.information.mrm_behavior in [
+                MrmState.COMFORTABLE_STOP,
+                MrmState.PULL_OVER,
+            ]:
+                self._in_slowing_state == self._autoware.information.motion_state == MotionState.MOVING
+                self._in_slow_stop_state == self._autoware.information.motion_state == MotionState.STOPPED
 
         if in_emergency and not self._in_emergency_state:
             self._announce_interface.announce_emergency("emergency")
