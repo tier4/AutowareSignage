@@ -92,8 +92,11 @@ class RouteHandler:
                 MrmState.COMFORTABLE_STOP,
                 MrmState.PULL_OVER,
             ]:
-                self._in_slowing_state == self._autoware.information.motion_state == MotionState.MOVING
-                self._in_slow_stop_state == self._autoware.information.motion_state == MotionState.STOPPED
+                self._in_slowing_state = self._autoware.information.motion_state == MotionState.MOVING
+                self._in_slow_stop_state = self._autoware.information.motion_state == MotionState.STOPPED
+            else:
+                self._in_slowing_state = False
+                self._in_slow_stop_state = False
 
         if in_emergency and not self._in_emergency_state:
             self._announce_interface.announce_emergency("emergency")
