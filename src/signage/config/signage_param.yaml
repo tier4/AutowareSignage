@@ -1,7 +1,7 @@
 signage:
   ros__parameters:
     signage_stand_alone: true
-    ignore_emergency_stoppped: false
+    ignore_emergency_stoppped: true
     ignore_manual_driving: false
     set_goal_by_distance: false
     goal_distance: 1.0 # meter
@@ -11,12 +11,12 @@ signage:
     monitor_width: 1920
     monitor_height: 540
     announce:
-      emergency: true
+      emergency: false
       restart_engage: true
       door_close: true
       door_open: true
       engage: true
       thank_you: true
-      in_emergency: true
+      in_emergency: false
       going_to_depart: true
       going_to_arrive: true
