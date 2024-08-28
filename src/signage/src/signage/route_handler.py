@@ -6,6 +6,8 @@ import os
 import requests
 import json
 from datetime import datetime
+from threading import Thread
+
 import signage.signage_utils as utils
 from tier4_external_api_msgs.msg import DoorStatus
 from autoware_adapi_v1_msgs.msg import (
@@ -62,6 +64,7 @@ class RouteHandler:
         self._in_slow_stop_state = False
         self._in_slowing_state = False
         self._trigger_external_signage = False
+        self._processing_thread = False
 
         self.process_station_list_from_fms()
 
@@ -73,22 +76,20 @@ class RouteHandler:
         self._node.create_timer(0.2, self.announce_engage_when_starting)
 
     def emergency_checker_callback(self):
-        if self._parameter.ignore_emergency:
-            in_emergency = False
-        if self._autoware.information.operation_mode == OperationModeState.STOP:
+        if self._parameter.ignore_emergency or self._autoware.information.operation_mode == OperationModeState.STOP:
             in_emergency = False
         else:
             in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
 
         self._in_slowing_state = (
             self._autoware.information.mrm_behavior == MrmState.COMFORTABLE_STOP
-            and self._autoware.information.motion_state == MotionState.MOVING
-        )
+            or self._autoware.information.mrm_behavior == MrmState.PULL_OVER
+        ) and self._autoware.information.motion_state == MotionState.MOVING
 
         self._in_slow_stop_state = (
             self._autoware.information.mrm_behavior == MrmState.COMFORTABLE_STOP
-            and self._autoware.information.motion_state == MotionState.STOPPED
-        )
+            or self._autoware.information.mrm_behavior == MrmState.PULL_OVER
+        ) and self._autoware.information.motion_state == MotionState.STOPPED
 
         if in_emergency and not self._in_emergency_state:
             self._announce_interface.announce_emergency("emergency")
@@ -126,6 +127,7 @@ class RouteHandler:
             if (
                 self._autoware.information.localization_init_state
                 == LocalizationInitializationState.UNINITIALIZED
+                or self._autoware.information.autoware_control == False
             ):
                 self._prev_motion_state = 0
                 return
@@ -168,6 +170,14 @@ class RouteHandler:
             self._node.get_logger().error("not able to play the announce, ERROR: {}".format(str(e)))
 
     def process_station_list_from_fms(self, force_update=False):
+        if not self._processing_thread:
+            self._processing_thread = True
+            thread = Thread(target=self.fms_thread, args=(force_update,))
+            thread.setDaemon(True)
+            thread.start()
+            self._processing_thread = False
+
+    def fms_thread(self, force_update=False):
         try:
             respond = requests.post(
                 "http://{}:4711/v1/services/order".format(self.AUTOWARE_IP),
@@ -281,8 +291,14 @@ class RouteHandler:
                 ):
                     self._service_interface.trigger_external_signage(True)
                     self._trigger_external_signage = True
-                if not self._announce_engage and self._parameter.signage_stand_alone:
+                if (
+                    not self._announce_engage
+                    and self._parameter.signage_stand_alone
+                    and self._autoware.information.autoware_control
+                ):
                     self._announce_interface.send_announce("engage")
+                    self._service_interface.trigger_external_signage(True)
+                    self._trigger_external_signage = True
                     self._announce_engage = True
             elif self._autoware.information.route_state == RouteState.ARRIVED:
                 # Check whether the vehicle arrive to goal
@@ -344,6 +360,9 @@ class RouteHandler:
             remain_minute = utils.get_remain_minute(
                 self._current_task_details.depart_time, self._node.get_clock().now().to_msg().sec
             )
+
+            self._node.get_logger().info("_reach_final: " + str(self._reach_final))
+            self._node.get_logger().info("remain_minute: " + str(remain_minute))
 
             if self._reach_final:
                 # display arrive to final station
