@@ -98,7 +98,6 @@ class AutowareInterface:
         if utils.check_timeout(
             self._node.get_clock().now(), self._autoware_connection_time, DISCONNECT_THRESHOLD
         ):
-            self.information = AutowareInformation()
             self._node.get_logger().error(
                 "Autoware disconnected", throttle_duration_sec=DISCONNECT_THRESHOLD
             )
