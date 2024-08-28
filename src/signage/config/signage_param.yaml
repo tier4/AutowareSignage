@@ -9,7 +9,7 @@ signage:
     emergency_repeat_period: 180.0 # second
     accept_start: 5.0 # second
     monitor_width: 1920
-    monitor_height: 540
+    monitor_height: 360
     announce:
       emergency: false
       restart_engage: true
