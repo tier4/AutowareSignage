@@ -404,7 +404,7 @@ class RouteHandler:
             self._viewController.display_phrase = self._display_phrase
 
             if self._autoware.is_disconnected:
-                view_mode = "emergency_stopped"
+                view_mode = "system_initializing"
             elif (
                 not self._autoware.information.autoware_control
                 and not self._parameter.ignore_manual_driving
