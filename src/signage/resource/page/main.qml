@@ -54,6 +54,11 @@ Window {
         visible: viewController.view_mode === "driving"
     }
 
+    SystemInitializeView {
+        id: systemInitializeView
+        visible: viewController.view_mode === "system_initializing"
+    }
+
     Item {
         focus: true
         Keys.onPressed: {
