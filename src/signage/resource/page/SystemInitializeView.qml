@@ -8,6 +8,9 @@ Rectangle {
     width: viewController.monitor_width
     height: viewController.monitor_height
     color: "#ffffff"
+    CurrentTime {
+        id: displayCurrentTime
+    }
     Text {
         id: systemInitializeTetx
         color: "#000000"
@@ -29,7 +32,7 @@ Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
-        font.pointSize: 36*viewController.size_ratio
+        font.pointSize: 80*viewController.size_ratio
         font.bold: true
         elide: Text.ElideMiddle
     }
