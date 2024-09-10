@@ -3,7 +3,6 @@
 # This Python file uses the following encoding: utf-8
 
 import os
-import requests
 import json
 from datetime import datetime
 import aiohttp
@@ -283,7 +282,7 @@ class RouteHandler:
                 self._is_driving = True
                 self._is_stopping = False
                 self._announced_depart = False
-                
+
                 if (
                     not self._trigger_external_signage
                     and self._autoware.information.autoware_control
