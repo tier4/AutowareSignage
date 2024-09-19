@@ -27,7 +27,7 @@ Rectangle {
     Text {
         id: systemInitializeEnText
         color: "#000000"
-        text: qsTr("System Initializing")
+        text: qsTr("System Preparing")
         anchors.top: systemInitializeTetx.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         horizontalAlignment: Text.AlignHCenter
