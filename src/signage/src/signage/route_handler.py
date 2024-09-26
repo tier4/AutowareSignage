@@ -91,8 +91,15 @@ class RouteHandler:
                 MrmState.COMFORTABLE_STOP,
                 MrmState.PULL_OVER,
             ]:
-                self._in_slowing_state == self._autoware.information.motion_state == MotionState.MOVING
-                self._in_slow_stop_state == self._autoware.information.motion_state == MotionState.STOPPED
+                self._in_slowing_state = (
+                    self._autoware.information.motion_state == MotionState.MOVING
+                )
+                self._in_slow_stop_state = (
+                    self._autoware.information.motion_state == MotionState.STOPPED
+                )
+            else:
+                self._in_slowing_state = False
+                self._in_slow_stop_state = False
 
         if in_emergency and not self._in_emergency_state:
             self._announce_interface.announce_emergency("emergency")
@@ -298,7 +305,7 @@ class RouteHandler:
                     self._service_interface.trigger_external_signage(True)
                     self._trigger_external_signage = True
                     self._announce_engage = True
-            elif self._autoware.information.route_state == RouteState.ARRIVED:
+            elif self._autoware.information.route_state in [RouteState.ARRIVED, RouteState.UNSET]:
                 # Check whether the vehicle arrive to goal
                 self._is_driving = False
                 self._is_stopping = True
