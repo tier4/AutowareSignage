@@ -82,12 +82,11 @@ class RouteHandler:
             self._parameter.ignore_emergency
             or self._autoware.information.operation_mode == OperationModeState.STOP
         ):
+            # Ignore the emergency
             self._in_emergency_state = False
             self._in_slowing_state = False
             self._in_slow_stop_state = False
             return
-
-        in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
 
         if self._autoware.information.mrm_behavior in [
             MrmState.COMFORTABLE_STOP,
@@ -102,6 +101,7 @@ class RouteHandler:
             self._in_slow_stop_state = False
 
         current_time = self._node.get_clock().now()
+        in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
 
         if not in_emergency:
             if not self._in_emergency_state:
