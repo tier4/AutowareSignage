@@ -107,8 +107,9 @@ class RouteHandler:
             if not self._in_emergency_state:
                 return
             else:
-                if utils.check_timeout(current_time, self._emergency_repeat_time, 3):
+                if utils.check_timeout(current_time, self._emergency_trigger_time, 5):
                     self._in_emergency_state = in_emergency
+                else:
                     return
 
         if not self._in_emergency_state:
