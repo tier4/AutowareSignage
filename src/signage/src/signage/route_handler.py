@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 import aiohttp
 import asyncio
+from threading import Thread
 
 import signage.signage_utils as utils
 from tier4_external_api_msgs.msg import DoorStatus
@@ -66,8 +67,9 @@ class RouteHandler:
         self._announced_depart = False
         self._announced_arrive = False
         self._trigger_external_signage = False
+        self._processing_thread = False
 
-        asyncio.run(self.process_station_list_from_fms())
+        self.process_station_list_from_fms()
 
         self._node.create_timer(0.2, self.route_checker_callback)
         self._node.create_timer(0.2, self.emergency_checker_callback)
@@ -179,13 +181,21 @@ class RouteHandler:
         except Exception as e:
             self._node.get_logger().error("not able to play the announce, ERROR: {}".format(str(e)))
 
-    async def process_station_list_from_fms(self, force_update=False):
+    def process_station_list_from_fms(self, force_update=False):
+        if not self._processing_thread:
+            self._processing_thread = True
+            thread = Thread(target=asyncio.run(self.fms_thread()), args=(force_update,))
+            thread.setDaemon(True)
+            thread.start()
+            self._processing_thread = False
+
+    async def fms_thread(self, force_update=False):
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
                     f"http://{self.AUTOWARE_IP}:4711/v1/services/order",
                     json=self._fms_payload,
-                    timeout=5,
+                    timeout=10,
                 ) as response:
                     data = await response.json()
 
@@ -322,14 +332,14 @@ class RouteHandler:
 
             if self._prev_route_state != RouteState.SET:
                 if self._autoware.information.route_state == RouteState.SET:
-                    asyncio.run(self.process_station_list_from_fms(force_update=True))
+                    self.process_station_list_from_fms(force_update=True)
 
             if not self._fms_check_time:
-                asyncio.run(self.process_station_list_from_fms())
+                self.process_station_list_from_fms()
             elif utils.check_timeout(
                 self._node.get_clock().now(), self._fms_check_time, self._parameter.check_fms_time
             ):
-                asyncio.run(self.process_station_list_from_fms())
+                self.process_station_list_from_fms()
 
             if self._in_emergency_state:
                 return
