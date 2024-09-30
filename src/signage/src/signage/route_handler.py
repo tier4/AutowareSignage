@@ -103,9 +103,11 @@ class RouteHandler:
         in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
 
         if not in_emergency:
-            if self._in_emergency_state:
-                if utils.check_timeout(current_time, self._emergency_trigger_time, 5):
-                    self._in_emergency_state = in_emergency
+            if self._in_emergency_state and utils.check_timeout(
+                current_time, self._emergency_trigger_time, 5
+            ):
+                # only change back to false state after the emergency is on for a specific time
+                self._in_emergency_state = in_emergency
             return
 
         audio = ""
