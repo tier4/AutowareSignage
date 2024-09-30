@@ -182,7 +182,7 @@ class RouteHandler:
             respond = requests.post(
                 "http://{}:4711/v1/services/order".format(self.AUTOWARE_IP),
                 json=self._fms_payload,
-                timeout=5,
+                timeout=15,
             )
 
             data = json.loads(respond.text)
