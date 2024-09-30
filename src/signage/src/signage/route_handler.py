@@ -108,17 +108,20 @@ class RouteHandler:
                     self._in_emergency_state = in_emergency
             return
 
+        audio = ""
         if not self._in_emergency_state:
-            self._announce_interface.announce_emergency("emergency")
-            self._emergency_trigger_time = self._node.get_clock().now()
+            audio = "emergency"
         elif self._in_emergency_state and utils.check_timeout(
             current_time,
             self._emergency_trigger_time,
             self._parameter.emergency_repeat_period,
         ):
-            self._announce_interface.announce_emergency("in_emergency")
+            audio = "in_emergency"
+
+        if audio:
+            self._announce_interface.announce_emergency(audio)
             self._emergency_trigger_time = self._node.get_clock().now()
-        self._in_emergency_state = in_emergency
+            self._in_emergency_state = in_emergency
 
     def door_status_callback(self):
         door_status = self._autoware.information.door_status
