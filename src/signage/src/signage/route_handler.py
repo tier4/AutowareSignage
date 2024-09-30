@@ -5,6 +5,8 @@
 import os
 import json
 from datetime import datetime
+import aiohttp
+import asyncio
 from threading import Thread
 
 import signage.signage_utils as utils
@@ -182,12 +184,12 @@ class RouteHandler:
     def process_station_list_from_fms(self, force_update=False):
         if not self._processing_thread:
             self._processing_thread = True
-            thread = Thread(target=self.fms_thread, args=(force_update,))
+            thread = Thread(target=asyncio.run(self.fms_thread()), args=(force_update,))
             thread.setDaemon(True)
             thread.start()
             self._processing_thread = False
 
-    def fms_thread(self, force_update=False):
+    async def fms_thread(self, force_update=False):
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(

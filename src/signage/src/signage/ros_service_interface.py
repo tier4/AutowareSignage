@@ -29,9 +29,9 @@ class RosServiceInterface:
         self._lock = threading.RLock()
 
         self._parameter = parameter_interface.parameter
-        if self._parameter.signage_stand_alone:
-            self._cli_accept_start = self.__create_client(AcceptStart, "/api/motion/accept_start")
-        self._cli_trigger_external = self.__create_client(SetBool, "/signage/trigger_external")
+        # if self._parameter.signage_stand_alone:
+        #     self._cli_accept_start = self.__create_client(AcceptStart, "/api/motion/accept_start")
+        # self._cli_trigger_external = self.__create_client(SetBool, "/signage/trigger_external")
 
     # service call function
     def accept_start(self):
