@@ -3,9 +3,12 @@
 # This Python file uses the following encoding: utf-8
 
 import os
-import requests
 import json
 from datetime import datetime
+import aiohttp
+import asyncio
+from threading import Thread
+
 import signage.signage_utils as utils
 from tier4_external_api_msgs.msg import DoorStatus
 from autoware_adapi_v1_msgs.msg import (
@@ -61,6 +64,7 @@ class RouteHandler:
         self._announce_engage = False
         self._in_slow_stop_state = False
         self._in_slowing_state = False
+        self._processing_thread = False
 
         self.process_station_list_from_fms()
 
@@ -167,12 +171,22 @@ class RouteHandler:
             self._node.get_logger().error("not able to play the announce, ERROR: {}".format(str(e)))
 
     def process_station_list_from_fms(self, force_update=False):
+        if not self._processing_thread:
+            self._processing_thread = True
+            thread = Thread(target=asyncio.run(self.fms_thread()), args=(force_update,))
+            thread.setDaemon(True)
+            thread.start()
+            self._processing_thread = False
+
+    async def fms_thread(self, force_update=False):
         try:
-            respond = requests.post(
-                "http://{}:4711/v1/services/order".format(self.AUTOWARE_IP),
-                json=self._fms_payload,
-                timeout=5,
-            )
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"http://{self.AUTOWARE_IP}:4711/v1/services/order",
+                    json=self._fms_payload,
+                    timeout=10,
+                ) as response:
+                    data = await response.json()
 
             data = json.loads(respond.text)
             self._fms_check_time = self._node.get_clock().now()
