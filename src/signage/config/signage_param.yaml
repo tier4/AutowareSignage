@@ -6,6 +6,7 @@ signage:
     set_goal_by_distance: false
     goal_distance: 1.0 # meter
     check_fms_time: 5.0 # second
+    emergency_ignore_period: 5.0 # second
     emergency_repeat_period: 180.0 # second
     accept_start: 5.0 # second
     monitor_width: 1920

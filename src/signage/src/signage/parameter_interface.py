@@ -15,6 +15,7 @@ class SignageParameter:
     goal_distance: float = 1.0
     check_fms_time: float = 5.0
     accept_start: float = 5.0
+    emergency_ignore_period: float = 5.0
     emergency_repeat_period: float = 180.0
     monitor_width: int = 1920
     monitor_height: int = 540
@@ -47,6 +48,7 @@ class ParameterInterface:
         node.declare_parameter("ignore_emergency_stoppped", False)
         node.declare_parameter("set_goal_by_distance", False)
         node.declare_parameter("goal_distance", 1.0)
+        node.declare_parameter("emergency_ignore_period", 5.0)
         node.declare_parameter("emergency_repeat_period", 180.0)
         node.declare_parameter("monitor_width", 1920)
         node.declare_parameter("monitor_height", 540)
@@ -74,6 +76,9 @@ class ParameterInterface:
         )
         self.parameter.goal_distance = (
             node.get_parameter("goal_distance").get_parameter_value().double_value
+        )
+        self.parameter.emergency_ignore_period = (
+            node.get_parameter("emergency_ignore_period").get_parameter_value().double_value
         )
         self.parameter.emergency_repeat_period = (
             node.get_parameter("emergency_repeat_period").get_parameter_value().double_value

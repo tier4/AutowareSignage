@@ -104,12 +104,13 @@ class RouteHandler:
 
         if not in_emergency:
             if self._in_emergency_state and utils.check_timeout(
-                current_time, self._emergency_trigger_time, 5
+                current_time, self._emergency_trigger_time, self._parameter.emergency_ignore_period
             ):
                 # only change back to false state after the emergency is on for a specific time
                 self._in_emergency_state = in_emergency
             return
 
+        # Emergency is trigger, check whether is already trigger before
         audio = ""
         if not self._in_emergency_state:
             audio = "emergency"
