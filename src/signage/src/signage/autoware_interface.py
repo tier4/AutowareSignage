@@ -31,9 +31,10 @@ class AutowareInformation:
 
 
 class AutowareInterface:
-    def __init__(self, node):
+    def __init__(self, node, parameter_interface):
         self._node = node
         self.information = AutowareInformation()
+        self._parameter = parameter_interface.parameter
         self.is_disconnected = False
 
         sub_qos = rclpy.qos.QoSProfile(
@@ -91,8 +92,9 @@ class AutowareInterface:
             self.sub_velocity_factors_callback,
             sub_qos,
         )
-        self._autoware_connection_time = self._node.get_clock().now()
-        self._node.create_timer(1, self.reset_timer)
+        if not self._parameter.debug_mode:
+            self._autoware_connection_time = self._node.get_clock().now()
+            self._node.create_timer(1, self.reset_timer)
 
     def reset_timer(self):
         if utils.check_timeout(
