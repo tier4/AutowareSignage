@@ -50,7 +50,6 @@ class RouteHandler:
         self._display_phrase = ""
         self._in_emergency_state = False
         self._emergency_trigger_time = self._node.get_clock().now()
-        self._emergency_repeat_time = self._node.get_clock().now()
         self._engage_trigger_time = self._node.get_clock().now()
         self._is_stopping = True
         self._is_driving = False
@@ -104,25 +103,21 @@ class RouteHandler:
         in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
 
         if not in_emergency:
-            if not self._in_emergency_state:
-                return
-            else:
+            if self._in_emergency_state:
                 if utils.check_timeout(current_time, self._emergency_trigger_time, 5):
                     self._in_emergency_state = in_emergency
-                else:
-                    return
+            return
 
         if not self._in_emergency_state:
             self._announce_interface.announce_emergency("emergency")
             self._emergency_trigger_time = self._node.get_clock().now()
         elif self._in_emergency_state and utils.check_timeout(
             current_time,
-            self._emergency_repeat_time,
+            self._emergency_trigger_time,
             self._parameter.emergency_repeat_period,
         ):
             self._announce_interface.announce_emergency("in_emergency")
-            self._emergency_repeat_time = self._node.get_clock().now()
-
+            self._emergency_trigger_time = self._node.get_clock().now()
         self._in_emergency_state = in_emergency
 
     def door_status_callback(self):
