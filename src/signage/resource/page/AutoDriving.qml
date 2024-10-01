@@ -7,15 +7,16 @@ Rectangle {
     id: autoDrivingView
     width: viewController.monitor_width
     height: viewController.monitor_height
-    color: "#ffffff"
+    color: "#92D050"
 
     CurrentTime {
         id: displayCurrentTime
+        color: "#ffffff"
     }
 
     Text {
         id: autoDrivingText
-        color: "#000000"
+        color: "#ffffff"
         text: qsTr("自動運転中")
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.verticalCenter
@@ -28,7 +29,7 @@ Rectangle {
 
     Text {
         id: autoDrivingEnText
-        color: "#000000"
+        color: "#ffffff"
         text: qsTr("Auto Driving")
         anchors.top: autoDrivingText.bottom
         anchors.horizontalCenter: parent.horizontalCenter
