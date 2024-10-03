@@ -188,7 +188,6 @@ class RouteHandler:
                 ) as response:
                     data = await response.json()
 
-            data = json.loads(respond.text)
             self._fms_check_time = self._node.get_clock().now()
 
             if not data:
