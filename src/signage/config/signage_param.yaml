@@ -4,6 +4,7 @@ signage:
     ignore_emergency_stoppped: false
     ignore_manual_driving: false
     set_goal_by_distance: false
+    freeze_emergency: true
     goal_distance: 1.0 # meter
     check_fms_time: 5.0 # second
     emergency_ignore_period: 5.0 # second
