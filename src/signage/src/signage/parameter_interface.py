@@ -7,16 +7,20 @@ from dataclasses import dataclass
 
 @dataclass
 class SignageParameter:
+    debug_mode: bool = False
     signage_stand_alone: bool = False
     ignore_manual_driving: bool = False
     ignore_emergency: bool = False
     set_goal_by_distance: bool = False
+    freeze_emergency: bool = True
     goal_distance: float = 1.0
     check_fms_time: float = 5.0
     accept_start: float = 5.0
+    emergency_ignore_period: float = 5.0
     emergency_repeat_period: float = 180.0
     monitor_width: int = 1920
     monitor_height: int = 540
+
 
 @dataclass
 class AnnounceParameter:
@@ -31,27 +35,37 @@ class AnnounceParameter:
     going_to_depart: bool = True
     going_to_arrive: bool = True
 
+
 class ParameterInterface:
     def __init__(self, node):
         self.parameter = SignageParameter()
         self.announce_settings = AnnounceParameter()
 
+        node.declare_parameter("debug_mode", False)
         node.declare_parameter("signage_stand_alone", False)
         node.declare_parameter("ignore_manual_driving", False)
+        node.declare_parameter("freeze_emergency", True)
         node.declare_parameter("check_fms_time", 5.0)
         node.declare_parameter("accept_start", 5.0)
         node.declare_parameter("ignore_emergency_stoppped", False)
         node.declare_parameter("set_goal_by_distance", False)
         node.declare_parameter("goal_distance", 1.0)
+        node.declare_parameter("emergency_ignore_period", 5.0)
         node.declare_parameter("emergency_repeat_period", 180.0)
         node.declare_parameter("monitor_width", 1920)
         node.declare_parameter("monitor_height", 540)
 
+        self.parameter.debug_mode = (
+            node.get_parameter("debug_mode").get_parameter_value().bool_value
+        )
         self.parameter.signage_stand_alone = (
             node.get_parameter("signage_stand_alone").get_parameter_value().bool_value
         )
         self.parameter.ignore_manual_driving = (
             node.get_parameter("ignore_manual_driving").get_parameter_value().bool_value
+        )
+        self.parameter.freeze_emergency = (
+            node.get_parameter("freeze_emergency").get_parameter_value().bool_value
         )
         self.parameter.check_fms_time = (
             node.get_parameter("check_fms_time").get_parameter_value().double_value
@@ -67,6 +81,9 @@ class ParameterInterface:
         )
         self.parameter.goal_distance = (
             node.get_parameter("goal_distance").get_parameter_value().double_value
+        )
+        self.parameter.emergency_ignore_period = (
+            node.get_parameter("emergency_ignore_period").get_parameter_value().double_value
         )
         self.parameter.emergency_repeat_period = (
             node.get_parameter("emergency_repeat_period").get_parameter_value().double_value
@@ -96,4 +113,3 @@ class ParameterInterface:
                 key,
                 announce_prefix[key].get_parameter_value().bool_value,
             )
-

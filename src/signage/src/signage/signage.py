@@ -27,9 +27,8 @@ def main(args=None):
     engine = QQmlApplicationEngine()
 
     heartbeat = Heartbeat(node)
-    autoware_interface = AutowareInterface(node)
-    autoware_interface = AutowareInterface(node)
     parameter_interface = ParameterInterface(node)
+    autoware_interface = AutowareInterface(node, parameter_interface)
     ros_service_interface = RosServiceInterface(node, parameter_interface)
     viewController = ViewControllerProperty(node, parameter_interface)
     announceController = AnnounceControllerProperty(node, autoware_interface, parameter_interface)

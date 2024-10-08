@@ -83,38 +83,63 @@ class RouteHandler:
             self._parameter.ignore_emergency
             or self._autoware.information.operation_mode == OperationModeState.STOP
         ):
-            in_emergency = False
+            # Ignore the emergency
+            self._in_emergency_state = False
             self._in_slowing_state = False
             self._in_slow_stop_state = False
-        else:
-            in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
+            return
 
-            if self._autoware.information.mrm_behavior in [
-                MrmState.COMFORTABLE_STOP,
-                MrmState.PULL_OVER,
-            ]:
-                self._in_slowing_state = (
-                    self._autoware.information.motion_state == MotionState.MOVING
-                )
-                self._in_slow_stop_state = (
-                    self._autoware.information.motion_state == MotionState.STOPPED
-                )
-            else:
-                self._in_slowing_state = False
-                self._in_slow_stop_state = False
+        current_time = self._node.get_clock().now()
+        in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
+        in_comfortable_stop = self._autoware.information.mrm_behavior in [
+            MrmState.COMFORTABLE_STOP,
+            MrmState.PULL_OVER,
+        ]
 
-        if in_emergency and not self._in_emergency_state:
-            self._announce_interface.announce_emergency("emergency")
-        elif in_emergency and self._in_emergency_state:
-            if utils.check_timeout(
-                self._node.get_clock().now(),
-                self._emergency_trigger_time,
-                self._parameter.emergency_repeat_period,
+        if in_comfortable_stop:
+            self._in_slowing_state = self._autoware.information.motion_state == MotionState.MOVING
+            self._in_slow_stop_state = (
+                self._autoware.information.motion_state == MotionState.STOPPED
+            )
+            self._emergency_trigger_time = self._node.get_clock().now()
+        elif (
+            utils.check_timeout(
+                current_time, self._emergency_trigger_time, self._parameter.emergency_ignore_period
+            )
+            or not self._parameter.freeze_emergency
+        ):
+            self._in_slowing_state = False
+            self._in_slow_stop_state = False
+
+        if not in_emergency:
+            if (
+                self._in_emergency_state
+                and utils.check_timeout(
+                    current_time,
+                    self._emergency_trigger_time,
+                    self._parameter.emergency_ignore_period,
+                )
+                or not self._parameter.freeze_emergency
             ):
-                self._announce_interface.announce_emergency("in_emergency")
-                self._emergency_trigger_time = self._node.get_clock().now()
+                # only change back to false state after the emergency is on for a specific time
+                self._in_emergency_state = in_emergency
+            return
 
-        self._in_emergency_state = in_emergency
+        # Emergency is trigger, check whether is already trigger before
+        audio = ""
+        if not self._in_emergency_state:
+            audio = "emergency"
+        elif self._in_emergency_state and utils.check_timeout(
+            current_time,
+            self._emergency_trigger_time,
+            self._parameter.emergency_repeat_period,
+        ):
+            audio = "in_emergency"
+
+        if audio:
+            self._announce_interface.announce_emergency(audio)
+            self._emergency_trigger_time = self._node.get_clock().now()
+            self._in_emergency_state = in_emergency
 
     def door_status_callback(self):
         door_status = self._autoware.information.door_status

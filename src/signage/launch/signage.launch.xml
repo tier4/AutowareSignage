@@ -1,8 +1,10 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="signage_param" default="$(find-pkg-share signage)/config/signage_param.yaml" />
+  <arg name="debug_mode" default="false" />
   <node pkg="signage" exec="signage"  output="screen">
     <param from="$(var signage_param)"/>
+    <param name="debug_mode" value="$(var debug_mode)" />
   </node>
   <node pkg="external_signage" exec="external_signage"  output="screen" />
 </launch>
