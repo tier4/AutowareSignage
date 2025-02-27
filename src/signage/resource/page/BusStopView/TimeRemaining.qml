@@ -7,7 +7,7 @@ Rectangle {
     id: remainingTimeView
     width: viewController.monitor_width
     height: viewController.monitor_height
-    color: "#ffffff"
+    color: "#ACF600" 
 
     CurrentTime {
         id: displayCurrentTime

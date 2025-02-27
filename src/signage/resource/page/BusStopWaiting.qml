@@ -4,19 +4,19 @@ import QtQuick.Controls 2.2
 import "Common"
 
 Rectangle {
-    id: autoDrivingView
+    id: busStopWaitingView
     width: viewController.monitor_width
     height: viewController.monitor_height
-    color: "#ACF600" 
+    color: "#ffffff"
 
     CurrentTime {
         id: displayCurrentTime
     }
 
     Text {
-        id: autoDrivingText
+        id: busStopWaitingText
         color: "#000000"
-        text: qsTr("自動運転中")
+        text: qsTr("乗降中")
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.verticalCenter
         horizontalAlignment: Text.AlignHCenter
@@ -27,10 +27,10 @@ Rectangle {
     }
 
     Text {
-        id: autoDrivingEnText
+        id: busStopWaitingEnText
         color: "#000000"
-        text: qsTr("Auto Driving")
-        anchors.top: autoDrivingText.bottom
+        text: qsTr("Boarding & Exiting")
+        anchors.top: busStopWaitingText.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
