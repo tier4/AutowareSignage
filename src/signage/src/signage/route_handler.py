@@ -287,10 +287,6 @@ class RouteHandler:
                 "local",
                 self._schedule_details.schedule_type,
             )
-
-            # if self._override_status_bus_stop:
-
-
         except Exception as e:
             self._node.get_logger().error("Unable to update the goal, ERROR: " + str(e))
 
@@ -365,9 +361,6 @@ class RouteHandler:
             if self._is_stopping and self._previous_driving_status:
                 self.arrived_goal()
                 self._previous_driving_status = False
-                self._node.get_logger().error("----------------Arival")
-
-
 
             if self._is_driving:
                 self._previous_driving_status = self._is_driving

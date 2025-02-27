@@ -49,7 +49,7 @@ class ParameterInterface:
         node.declare_parameter("freeze_emergency", True)
         node.declare_parameter("check_fms_time", 5.0)
         node.declare_parameter("accept_start", 5.0)
-        node.declare_parameter("ignore_emergency_stoppped", False)
+        node.declare_parameter("ignore_emergency_stopped", False)
         node.declare_parameter("set_goal_by_distance", False)
         node.declare_parameter("goal_distance", 1.0)
         node.declare_parameter("emergency_ignore_period", 5.0)
