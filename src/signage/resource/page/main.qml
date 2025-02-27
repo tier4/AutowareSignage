@@ -59,6 +59,11 @@ Window {
         visible: viewController.view_mode === "driving"
     }
 
+    BusStopWaiting {
+        id: busStopWaiting
+        visible: viewController.view_mode === "bus_stop_waiting"
+    }
+
     Item {
         focus: true
         Keys.onPressed: {

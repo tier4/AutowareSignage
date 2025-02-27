@@ -57,6 +57,7 @@ class RouteHandler:
         self._announced_arrive = False
         self._trigger_external_signage = False
         self._processing_thread = False
+        self._override_status_bus_stop = True
 
         self.process_station_list_from_fms()
 
@@ -286,6 +287,10 @@ class RouteHandler:
                 "local",
                 self._schedule_details.schedule_type,
             )
+
+            # if self._override_status_bus_stop:
+
+
         except Exception as e:
             self._node.get_logger().error("Unable to update the goal, ERROR: " + str(e))
 
@@ -360,6 +365,9 @@ class RouteHandler:
             if self._is_stopping and self._previous_driving_status:
                 self.arrived_goal()
                 self._previous_driving_status = False
+                self._node.get_logger().error("----------------Arival")
+
+
 
             if self._is_driving:
                 self._previous_driving_status = self._is_driving
@@ -437,7 +445,10 @@ class RouteHandler:
                 not self._autoware.information.autoware_control
                 and not self._parameter.ignore_manual_driving
             ):
-                view_mode = "manual_driving"
+                if self._is_stopping and self._override_status_bus_stop:
+                    view_mode = "bus_stop_waiting"
+                else:
+                    view_mode = "manual_driving"
             elif self._in_emergency_state:
                 view_mode = "emergency_stopped"
             elif self._in_slowing_state:
