@@ -79,7 +79,7 @@ class ParameterInterface:
             node.get_parameter("accept_start").get_parameter_value().double_value
         )
         self.parameter.ignore_emergency = (
-            node.get_parameter("ignore_emergency_stoppped").get_parameter_value().bool_value
+            node.get_parameter("ignore_emergency_stopped").get_parameter_value().bool_value
         )
         self.parameter.set_goal_by_distance = (
             node.get_parameter("set_goal_by_distance").get_parameter_value().bool_value
