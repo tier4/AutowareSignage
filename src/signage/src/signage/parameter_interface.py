@@ -54,6 +54,7 @@ class ParameterInterface:
         node.declare_parameter("goal_distance", 1.0)
         node.declare_parameter("emergency_ignore_period", 5.0)
         node.declare_parameter("emergency_repeat_period", 180.0)
+        node.declare_parameter("override_status_bus_stop", False)
         node.declare_parameter("monitor_width", 1920)
         node.declare_parameter("monitor_height", 540)
 
@@ -92,6 +93,9 @@ class ParameterInterface:
         )
         self.parameter.emergency_repeat_period = (
             node.get_parameter("emergency_repeat_period").get_parameter_value().double_value
+        )
+        self.parameter.override_status_bus_stop = (
+            node.get_parameter("override_status_bus_stop").get_parameter_value().bool_value
         )
         self.parameter.monitor_width = (
             node.get_parameter("monitor_width").get_parameter_value().integer_value

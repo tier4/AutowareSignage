@@ -57,7 +57,6 @@ class RouteHandler:
         self._announced_arrive = False
         self._trigger_external_signage = False
         self._processing_thread = False
-        self._override_status_bus_stop = False
 
         self.process_station_list_from_fms()
 
@@ -438,7 +437,7 @@ class RouteHandler:
                 not self._autoware.information.autoware_control
                 and not self._parameter.ignore_manual_driving
             ):
-                if self._is_stopping and self._override_status_bus_stop:
+                if self._is_stopping and self._parameter.override_status_bus_stop:
                     view_mode = "bus_stop_waiting"
                 else:
                     view_mode = "manual_driving"
