@@ -21,6 +21,7 @@ class SignageParameter:
     emergency_repeat_period: float = 180.0
     monitor_width: int = 1920
     monitor_height: int = 540
+    override_status_bus_stop: bool = True
 
 
 @dataclass
@@ -54,7 +55,7 @@ class ParameterInterface:
         node.declare_parameter("goal_distance", 1.0)
         node.declare_parameter("emergency_ignore_period", 5.0)
         node.declare_parameter("emergency_repeat_period", 180.0)
-        node.declare_parameter("override_status_bus_stop", False)
+        node.declare_parameter("override_status_bus_stop", True)
         node.declare_parameter("monitor_width", 1920)
         node.declare_parameter("monitor_height", 540)
 
