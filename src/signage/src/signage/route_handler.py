@@ -57,7 +57,7 @@ class RouteHandler:
         self._announced_arrive = False
         self._trigger_external_signage = False
         self._processing_thread = False
-        self._override_status_bus_stop = True
+        self._override_status_bus_stop = False
 
         self.process_station_list_from_fms()
 
