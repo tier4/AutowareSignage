@@ -13,7 +13,7 @@ from autoware_adapi_v1_msgs.msg import (
 )
 from std_msgs.msg import String
 import signage.signage_utils as utils
-from tier4_debug_msgs.msg import Float64Stamped
+from autoware_internal_debug_msgs.msg import Float64Stamped
 from tier4_external_api_msgs.msg import DoorStatus
 
 DISCONNECT_THRESHOLD = 2
