@@ -154,6 +154,7 @@ class ExternalSignage:
     def pub_mode_status(self, status):
         msg = Bool()
         msg.data = status
+        self.mode_status_pub_.publish(msg)
 
     def _load_display_data(self, display, package_path):
         auto_path = package_path + f"automatic_{display.width}x{display.height}.td5"
