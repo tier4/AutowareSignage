@@ -21,6 +21,7 @@ class SignageParameter:
     emergency_repeat_period: float = 180.0
     monitor_width: int = 1920
     monitor_height: int = 540
+    skip_departure_notice: bool = True
 
 
 @dataclass
@@ -56,6 +57,7 @@ class ParameterInterface:
         node.declare_parameter("emergency_repeat_period", 180.0)
         node.declare_parameter("monitor_width", 1920)
         node.declare_parameter("monitor_height", 540)
+        node.declare_parameter("skip_departure_notice", True)
 
         self.parameter.debug_mode = (
             node.get_parameter("debug_mode").get_parameter_value().bool_value
@@ -98,6 +100,9 @@ class ParameterInterface:
         )
         self.parameter.monitor_height = (
             node.get_parameter("monitor_height").get_parameter_value().integer_value
+        )
+        self.parameter.skip_departure_notice = (
+            node.get_parameter("skip_departure_notice").get_parameter_value().bool_value
         )
 
         node.declare_parameter("announce.emergency", True)

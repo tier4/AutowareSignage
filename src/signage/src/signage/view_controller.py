@@ -20,6 +20,7 @@ class ViewControllerProperty(QObject):
     _get_monitor_height_signal = pyqtSignal(int)
     _get_monitor_width_signal = pyqtSignal(int)
     _get_size_ratio_signal = pyqtSignal(float)
+    _get_skip_departure_notice_signal = pyqtSignal(bool)
 
     def __init__(self, node, parameter_interface):
         super(ViewControllerProperty, self).__init__()
@@ -34,10 +35,12 @@ class ViewControllerProperty(QObject):
         self._monitor_width = 1920
         self._monitor_height = 540
         self._size_ratio = 1
+        self._skip_departure_notice = False
         self.monitor_width = parameter_interface.parameter.monitor_width
         self.monitor_height = parameter_interface.parameter.monitor_height
         self.size_ratio = (self._monitor_height / 360.0) * (self._monitor_width / 1920) * 0.8
         self._clock_string = ""
+        self.skip_departure_notice = parameter_interface.parameter.skip_departure_notice
 
     @pyqtProperty(str, notify=_view_mode_changed_signal)
     def view_mode(self):
@@ -166,3 +169,14 @@ class ViewControllerProperty(QObject):
             return
         self._size_ratio = size_ratio
         self._get_size_ratio_signal.emit(size_ratio)
+
+    @pyqtProperty(float, notify=_get_size_ratio_signal)
+    def skip_departure_notice(self):
+        return self._skip_departure_notice
+
+    @skip_departure_notice.setter
+    def skip_departure_notice(self, skip_departure_notice):
+        if self._skip_departure_notice == skip_departure_notice:
+            return
+        self._skip_departure_notice = skip_departure_notice
+        self._get_skip_departure_notice_signal.emit(skip_departure_notice)

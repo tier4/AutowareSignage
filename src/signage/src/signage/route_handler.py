@@ -390,7 +390,7 @@ class RouteHandler:
                 else:
                     # the departure time is close (within 1 min), announce going to depart
                     self._display_phrase = utils.handle_phrase("departing")
-                    if not self._announced_depart:
+                    if not self._announced_depart and not self._parameter.skip_departure_notice:
                         self._announce_interface.announce_going_to_depart_and_arrive(
                             "going_to_depart"
                         )
