@@ -1,4 +1,4 @@
-name: sync-beta-upstream
+name: sync branch (develop -> isuzu_erga_ev)
 
 on:
   schedule:
@@ -21,10 +21,10 @@ jobs:
         with:
           token: ${{ steps.generate-token.outputs.token }}
           base-branch: develop
-          sync-pr-branch: sync-beta-upstream
+          sync-pr-branch: sync-branch
           sync-target-repository: https://github.com/tier4/AutowareSignage.git
           sync-target-branch: isuzu_erga_ev
-          pr-title: "chore: sync beta upstream"
+          pr-title: "chore: sync branch"
           pr-labels: |
             bot
             sync-tier4-upstream
