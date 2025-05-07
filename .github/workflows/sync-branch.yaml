@@ -20,12 +20,9 @@ jobs:
         uses: autowarefoundation/autoware-github-actions/sync-branches@v1
         with:
           token: ${{ steps.generate-token.outputs.token }}
-          base-branch: develop
+          base-branch: isuzu_erga_ev
           sync-pr-branch: sync-branch
           sync-target-repository: https://github.com/tier4/AutowareSignage.git
-          sync-target-branch: isuzu_erga_ev
+          sync-target-branch: develop
           pr-title: "chore: sync branch"
-          pr-labels: |
-            bot
-            sync-tier4-upstream
           auto-merge-method: merge
