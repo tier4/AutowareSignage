@@ -25,7 +25,4 @@ jobs:
           sync-target-repository: https://github.com/tier4/AutowareSignage.git
           sync-target-branch: isuzu_erga_ev
           pr-title: "chore: sync branch"
-          pr-labels: |
-            bot
-            sync-tier4-upstream
           auto-merge-method: merge
