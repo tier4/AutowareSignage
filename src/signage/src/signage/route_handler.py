@@ -57,6 +57,7 @@ class RouteHandler:
         self._announced_arrive = False
         self._trigger_external_signage = False
         self._processing_thread = False
+        self._previous_driving_status_override = False
 
         self.process_station_list_from_fms()
 
@@ -363,6 +364,7 @@ class RouteHandler:
 
             if self._is_driving:
                 self._previous_driving_status = self._is_driving
+                self._previous_driving_status_override = self._is_driving
 
             self._prev_route_state = self._autoware.information.route_state
         except Exception as e:
@@ -437,7 +439,10 @@ class RouteHandler:
                 not self._autoware.information.autoware_control
                 and not self._parameter.ignore_manual_driving
             ):
-                view_mode = "manual_driving"
+                if self._is_stopping and self._previous_driving_status_override and self._parameter.override_status_bus_stop:
+                    view_mode = "bus_stop_waiting"
+                else:
+                    view_mode = "manual_driving"
             elif self._in_emergency_state:
                 view_mode = "emergency_stopped"
             elif self._in_slowing_state:

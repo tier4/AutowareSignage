@@ -1,7 +1,7 @@
 signage:
   ros__parameters:
     signage_stand_alone: true
-    ignore_emergency_stoppped: false
+    ignore_emergency_stopped: true
     ignore_disconnected: false
     ignore_manual_driving: false
     set_goal_by_distance: false
@@ -11,15 +11,16 @@ signage:
     emergency_ignore_period: 5.0 # second
     emergency_repeat_period: 180.0 # second
     accept_start: 5.0 # second
+    override_status_bus_stop: true
     monitor_width: 1920
-    monitor_height: 540
+    monitor_height: 360
     announce:
-      emergency: true
-      restart_engage: true
-      door_close: true
-      door_open: true
-      engage: true
-      thank_you: true
-      in_emergency: true
-      going_to_depart: true
-      going_to_arrive: true
+      emergency: false
+      restart_engage: false
+      door_close: false
+      door_open: false
+      engage: false
+      thank_you: false
+      in_emergency: false
+      going_to_depart: false
+      going_to_arrive: false
