@@ -47,10 +47,13 @@ class AnnounceControllerProperty:
         self._pulse = Pulse()
         if os.path.isfile(CURRENT_VOLUME_PATH):
             with open(CURRENT_VOLUME_PATH, "r") as f:
-                self._sink = self._pulse.get_sink_by_name(
-                    self._pulse.server_info().default_sink_name
-                )
-                self._pulse.volume_set_all_chans(self._sink, float(f.readline()))
+                volume = f.readline()
+                if volume != "":
+                    self._sink = self._pulse.get_sink_by_name(
+                        self._pulse.server_info().default_sink_name
+                    )
+                    self._pulse.volume_set_all_chans(self._sink, float(volume))
+
 
         self._get_volume_pub = self._node.create_publisher(Float32, "~/get/volume", 1)
         self._node.create_timer(1.0, self.publish_volume_callback)
