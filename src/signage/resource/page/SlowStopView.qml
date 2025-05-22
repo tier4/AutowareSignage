@@ -16,22 +16,9 @@ Rectangle {
     Text {
         id: slowStopText
         color: "#000000"
-        text: qsTr("安全確認のため停車中です")
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.verticalCenter
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-        font.pointSize: 80*viewController.size_ratio
-        font.bold: true
-        elide: Text.ElideMiddle
-    }
-
-    Text {
-        id: slowStopEnText
-        color: "#000000"
         text: qsTr("Stop for safety check")
-        anchors.top: slowStopText.bottom
         anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         font.pointSize: 80*viewController.size_ratio

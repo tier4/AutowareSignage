@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 # This Python file uses the following encoding: utf-8
 
-DEFAULT_ROUTE_NAME = ["行き先案内", "Route Information"]
-DEFAULT_DEPARTURE_NAME = "出発点; Start"
-DEFAULT_ARRIVAL_NAME = "終点; Last Stop"
+DEFAULT_ROUTE_NAME = ["Route Information", "Route Information"]
+DEFAULT_DEPARTURE_NAME = "Start"
+DEFAULT_ARRIVAL_NAME = "Last Stop"
 PREVIOUS_STATION_INDEX = -1  # TODO: check whether is -1 or 0
 NEXT_STATION_DISPLAY_AMOUNT = 6
 
@@ -170,10 +170,10 @@ def get_remain_minute(depart_time, current_time):
 
 def handle_phrase(phrase_type, remain_minute=0):
     return {
-        "final": "終点です。\nご乗車ありがとうございました",
-        "remain_minute": "このバスはあと{}分程で出発します".format(str(remain_minute)),
-        "departing": "間もなく発車時刻です",
-        "arriving": "間もなく到着します",
+        "final": "This is the last stop\Thank you for your ride",
+        "remain_minute": "This bus will be leaving in about {} minutes.".format(str(remain_minute)),
+        "departing": "Departure time will soon arrive.",
+        "arriving": "We will arrive shortly",
     }.get(phrase_type, "")
 
 

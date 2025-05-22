@@ -16,22 +16,9 @@ Rectangle {
     Text {
         id: slowingText
         color: "#000000"
-        text: qsTr("減速します")
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.verticalCenter
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-        font.pointSize: 80*viewController.size_ratio
-        font.bold: true
-        elide: Text.ElideMiddle
-    }
-
-    Text {
-        id: slowingEnText
-        color: "#000000"
         text: qsTr("Slowing Down")
-        anchors.top: slowingText.bottom
         anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         font.pointSize: 80*viewController.size_ratio

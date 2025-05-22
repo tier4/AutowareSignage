@@ -16,22 +16,9 @@ Rectangle {
     Text {
         id: autoDrivingText
         color: "#000000"
-        text: qsTr("自動運転中")
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.verticalCenter
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-        font.pointSize: 80*viewController.size_ratio
-        font.bold: true
-        elide: Text.ElideMiddle
-    }
-
-    Text {
-        id: autoDrivingEnText
-        color: "#000000"
         text: qsTr("Auto Driving")
-        anchors.top: autoDrivingText.bottom
         anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         font.pointSize: 80*viewController.size_ratio

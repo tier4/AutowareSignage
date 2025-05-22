@@ -19,22 +19,9 @@ Rectangle {
     Text {
         id: emergencyStopText
         color: "#000000"
-        text: qsTr("急停止します")
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.verticalCenter
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-        font.pointSize: 80*viewController.size_ratio
-        font.bold: true
-        elide: Text.ElideMiddle
-    }
-
-    Text {
-        id: emergencyStopEnText
-        color: "#000000"
         text: qsTr("Emergency Stop")
-        anchors.top: emergencyStopText.bottom
         anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         font.pointSize: 80*viewController.size_ratio
