@@ -81,9 +81,9 @@ class RouteHandler:
 
         current_time = self._node.get_clock().now()
         in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
-        in_comfortable_stop = self._autoware.information.mrm_behavior in [
-            MrmState.COMFORTABLE_STOP,
-            MrmState.PULL_OVER,
+        in_comfortable_stop = self._autoware.information.mrm_behavior not in [
+            MrmState.NONE,
+            MrmState.EMERGENCY_STOP,
         ]
 
         if in_comfortable_stop:
