@@ -129,6 +129,12 @@ class ExternalSignage:
             "side": self._load_display_data(self.protocol.side, package_path),
         }
 
+        self.autoware_status = {
+            "driving": True,
+            "mrm": False,
+        }
+
+        # ros interface
         api_qos = rclpy.qos.QoSProfile(
             history=rclpy.qos.QoSHistoryPolicy.KEEP_LAST,
             depth=10,
@@ -137,18 +143,27 @@ class ExternalSignage:
         )
 
         node.create_service(SetBool, "/signage/trigger_external", self.trigger_external_signage)
-        node.create_service(SetBool, "/signage/mode_change", self.experiment_set)
+        node.create_service(SetBool, "/signage/mode_change", self.change_mode)
+        node.create_service(SetBool, "/signage/airport_mode_change", self.change_airport_mode)
         self.mode_status_pub_ = node.create_publisher(Bool, "/signage/mode_status", api_qos)
+        self._sub_mrm = node.create_subscription(
+            MrmState,
+            "/api/fail_safe/mrm_state",
+            self.sub_mrm_callback,
+            api_qos,
+        )
 
+        # read settings.If not, creatte settings.
         self._settings_file = "/home/" + os.environ.get("USER") + "/settings.json"
         if os.path.exists(self._settings_file):
             with open(self._settings_file, "r") as f:
                 self._settings = json.load(f)
         else:
-            self._settings = {"in_experiment": True}
+            self._settings = {"in_experiment": True, "airport": False}
             with open(self._settings_file, "w") as f:
                 json.dump(self._settings, f, indent=4)
 
+        # initial display
         if self._settings.get("in_experiment", True):
             self.pub_mode_status(True)
             self.display_signage("experiment")
@@ -163,6 +178,7 @@ class ExternalSignage:
     def _load_display_data(self, display, package_path):
         auto_path = package_path + f"automatic_{display.width}x{display.height}.td5"
         experiment_path = package_path + f"experiment_{display.width}x{display.height}.td5"
+        mrm_path = package_path + f"mrm_{display.width}x{display.height}.td5"
         null_path = package_path + f"null_{display.width}x{display.height}.td5"
         return {
             "auto": packet_tools.TD5Data(
@@ -171,6 +187,9 @@ class ExternalSignage:
             "experiment": packet_tools.TD5Data(
                 experiment_path, display.address1, display.address2, display.height, display.width
             ),
+            "mrm": packet_tools.TD5Data(
+                mrm_path, display.address1, display.address2, display.height, display.width
+            ),            
             "null": packet_tools.TD5Data(
                 null_path, display.address1, display.address2, display.height, display.width
             ),
@@ -185,22 +204,48 @@ class ExternalSignage:
         sender.send(data, ack_query_ack, ack_data_chunk)
 
     def trigger_external_signage(self, request, response):
-        if self._settings["in_experiment"]:
-            return response
-
         try:
-            if request.data:
-                self.display_signage("auto")
-            else:
-                self.display_signage("null")
+            self.autoware_status["driving"] = request.data
+            if self._settings["in_experiment"]:
+                return response
+            elif self._settings["airport"]:
+                if self.autoware_status["mrm"]:
+                    self.display_signage("mrm")
+                else:
+                    if request.data:
+                        self.display_signage("auto")
+                    else:
+                        self.display_signage("null")
+            else:            
+                if request.data:
+                    self.display_signage("auto")
+                else:
+                    self.display_signage("null")
             response.success = True
         except Exception as e:
             self.node.get_logger().error(str(e))
         return response
 
-    def experiment_set(self, request, response):
+    def sub_mrm_callback():
         try:
-            if request.data:
+            if self._settings["in_experiment"]:
+                return            
+            self.autoware_status["mrm"] = msg.state in [2,3,4]
+            if self._settings["airport"]:
+                self.display_signage("mrm")
+            else:
+                if self.autoware_status["driving"]:
+                    self.display_signage("auto")
+                else:
+                    self.display_signage("null")
+            except Exception as e:
+                self.node.get_logger().error(str(e))
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the mrm, ERROR: " + str(e))
+
+    def change_mode(self, request, response):
+        try:
+            if request.data: # True is L2, False is L4.
                 self.pub_mode_status(True)
                 self._settings["in_experiment"] = True
                 self.display_signage("experiment")
@@ -214,7 +259,23 @@ class ExternalSignage:
             response.success = True
         except Exception as e:
             self.node.get_logger().error(str(e))
+            response.success = False
         return response
+
+    def change_airport_mode(self, request, response):
+        try:
+            if request.data:
+                self._settings["airport"] = True
+            else:
+                self._settings["airport"] = False
+            with open(self._settings_file, "w") as f:
+                json.dump(self._settings, f, indent=4)
+            response.success = True
+        except Exception as e:
+            self.node.get_logger().error(str(e))
+            response.success = False
+        return response
+
 
     def display_signage(self, display_file):
         if not self._external_signage_available:
