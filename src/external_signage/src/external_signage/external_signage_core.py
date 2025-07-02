@@ -4,13 +4,13 @@ import time
 import serial
 import json
 import os
+import uuid
 import rclpy
 from std_srvs.srv import SetBool
 from std_msgs.msg import Bool
 from ament_index_python.packages import get_package_share_directory
 import external_signage.packet_tools as packet_tools
-import uuid
-
+from autoware_adapi_v1_msgs.msg import MrmState
 
 @dataclass
 class Display:
@@ -238,8 +238,6 @@ class ExternalSignage:
                     self.display_signage("auto")
                 else:
                     self.display_signage("null")
-            except Exception as e:
-                self.node.get_logger().error(str(e))
         except Exception as e:
             self._node.get_logger().error("Unable to get the mrm, ERROR: " + str(e))
 
