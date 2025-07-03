@@ -22,7 +22,7 @@ Rectangle {
         anchors.bottomMargin: 50*viewController.size_ratio
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
-        font.pointSize: 40*viewController.size_ratio
+        font.pointSize: 30*viewController.size_ratio
         font.bold: true
         elide: Text.ElideMiddle
     }
