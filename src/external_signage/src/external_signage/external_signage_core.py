@@ -226,12 +226,12 @@ class ExternalSignage:
             self.node.get_logger().error(str(e))
         return response
 
-    def sub_mrm_callback():
+    def sub_mrm_callback(self, msg):
         try:
             if self._settings["in_experiment"]:
                 return            
             self.autoware_status["mrm"] = msg.state in [2,3,4]
-            if self._settings["airport"]:
+            if self._settings["airport"] and self.autoware_status["mrm"]:
                 self.display_signage("mrm")
             else:
                 if self.autoware_status["driving"]:
