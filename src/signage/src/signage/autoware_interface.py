@@ -10,6 +10,7 @@ from autoware_adapi_v1_msgs.msg import (
     MotionState,
     LocalizationInitializationState,
     VelocityFactorArray,
+    Heartbeat,
 )
 from std_msgs.msg import String
 import signage.signage_utils as utils
@@ -88,18 +89,18 @@ class AutowareInterface:
             self.sub_localization_initialization_state_callback,
             api_qos,
         )
-        self._sub_velocity_factors = node.create_subscription(
-            VelocityFactorArray,
-            "/api/planning/velocity_factors",
-            self.sub_velocity_factors_callback,
-            sub_qos,
-        )
         self._sub_active_schedule = node.create_subscription(
             String,
             "/signage/active_schedule",
             self.sub_active_schedule_callback,
             sub_qos,
         )
+        self._sub_active_schedule = node.create_subscription(
+            Heartbeat,
+            "/api/system/heartbeat",
+            self.sub_heartbeat_callback,
+            sub_qos,
+        )  
         if not self._parameter.debug_mode:
             self._autoware_connection_time = self._node.get_clock().now()
             self._node.create_timer(1, self.reset_timer)
@@ -161,14 +162,14 @@ class AutowareInterface:
                 "Unable to get the localization init state, ERROR: " + str(e)
             )
 
-    def sub_velocity_factors_callback(self, msg):
-        try:
-            self._autoware_connection_time = self._node.get_clock().now()
-        except Exception as e:
-            self._node.get_logger().error("Unable to get the velocity factors, ERROR: " + str(e))
-
     def sub_active_schedule_callback(self, msg):
         try:
             self.information.active_schedule = msg.data
         except Exception as e:
             self._node.get_logger().error("Unable to get the active schedule, ERROR: " + str(e))
+
+    def sub_heartbeat_callback(self, msg):
+        try:
+            self._autoware_connection_time = self._node.get_clock().now()
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the heartbeat, ERROR: " + str(e))
