@@ -11,6 +11,7 @@ from std_msgs.msg import Bool
 from ament_index_python.packages import get_package_share_directory
 import external_signage.packet_tools as packet_tools
 from autoware_adapi_v1_msgs.msg import MrmState
+from std_msgs.msg import String
 
 @dataclass
 class Display:
@@ -108,6 +109,7 @@ class ExternalSignage:
         package_path = get_package_share_directory("external_signage") + "/resource/td5_file/"
         node.declare_parameter("serial_port", "/dev/ttyS0")
         self._serial_port = node.get_parameter("serial_port").get_parameter_value().string_value
+        self.node.get_logger().warning("start")
 
         try:
             self.bus = serial.Serial(
@@ -123,11 +125,14 @@ class ExternalSignage:
             self.node.get_logger().error(str(e))
             self._external_signage_available = False
 
-        self.displays = {
-            "front": self._load_display_data(self.protocol.front, package_path),
-            "back": self._load_display_data(self.protocol.back, package_path),
-            "side": self._load_display_data(self.protocol.side, package_path),
-        }
+        try:
+            self.displays = {
+                "front": self._load_display_data(self.protocol.front, package_path),
+                "back": self._load_display_data(self.protocol.back, package_path),
+                "side": self._load_display_data(self.protocol.side, package_path),
+            }
+        except Exception as e:
+            self.node.get_logger().error(str(e))
 
         self.autoware_status = {
             "driving": True,
@@ -141,11 +146,13 @@ class ExternalSignage:
             reliability=rclpy.qos.QoSReliabilityPolicy.RELIABLE,
             durability=rclpy.qos.QoSDurabilityPolicy.TRANSIENT_LOCAL,
         )
+        self.node.get_logger().warning("middl")
 
         node.create_service(SetBool, "/signage/trigger_external", self.trigger_external_signage)
         node.create_service(SetBool, "/signage/mode_change", self.change_mode)
         node.create_service(SetBool, "/signage/airport_mode_change", self.change_airport_mode)
         self.mode_status_pub_ = node.create_publisher(Bool, "/signage/mode_status", api_qos)
+        self.setting_pub_ = node.create_publisher(String, "/signage/external/settings", api_qos)
         self._sub_mrm = node.create_subscription(
             MrmState,
             "/api/fail_safe/mrm_state",
@@ -169,6 +176,14 @@ class ExternalSignage:
             self.display_signage("experiment")
         else:
             self.pub_mode_status(False)
+        self.timer = node.create_timer(1, self.pub_setting)
+        self.node.get_logger().warning("finish")        
+
+    def pub_setting(self):
+        setting = json.dumps(self._settings)
+        msg = String()
+        msg.data = setting
+        self.setting_pub_.publish(msg)
 
     def pub_mode_status(self, status):
         msg = Bool()
