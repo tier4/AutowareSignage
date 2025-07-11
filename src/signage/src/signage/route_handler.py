@@ -10,7 +10,6 @@ import signage.signage_utils as utils
 from tier4_external_api_msgs.msg import DoorStatus
 from autoware_adapi_v1_msgs.msg import (
     RouteState,
-    MrmState,
     OperationModeState,
     MotionState,
     LocalizationInitializationState,
@@ -80,10 +79,10 @@ class RouteHandler:
             return
 
         current_time = self._node.get_clock().now()
-        in_emergency = self._autoware.information.mrm_behavior == MrmState.EMERGENCY_STOP
+        in_emergency = self._autoware.information.mrm_behavior == 12
         in_comfortable_stop = self._autoware.information.mrm_behavior not in [
-            MrmState.NONE,
-            MrmState.EMERGENCY_STOP,
+            1,
+            12,
         ]
 
         if in_comfortable_stop:
