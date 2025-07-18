@@ -10,6 +10,7 @@ from ament_index_python.packages import get_package_share_directory
 from pulsectl import Pulse
 
 from std_msgs.msg import Float32
+from std_srvs.srv import Trigger
 from tier4_hmi_msgs.srv import SetVolume
 from tier4_external_api_msgs.msg import ResponseStatus
 
@@ -57,6 +58,7 @@ class AnnounceControllerProperty:
         self._get_volume_pub = self._node.create_publisher(Float32, "~/get/volume", 1)
         self._node.create_timer(1.0, self.publish_volume_callback)
         self._node.create_service(SetVolume, "~/set/volume", self.set_volume)
+        self._node.create_service(Trigger, "~/test/volume", self.test_volume)
 
     def process_pending_announce(self):
         try:
@@ -147,3 +149,12 @@ class AnnounceControllerProperty:
         except Exception:
             response.status.code = ResponseStatus.ERROR
         return response
+
+    def test_volume(self, request, response):
+        try:
+            self.play_sound("test_volume")
+            response.success = True
+        except Exception:
+            response.success = False
+        return response
+
