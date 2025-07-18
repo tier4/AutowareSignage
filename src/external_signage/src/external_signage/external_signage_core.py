@@ -109,7 +109,6 @@ class ExternalSignage:
         package_path = get_package_share_directory("external_signage") + "/resource/td5_file/"
         node.declare_parameter("serial_port", "/dev/ttyS0")
         self._serial_port = node.get_parameter("serial_port").get_parameter_value().string_value
-        self.node.get_logger().warning("start")
 
         try:
             self.bus = serial.Serial(
@@ -146,7 +145,6 @@ class ExternalSignage:
             reliability=rclpy.qos.QoSReliabilityPolicy.RELIABLE,
             durability=rclpy.qos.QoSDurabilityPolicy.TRANSIENT_LOCAL,
         )
-        self.node.get_logger().warning("middl")
 
         node.create_service(SetBool, "/signage/trigger_external", self.trigger_external_signage)
         node.create_service(SetBool, "/signage/mode_change", self.change_mode)
@@ -177,7 +175,6 @@ class ExternalSignage:
         else:
             self.pub_mode_status(False)
         self.timer = node.create_timer(1, self.pub_setting)
-        self.node.get_logger().warning("finish")        
 
     def pub_setting(self):
         setting = json.dumps(self._settings)
