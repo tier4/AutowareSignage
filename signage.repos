@@ -18,8 +18,4 @@ repositories:
   autoware/autoware_internal_msgs:
     type: git
     url: https://github.com/autowarefoundation/autoware_internal_msgs.git
-    version: 1.6.0     
-  src/l4_toolkit:
-    type: git
-    url: git@github.com:tier4/l4_toolkit.git
-    version: main
+    version: 1.6.0
