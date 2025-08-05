@@ -12,6 +12,7 @@ from ament_index_python.packages import get_package_share_directory
 import external_signage.packet_tools as packet_tools
 from autoware_adapi_v1_msgs.msg import MrmState
 from std_msgs.msg import String
+from level4_mode_manager_msgs.msg import Level4DrivingStatus
 
 @dataclass
 class Display:
@@ -158,6 +159,13 @@ class ExternalSignage:
             api_qos,
         )
 
+        self._sub_is_driving_level = node.create_subscription(
+            Level4DrivingStatus,
+            "/level4_mode_manager/is_level4_driving",
+            self.sub_is_driving_level,
+            api_qos,
+        )
+
         # read settings.If not, creatte settings.
         self._settings_file = "/home/" + os.environ.get("USER") + "/settings.json"
         if os.path.exists(self._settings_file):
@@ -215,6 +223,7 @@ class ExternalSignage:
         sender = DataSender(self.bus, self.parser, self.protocol, self.node.get_logger())
         sender.send(data, ack_query_ack, ack_data_chunk)
 
+    # Lv4のときは自動運転中かどうかで表示を変更する。Lv2のときは変更しない
     def trigger_external_signage(self, request, response):
         try:
             self.autoware_status["driving"] = request.data
@@ -238,6 +247,7 @@ class ExternalSignage:
             self.node.get_logger().error(str(e))
         return response
 
+    # MRMが発生していて空港モードの場合は「緊急停止中」表示にする
     def sub_mrm_callback(self, msg):
         try:
             if self._settings["in_experiment"]:
@@ -253,6 +263,28 @@ class ExternalSignage:
         except Exception as e:
             self._node.get_logger().error("Unable to get the mrm, ERROR: " + str(e))
 
+    # l4かどうかのtopicを受け取り走行モードを変更する
+    def sub_is_driving_level(self, msg):
+        try:
+            self.node.get_logger().info(str(msg.is_level4_driving))
+            if msg.is_level4_driving: # True is L4, False is L2.
+                self.pub_mode_status(True)
+                self._settings["in_experiment"] = False
+                if self.autoware_status["driving"]:
+                    self.display_signage("auto")
+                else:
+                    self.display_signage("null")
+            else:
+                self.pub_mode_status(False)
+                self._settings["in_experiment"] = True
+                self.display_signage("experiment")
+
+            with open(self._settings_file, "w") as f:
+                json.dump(self._settings, f, indent=4)
+        except Exception as e:
+            self.node.get_logger().error(str(e))
+
+    # l4かどうかのサービスを受け取り走行モードを変更する
     def change_mode(self, request, response):
         try:
             if request.data: # True is L2, False is L4.
@@ -272,6 +304,7 @@ class ExternalSignage:
             response.success = False
         return response
 
+    # 空港モードにするかどうかのトピックを受け取り空港モードを変更する
     def change_airport_mode(self, request, response):
         try:
             if request.data:
