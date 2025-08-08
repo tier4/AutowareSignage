@@ -7,12 +7,12 @@ import json
 from datetime import datetime
 
 import signage.signage_utils as utils
-from tier4_external_api_msgs.msg import DoorStatus
 from autoware_adapi_v1_msgs.msg import (
     RouteState,
     OperationModeState,
     MotionState,
     LocalizationInitializationState,
+    DoorStatus,
 )
 
 
@@ -56,7 +56,6 @@ class RouteHandler:
         self._announced_arrive = False
         self._trigger_external_signage = False
         self._processing_thread = False
-        self._previous_driving_status_override = False
 
         self.process_station_list_from_fms()
 
@@ -144,6 +143,32 @@ class RouteHandler:
             self._announce_interface.send_announce("door_close")
 
         self._pre_door_announce_status = door_status
+
+    def get_door_display_message(self):
+        # Get current door status values
+        front_door_status = self._autoware.information.front_door_status
+        middle_door_status = self._autoware.information.middle_door_status
+        
+        # Check if doors are open
+        front_door_open = front_door_status == DoorStatus.OPENED
+        middle_door_open = middle_door_status == DoorStatus.OPENED
+        
+        # Debug logging
+        print(f"Raw door status values - Front: {front_door_status}, Middle: {middle_door_status}")
+        print(f"Door open flags - Front: {front_door_open}, Middle: {middle_door_open}")
+        
+        # Return door status type instead of hardcoded strings
+        if front_door_open and middle_door_open:
+            result = "both_doors"
+        elif front_door_open:
+            result = "front_door"
+        elif middle_door_open:
+            result = "middle_door"
+        else:
+            result = "no_doors"
+            
+        return result
+
 
     def announce_engage_when_starting(self):
         try:
@@ -363,7 +388,6 @@ class RouteHandler:
 
             if self._is_driving:
                 self._previous_driving_status = self._is_driving
-                self._previous_driving_status_override = self._is_driving
 
             self._prev_route_state = self._autoware.information.route_state
         except Exception as e:
@@ -382,7 +406,6 @@ class RouteHandler:
                 # display arrive to final station
                 self._display_phrase = utils.handle_phrase("final")
             elif self._is_stopping:
-                # handle text and announce while bus is stopping
                 if remain_minute > 2:
                     # display the text with the remaining time for departure
                     self._display_phrase = utils.handle_phrase(
@@ -427,7 +450,6 @@ class RouteHandler:
             self._viewController.previous_station_name = self._display_details.previous_station
             self._viewController.next_station_list = self._display_details.next_station_list
             self._viewController.display_phrase = self._display_phrase
-
             if (
                 self._autoware.is_disconnected
                 and not self._parameter.ignore_disconnected
@@ -438,10 +460,7 @@ class RouteHandler:
                 not self._autoware.information.autoware_control
                 and not self._parameter.ignore_manual_driving
             ):
-                if self._is_stopping and self._previous_driving_status_override and self._parameter.override_status_bus_stop:
-                    view_mode = "bus_stop_waiting"
-                else:
-                    view_mode = "manual_driving"
+                view_mode = "manual_driving"
             elif self._in_emergency_state:
                 view_mode = "emergency_stopped"
             elif self._in_slowing_state:
@@ -449,7 +468,14 @@ class RouteHandler:
             elif self._in_slow_stop_state:
                 view_mode = "slow_stop"
             elif self._is_stopping and self._current_task_details.departure_station != ["", ""]:
-                view_mode = "stopping"
+                if self._parameter.override_status_bus_stop:
+                    door_status = self.get_door_display_message()
+                    if door_status == "no_doors":
+                        view_mode = "stopping"
+                    else:
+                        view_mode = door_status
+                else:
+                    view_mode = "stopping"
             elif self._is_driving and self._current_task_details.arrival_station != ["", ""]:
                 view_mode = "driving"
             elif self._is_driving:

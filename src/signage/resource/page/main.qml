@@ -5,6 +5,8 @@ import QtQuick.Controls 2.2
 import "BusStopView"
 import "BusMoveView"
 import "EmergencyStopView"
+import "Common"
+import "Door"
 
 Window {
     id: window
@@ -13,6 +15,21 @@ Window {
 
     width: viewController.monitor_width
     height: viewController.monitor_height
+
+    FrontDoorOpen {
+        id: frontDoorOpenView
+        visible: viewController.view_mode === "front_door"
+    }
+
+    MiddleDoorOpen {
+        id: middleDoorOpenView
+        visible: viewController.view_mode === "middle_door"
+    }
+
+    BothDoorsOpen {
+        id: bothDoorsOpenView
+        visible: viewController.view_mode === "both_doors"
+    }
 
     EmergencyStopView {
         id: emergencyStopView
@@ -57,11 +74,6 @@ Window {
     BusMoveView {
         id: busMoveView
         visible: viewController.view_mode === "driving"
-    }
-
-    BusStopWaiting {
-        id: busStopWaiting
-        visible: viewController.view_mode === "bus_stop_waiting"
     }
 
     Item {
