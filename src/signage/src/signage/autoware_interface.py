@@ -11,11 +11,13 @@ from autoware_adapi_v1_msgs.msg import (
     LocalizationInitializationState,
     VelocityFactorArray,
     Heartbeat,
+    DoorStatusArray,
+    DoorStatus,
 )
+from autoware_adapi_v1_msgs.srv import GetDoorLayout
 from std_msgs.msg import String
 import signage.signage_utils as utils
 from autoware_internal_debug_msgs.msg import Float64Stamped
-from tier4_external_api_msgs.msg import DoorStatus
 
 DISCONNECT_THRESHOLD = 2
 
@@ -26,7 +28,10 @@ class AutowareInformation:
     operation_mode: int = 0
     mrm_behavior: int = 0
     route_state: int = 0
-    door_status: int = 0
+    door_status: int = 0  # Keep for backward compatibility
+    front_door_status: int = 0  # Front door status
+    middle_door_status: int = 0  # Middle door status
+    door_layout: list = None  # Door layout information
     goal_distance: float = 1000.0
     motion_state: int = 0
     localization_init_state: int = 0
@@ -71,8 +76,9 @@ class AutowareInterface:
             self.sub_mrm_callback,
             api_qos,
         )
+        # Update to use DoorStatusArray instead of single DoorStatus
         self._sub_vehicle_door = node.create_subscription(
-            DoorStatus, "/api/external/get/door", self.sub_vehicle_door_callback, sub_qos
+            DoorStatusArray, "/adapi/node/door_status", self.sub_vehicle_door_callback, api_qos
         )
         self._sub_path_distance = node.create_subscription(
             Float64Stamped,
@@ -101,6 +107,12 @@ class AutowareInterface:
             self.sub_heartbeat_callback,
             sub_qos,
         )  
+        
+        # Door layout client
+        self._cli_door_layout = node.create_client(
+            GetDoorLayout, "/api/vehicle/doors/layout"
+        )
+        
         if not self._parameter.debug_mode:
             self._autoware_connection_time = self._node.get_clock().now()
             self._node.create_timer(1, self.reset_timer)
@@ -138,7 +150,39 @@ class AutowareInterface:
 
     def sub_vehicle_door_callback(self, msg):
         try:
-            self.information.door_status = msg.status
+            
+            # Handle DoorStatusArray message with multiple doors
+            if len(msg.doors) >= 2:
+                # Front door (index 0)
+                self.information.front_door_status = msg.doors[0].status
+                
+                # Middle door (index 1) 
+                self.information.middle_door_status = msg.doors[1].status
+                
+                # Set overall door status for backward compatibility
+                # If any door is open, set overall status to OPENED
+                if (self.information.front_door_status == DoorStatus.OPENED or 
+                    self.information.middle_door_status == DoorStatus.OPENED):
+                    self.information.door_status = DoorStatus.OPENED
+                elif (self.information.front_door_status == DoorStatus.OPENING or 
+                      self.information.middle_door_status == DoorStatus.OPENING):
+                    self.information.door_status = DoorStatus.OPENING
+                elif (self.information.front_door_status == DoorStatus.CLOSING or 
+                      self.information.middle_door_status == DoorStatus.CLOSING):
+                    self.information.door_status = DoorStatus.CLOSING
+                else:
+                    self.information.door_status = DoorStatus.CLOSED
+                    
+            else:
+                # Fallback to single door status if array is not available
+                if len(msg.doors) > 0:
+                    self.information.door_status = msg.doors[0].status
+                    self.information.front_door_status = msg.doors[0].status
+                    self.information.middle_door_status = DoorStatus.UNKNOWN
+                else:
+                    self.information.door_status = DoorStatus.UNKNOWN
+                    self.information.front_door_status = DoorStatus.UNKNOWN
+                    self.information.middle_door_status = DoorStatus.UNKNOWN
         except Exception as e:
             self._node.get_logger().error("Unable to get the vehicle door status, ERROR: " + str(e))
 
@@ -173,3 +217,17 @@ class AutowareInterface:
             self._autoware_connection_time = self._node.get_clock().now()
         except Exception as e:
             self._node.get_logger().error("Unable to get the heartbeat, ERROR: " + str(e))
+
+    def get_door_layout(self):
+        """Get door layout information from the vehicle"""
+        try:
+            if self._cli_door_layout.service_is_ready():
+                request = GetDoorLayout.Request()
+                future = self._cli_door_layout.call_async(request)
+                # Note: In a real implementation, you might want to handle this asynchronously
+                # For now, we'll just log that we're requesting door layout
+                self._node.get_logger().info("Requesting door layout information")
+            else:
+                self._node.get_logger().warn("Door layout service not available")
+        except Exception as e:
+            self._node.get_logger().error("Unable to get door layout, ERROR: " + str(e))
