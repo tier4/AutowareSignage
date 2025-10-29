@@ -138,6 +138,7 @@ class ExternalSignage:
             "driving": True,
             "mrm": False,
         }
+        self.is_autoware_launch = False
 
         # ros interface
         api_qos = rclpy.qos.QoSProfile(
@@ -176,12 +177,10 @@ class ExternalSignage:
             with open(self._settings_file, "w") as f:
                 json.dump(self._settings, f, indent=4)
 
-        # initial display
-        if self._settings.get("in_experiment", True):
-            self.pub_mode_status(True)
-            self.display_signage("experiment")
-        else:
-            self.pub_mode_status(False)
+        # initial display 何も表示しない
+        for display_key in self.displays:
+            self.send_data(display_key, "null")
+            time.sleep(1)        
         self.timer = node.create_timer(1, self.pub_setting)
 
     def pub_setting(self):
@@ -223,11 +222,14 @@ class ExternalSignage:
         sender = DataSender(self.bus, self.parser, self.protocol, self.node.get_logger())
         sender.send(data, ack_query_ack, ack_data_chunk)
 
-    # Lv4のときは自動運転中かどうかで表示を変更する。Lv2のときは変更しない
+    # Lv4のときは自動運転中かどうかで表示を変更する。Lv2のときは「実験中」を固定で表示する
     def trigger_external_signage(self, request, response):
         try:
-            self.autoware_status["driving"] = request.data
+            # operation modeが変わったときにautowareが起動したと判断する
+            self.is_autoware_launch = True
+            self.autoware_status ["driving"] = request.data
             if self._settings["in_experiment"]:
+                self.display_signage("experiment")
                 return response
             elif self._settings["airport"]:
                 if self.autoware_status["mrm"]:
@@ -266,6 +268,8 @@ class ExternalSignage:
     # l4かどうかのtopicを受け取り走行モードを変更する
     def sub_is_driving_level(self, msg):
         try:
+            if not self.is_autoware_launch:
+                return
             self.node.get_logger().info(str(msg.is_level4_driving))
             if msg.is_level4_driving: # True is L4, False is L2.
                 self.pub_mode_status(True)
@@ -286,7 +290,7 @@ class ExternalSignage:
 
     # l4かどうかのサービスを受け取り走行モードを変更する
     def change_mode(self, request, response):
-        try:
+        try:           
             if request.data: # True is L2, False is L4.
                 self.pub_mode_status(True)
                 self._settings["in_experiment"] = True
@@ -321,7 +325,8 @@ class ExternalSignage:
 
 
     def display_signage(self, display_file):
-        if not self._external_signage_available:
+        # 車外サイネージが準備中かautowareが起動してない場合は表示を変更しない
+        if not self._external_signage_available or not self.is_autoware_launch:
             return
 
         for display_key in self.displays:
