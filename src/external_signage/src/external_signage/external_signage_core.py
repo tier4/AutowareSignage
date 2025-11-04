@@ -183,7 +183,7 @@ class ExternalSignage:
                 json.dump(self._settings, f, indent=4)
 
         # initial display 何も表示しない
-        self.display_signage("null")
+        self.display_signage("null", True)
 
         # 状態出力するタイマー
         self.timer = node.create_timer(1, self.pub_setting)
