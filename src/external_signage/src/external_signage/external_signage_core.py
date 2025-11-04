@@ -301,7 +301,7 @@ class ExternalSignage:
 
     # l4かどうかのサービスを受け取り走行モードを変更する
     def change_mode(self, request, response):
-        try:           
+        try:
             if request.data: # True is L2, False is L4.
                 self.pub_mode_status(True)
                 self._settings["in_experiment"] = True
