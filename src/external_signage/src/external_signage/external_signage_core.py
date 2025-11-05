@@ -219,6 +219,7 @@ class ExternalSignage:
             ),
         }
 
+    # 車外サイネージにデータを送る
     def send_data(self, display_key, data_key):
         display = self.displays[display_key]
         data = display[data_key]
@@ -226,6 +227,12 @@ class ExternalSignage:
         ack_data_chunk = self.protocol.__dict__[display_key].ack_data_chunk
         sender = DataSender(self.bus, self.parser, self.protocol, self.node.get_logger())
         sender.send(data, ack_query_ack, ack_data_chunk)
+
+    # ミニディスプレイを操作する
+    def send_mini_display(self, key):
+        subprocess.run(["sudo","i2cset", "-y", "0",  "0x40", "0x01", "0x01"])
+
+
 
     # Lv4のときは自動運転中かどうかで表示を変更する。Lv2のときは「実験中」を固定で表示する
     def trigger_external_signage(self, request, response):
@@ -340,6 +347,10 @@ class ExternalSignage:
         if not self._external_signage_available or (not self.is_autoware_launch and not force):
             return
 
+        # ミニディスプレイへの指示
+        self.send_mini_display(display_file)
+
+        # 車外サイネージへの指示
         for display_key in self.displays:
             self.send_data(display_key, display_file)
             time.sleep(1)
