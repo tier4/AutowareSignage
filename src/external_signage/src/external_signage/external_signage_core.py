@@ -135,7 +135,7 @@ class ExternalSignage:
             self.node.get_logger().error(str(e))
 
         self.autoware_status = {
-            "driving": True,
+            "driving": False,
             "mrm": False,
         }
         self.is_autoware_launch = False
