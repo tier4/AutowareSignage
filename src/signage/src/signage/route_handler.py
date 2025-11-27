@@ -408,10 +408,6 @@ class RouteHandler:
                 self._display_phrase = utils.handle_phrase("final")
             elif self._is_stopping:
                 if remain_minute > 2:
-                    # display the text with the remaining time for departure
-                    self._display_phrase = utils.handle_phrase(
-                        "remain_minute", round(remain_minute)
-                    )
                 else:
                     if not self._announced_depart:
                         self._announce_interface.announce_going_to_depart_and_arrive(
