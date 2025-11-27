@@ -18,6 +18,7 @@ from autoware_adapi_v1_msgs.srv import GetDoorLayout
 from std_msgs.msg import String
 import signage.signage_utils as utils
 from autoware_internal_debug_msgs.msg import Float64Stamped
+from autoware_vehicle_msgs.msg import ControlModeReport
 
 DISCONNECT_THRESHOLD = 2
 
@@ -36,6 +37,7 @@ class AutowareInformation:
     motion_state: int = 0
     localization_init_state: int = 0
     active_schedule: str = ""
+    control_mode: int = 0  # ControlModeReport mode
 
 
 class AutowareInterface:
@@ -106,7 +108,13 @@ class AutowareInterface:
             "/api/system/heartbeat",
             self.sub_heartbeat_callback,
             sub_qos,
-        )  
+        )
+        self._sub_control_mode = node.create_subscription(
+            ControlModeReport,
+            "/vehicle/status/control_mode",
+            self.sub_control_mode_callback,
+            sub_qos,
+        )
         
         # Door layout client
         self._cli_door_layout = node.create_client(
@@ -217,6 +225,12 @@ class AutowareInterface:
             self._autoware_connection_time = self._node.get_clock().now()
         except Exception as e:
             self._node.get_logger().error("Unable to get the heartbeat, ERROR: " + str(e))
+
+    def sub_control_mode_callback(self, msg):
+        try:
+            self.information.control_mode = msg.mode
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the control mode, ERROR: " + str(e))
 
     def get_door_layout(self):
         """Get door layout information from the vehicle"""
