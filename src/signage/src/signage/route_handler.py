@@ -413,8 +413,6 @@ class RouteHandler:
                         "remain_minute", round(remain_minute)
                     )
                 else:
-                    # the departure time is close (within 1 min), announce going to depart
-                    self._display_phrase = utils.handle_phrase("departing")
                     if not self._announced_depart:
                         self._announce_interface.announce_going_to_depart_and_arrive(
                             "going_to_depart"
@@ -426,8 +424,6 @@ class RouteHandler:
                     self._autoware.information.goal_distance < 100
                     and self._autoware.information.goal_distance > 0
                 ):
-                    # display text and announce if the goal is within 100m
-                    self._display_phrase = utils.handle_phrase("arriving")
                     if not self._announced_arrive:
                         self._announce_interface.announce_going_to_depart_and_arrive(
                             "going_to_arrive"
