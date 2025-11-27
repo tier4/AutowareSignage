@@ -14,6 +14,7 @@ from autoware_adapi_v1_msgs.msg import (
     LocalizationInitializationState,
     DoorStatus,
 )
+from autoware_vehicle_msgs.msg import ControlModeReport
 
 
 class RouteHandler:
@@ -459,6 +460,7 @@ class RouteHandler:
             elif (
                 not self._autoware.information.autoware_control
                 and not self._parameter.ignore_manual_driving
+                and self._autoware.information.control_mode != ControlModeReport.AUTONOMOUS_STEER_ONLY
             ):
                 view_mode = "manual_driving"
             elif self._in_emergency_state:
