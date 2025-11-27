@@ -7,7 +7,8 @@
     <param from="$(var signage_param)"/>
     <param name="debug_mode" value="$(var debug_mode)" />
   </node>
-  <node pkg="external_signage" exec="external_signage"  output="screen" />
+  <!-- <node pkg="external_signage" exec="external_signage"  output="screen" /> -->
+  <node pkg="autonomous_state_display" exec="autonomous_state_display"  output="screen" />
 
   <node pkg="signage_fms_client" exec="signage_fms_client"  output="screen" >
     <param from="$(var fms_client_param)"/>

@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="serial_port" default="/dev/ttyS0" />
+  <node pkg="autonomous_state_display" exec="autonomous_state_display"  output="screen">
+    <param name="serial_port" value="$(var serial_port)" />
+  </node>
+</launch>
