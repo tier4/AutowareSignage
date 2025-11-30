@@ -7,7 +7,7 @@ Rectangle {
     id: busStopName
     width: viewController.monitor_width
     height: viewController.monitor_height
-    color: "#ACF600" 
+    color: "#00FFB1" 
 
     CurrentTime {
         id: displayCurrentTime
