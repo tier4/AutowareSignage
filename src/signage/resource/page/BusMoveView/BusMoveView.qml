@@ -5,7 +5,7 @@ Rectangle {
     id: busStopView
     width: viewController.monitor_width
     height: viewController.monitor_height
-    color: "#00FFB1" 
+    color: "#ACF600" 
     property int counter: 0
 
     Timer {
