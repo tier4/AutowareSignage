@@ -63,7 +63,7 @@ class RouteHandler:
         self._node.create_timer(0.2, self.route_checker_callback)
         self._node.create_timer(0.2, self.emergency_checker_callback)
         self._node.create_timer(0.2, self.view_mode_callback)
-        self._node.create_timer(0.2, self.calculate_time_callback)
+        #self._node.create_timer(0.2, self.calculate_time_callback)
         self._node.create_timer(0.2, self.door_status_callback)
         self._node.create_timer(0.2, self.announce_engage_when_starting)
 
