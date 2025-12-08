@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 import datetime
 import time
-import serial
 import json
 import os
 import uuid
@@ -84,32 +83,33 @@ class AutonomousStateDisplay:
         self.mode_status_pub_.publish(msg)
 
     def send_data(self, data_key):
-        command_data = []
-        self.node.get_logger().info(str(data_key))
-        if data_key == "auto":
-            command_data = ["sudo", "i2cset", "-y", "0", "0x40", "0x01", "0x07"]
-        elif data_key == "mrm":
-            command_data = ["sudo", "i2cset", "-y", "0", "0x40", "0x01", "0x01"]
-        elif data_key == "experiment":
-            command_data = ["sudo", "i2cset", "-y", "0", "0x40", "0x01", "0x03"]
-        elif data_key == "null":
-            command_data = ["sudo", "i2cset", "-y", "0", "0x40", "0x01", "0x00"]
+        try:
+            command_data = []
+            if data_key == "auto":
+                command_data = ["sudo", "i2cset", "-y", "0", "0x40", "0x01", "0x07"]
+            elif data_key == "mrm":
+                command_data = ["sudo", "i2cset", "-y", "0", "0x40", "0x01", "0x01"]
+            elif data_key == "experiment":
+                command_data = ["sudo", "i2cset", "-y", "0", "0x40", "0x01", "0x03"]
+            elif data_key == "null":
+                command_data = ["sudo", "i2cset", "-y", "0", "0x40", "0x01", "0x00"]
 
-        self.node.get_logger().info(str(command_data))
-        command_data = ["sudo", "ls", "/home/makotoyabuta"]
+            self.node.get_logger().info(str(command_data))
+            command_data = ["sudo", "ls", "/home/makotoyabuta"]
 
-        if len(command_data) == 0:
-            return
-        result = subprocess.run(
-            command_data,
-            capture_output=True,
-            text=True
-        )
+            if len(command_data) == 0:
+                return
+            result = subprocess.run(
+                command_data,
+                capture_output=True,
+                text=True
+            )
 
-        self.node.get_logger().info(str(result.stdout))
-        self.node.get_logger().info(str(result.stderr))
-        self.node.get_logger().info(str(result.returncode))
-
+            self.node.get_logger().info(str(result.stdout))
+            self.node.get_logger().info(str(result.stderr))
+            self.node.get_logger().info(str(result.returncode))
+        except Exception as e:
+            self.node.get_logger().error(str(e))
 
         # 出力コマンド一覧
         # sudo i2cset -y 0 0x40 0x01 0x00 #空欄
@@ -171,7 +171,7 @@ class AutonomousStateDisplay:
         try:
             # operation modeが変わったときにautowareが起動したと判断する
             self.is_autoware_launch = True
-            self.node.get_logger().info(str(msg.data))
+            self.node.get_logger().info(str(msg.mode))
         except Exception as e:
             self.node.get_logger().error("Unable to get the operation mode, ERROR: " + str(e))
 
