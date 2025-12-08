@@ -22,6 +22,7 @@ class SignageParameter:
     monitor_width: int = 1920
     monitor_height: int = 540
     override_status_bus_stop: bool = True
+    force_local_display: bool = False
 
 
 @dataclass
@@ -58,6 +59,7 @@ class ParameterInterface:
         node.declare_parameter("override_status_bus_stop", True)
         node.declare_parameter("monitor_width", 1920)
         node.declare_parameter("monitor_height", 540)
+        node.declare_parameter("force_local_display", False)
 
         self.parameter.debug_mode = (
             node.get_parameter("debug_mode").get_parameter_value().bool_value
@@ -103,6 +105,9 @@ class ParameterInterface:
         )
         self.parameter.monitor_height = (
             node.get_parameter("monitor_height").get_parameter_value().integer_value
+        )
+        self.parameter.force_local_display = (
+            node.get_parameter("force_local_display").get_parameter_value().bool_value
         )
 
         node.declare_parameter("announce.emergency", True)

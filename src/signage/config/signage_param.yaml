@@ -12,6 +12,7 @@ signage:
     emergency_repeat_period: 180.0 # second
     accept_start: 5.0 # second
     override_status_bus_stop: true
+    force_local_display: true
     monitor_width: 1920
     monitor_height: 360
     announce:

@@ -58,6 +58,7 @@ class RouteHandler:
         self._trigger_external_signage = False
         self._processing_thread = False
 
+        if not self._parameter.force_local_display:
         self.process_station_list_from_fms()
 
         self._node.create_timer(0.2, self.route_checker_callback)
@@ -266,10 +267,11 @@ class RouteHandler:
                     self.task_list.done_list
                 )
 
+            call_type = "local" if self._parameter.force_local_display else "fms"
             self._display_details.next_station_list = utils.create_next_station_list(
                 self._current_task_details,
                 self.task_list.todo_list,
-                "fms",
+                call_type,
                 self._schedule_details.schedule_type,
             )
 
@@ -355,16 +357,17 @@ class RouteHandler:
                 self._service_interface.trigger_external_signage(False)
                 self._trigger_external_signage = False
 
-            if self._prev_route_state != RouteState.SET:
-                if self._autoware.information.route_state == RouteState.SET:
-                    self.process_station_list_from_fms(force_update=True)
+            if not self._parameter.force_local_display:
+                if self._prev_route_state != RouteState.SET:
+                    if self._autoware.information.route_state == RouteState.SET:
+                        self.process_station_list_from_fms(force_update=True)
 
-            if not self._fms_check_time:
-                self.process_station_list_from_fms()
-            elif utils.check_timeout(
-                self._node.get_clock().now(), self._fms_check_time, self._parameter.check_fms_time
-            ):
-                self.process_station_list_from_fms()
+                if not self._fms_check_time:
+                    self.process_station_list_from_fms()
+                elif utils.check_timeout(
+                    self._node.get_clock().now(), self._fms_check_time, self._parameter.check_fms_time
+                ):
+                    self.process_station_list_from_fms()
 
             if self._in_emergency_state:
                 return
