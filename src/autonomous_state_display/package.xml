@@ -9,7 +9,6 @@
   <license>Apache License 2.0</license>
   <exec_depend>ament_index_python</exec_depend>
 
-  <depend>autoware_auto_system_msgs</depend>
   <depend>diagnostic_updater</depend>
   <depend>python-pulsectl-pip</depend>
   <depend>rclpy</depend>
