@@ -59,12 +59,12 @@ class RouteHandler:
         self._processing_thread = False
 
         if not self._parameter.force_local_display:
-        self.process_station_list_from_fms()
+            self.process_station_list_from_fms()
+            self._node.create_timer(0.2, self.calculate_time_callback)
 
         self._node.create_timer(0.2, self.route_checker_callback)
         self._node.create_timer(0.2, self.emergency_checker_callback)
         self._node.create_timer(0.2, self.view_mode_callback)
-        #self._node.create_timer(0.2, self.calculate_time_callback)
         self._node.create_timer(0.2, self.door_status_callback)
         self._node.create_timer(0.2, self.announce_engage_when_starting)
 
@@ -472,6 +472,13 @@ class RouteHandler:
                 view_mode = "slowing"
             elif self._in_slow_stop_state:
                 view_mode = "slow_stop"
+            elif self._autoware.information.autoware_control:
+                # When autoware control is enabled (engaged), always show driving/auto_driving
+                # even if stopped at a goal (waiting for next route) or in STOP mode
+                if self._current_task_details.arrival_station != ["", ""]:
+                    view_mode = "driving"
+                else:
+                    view_mode = "auto_driving"
             elif self._is_stopping and self._current_task_details.departure_station != ["", ""]:
                 if self._parameter.override_status_bus_stop:
                     door_status = self.get_door_display_message()
