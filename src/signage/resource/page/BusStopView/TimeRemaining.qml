@@ -15,7 +15,7 @@ Rectangle {
 
     AutonomousDrivingText {
         id: autonomousDriving
-        anchors.top: displayCurrentTime.bottom
+        anchors.left: displayCurrentTime.right
     }
 
     Text {
