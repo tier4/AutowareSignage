@@ -95,7 +95,6 @@ class AutonomousStateDisplay:
                 command_data = ["sudo", "i2cset", "-y", "0", "0x40", "0x01", "0x00"]
 
             self.node.get_logger().info(str(command_data))
-            command_data = ["sudo", "ls", "/home/makotoyabuta"]
 
             if len(command_data) == 0:
                 return
