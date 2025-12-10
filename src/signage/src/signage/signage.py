@@ -18,41 +18,44 @@ from ament_index_python.packages import get_package_share_directory
 
 
 def main(args=None):
-    package_path = get_package_share_directory("signage")
+    try:
+        package_path = get_package_share_directory("signage")
 
-    rclpy.init(args=args)
-    node = Node("signage")
+        rclpy.init(args=args)
+        node = Node("signage")
 
-    app = QApplication(sys.argv)
-    engine = QQmlApplicationEngine()
+        app = QApplication(sys.argv)
+        engine = QQmlApplicationEngine()
 
-    heartbeat = Heartbeat(node)
-    parameter_interface = ParameterInterface(node)
-    autoware_interface = AutowareInterface(node, parameter_interface)
-    ros_service_interface = RosServiceInterface(node, parameter_interface)
-    viewController = ViewControllerProperty(node, parameter_interface)
-    announceController = AnnounceControllerProperty(node, autoware_interface, parameter_interface)
-    route_handler = RouteHandler(
-        node,
-        viewController,
-        announceController,
-        autoware_interface,
-        parameter_interface,
-        ros_service_interface,
-    )
+        heartbeat = Heartbeat(node)
+        parameter_interface = ParameterInterface(node)
+        autoware_interface = AutowareInterface(node, parameter_interface)
+        ros_service_interface = RosServiceInterface(node, parameter_interface)
+        viewController = ViewControllerProperty(node, parameter_interface)
+        announceController = AnnounceControllerProperty(node, autoware_interface, parameter_interface)
+        route_handler = RouteHandler(
+            node,
+            viewController,
+            announceController,
+            autoware_interface,
+            parameter_interface,
+            ros_service_interface,
+        )
 
-    ctx = engine.rootContext()
-    ctx.setContextProperty("viewController", viewController)
-    ctx.setContextProperty("announceController", announceController)
-    engine.load(package_path + "/resource/page/main.qml")
+        ctx = engine.rootContext()
+        ctx.setContextProperty("viewController", viewController)
+        ctx.setContextProperty("announceController", announceController)
+        engine.load(package_path + "/resource/page/main.qml")
 
-    if not engine.rootObjects():
-        rclpy.shutdown()
-        sys.exit(-1)
+        if not engine.rootObjects():
+            rclpy.shutdown()
+            sys.exit(-1)
 
-    while True:
-        app.processEvents()
-        rclpy.spin_once(node, timeout_sec=0.01)
+        while True:
+            app.processEvents()
+            rclpy.spin_once(node, timeout_sec=0.01)
+    except Exception as e:
+        self._node.get_logger().error("not able to play the announce, ERROR: {}".format(str(e)))
 
 
 if __name__ == "__main__":

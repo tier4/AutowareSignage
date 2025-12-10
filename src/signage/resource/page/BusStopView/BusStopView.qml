@@ -21,7 +21,7 @@ Rectangle {
         visible: busStopView.counter % 3 === 0
     }
 
-    BusRouteName {
+    BusStopRouteName {
         visible: busStopView.counter % 3 === 1
     }
 

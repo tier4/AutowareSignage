@@ -13,6 +13,11 @@ Rectangle {
         id: displayCurrentTime
     }
 
+    AutonomousDrivingText {
+        id: autonomousDriving
+        anchors.top: displayCurrentTime.bottom
+    }
+
     CenterBar {
         id: centerBar
         anchors.verticalCenter: parent.verticalCenter

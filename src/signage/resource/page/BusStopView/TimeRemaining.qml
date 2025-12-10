@@ -13,6 +13,11 @@ Rectangle {
         id: displayCurrentTime
     }
 
+    AutonomousDrivingText {
+        id: autonomousDriving
+        anchors.top: displayCurrentTime.bottom
+    }
+
     Text {
         id: remainingTimeText
         width: viewController.monitor_width - 200

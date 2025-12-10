@@ -4,13 +4,18 @@ import QtQuick.Controls 2.2
 import "../Common"
 
 Rectangle {
-    id: busRouteName
+    id: busStopRouteName
     width: viewController.monitor_width
     height: viewController.monitor_height
     color: "#ffffff"
 
     CurrentTime {
         id: displayCurrentTime
+    }
+
+    AutonomousDrivingText {
+        id: autonomousDriving
+        anchors.top: displayCurrentTime.bottom
     }
 
     CenterBar {
