@@ -18,7 +18,7 @@ jobs:
 
       - name: Add project-specific cspell overrides
         run: |
-          jq '.ignorePaths += ["pytest.ini"]' .github/workflows/.cspell.json > /tmp/cspell.json \
+          jq '.ignorePaths += ["pytest.ini", "spell_check_pr.yml"]' .github/workflows/.cspell.json > /tmp/cspell.json \
             && mv /tmp/cspell.json .github/workflows/.cspell.json
 
       - uses: streetsidesoftware/cspell-action@v1.3.2
