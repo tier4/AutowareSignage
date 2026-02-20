@@ -50,18 +50,18 @@ class TestInitFunctions:
 
 class TestCheckScheduleUpdate:
     def test_same_schedule(self):
-        details = ScheduleDetails("2026-01-01", "sched-1", "loop")
-        data = {"updated_at": "2026-01-01", "schedule_id": "sched-1"}
+        details = ScheduleDetails("2026-01-01", "schedule-1", "loop")
+        data = {"updated_at": "2026-01-01", "schedule_id": "schedule-1"}
         assert check_schedule_update(details, data) is True
 
     def test_different_time(self):
-        details = ScheduleDetails("2026-01-01", "sched-1", "loop")
-        data = {"updated_at": "2026-01-02", "schedule_id": "sched-1"}
+        details = ScheduleDetails("2026-01-01", "schedule-1", "loop")
+        data = {"updated_at": "2026-01-02", "schedule_id": "schedule-1"}
         assert check_schedule_update(details, data) is False
 
     def test_different_id(self):
-        details = ScheduleDetails("2026-01-01", "sched-1", "loop")
-        data = {"updated_at": "2026-01-01", "schedule_id": "sched-2"}
+        details = ScheduleDetails("2026-01-01", "schedule-1", "loop")
+        data = {"updated_at": "2026-01-01", "schedule_id": "schedule-2"}
         assert check_schedule_update(details, data) is False
 
 
@@ -69,11 +69,11 @@ class TestUpdateScheduleDetails:
     def test_basic(self):
         data = {
             "updated_at": "2026-01-01",
-            "schedule_id": "sched-1",
+            "schedule_id": "schedule-1",
             "schedule_type": "loop",
         }
         result = update_schedule_details(data)
-        assert result == ScheduleDetails("2026-01-01", "sched-1", "loop")
+        assert result == ScheduleDetails("2026-01-01", "schedule-1", "loop")
 
 
 class TestProcessTag:

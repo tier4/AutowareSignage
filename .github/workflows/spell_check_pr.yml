@@ -16,6 +16,11 @@ jobs:
             --output .github/workflows/.cspell.json \
             https://raw.githubusercontent.com/tier4/autoware-spell-check-dict/main/cspell/.cspell.json
 
+      - name: Add project-specific cspell overrides
+        run: |
+          jq '.ignorePaths += ["pytest.ini"]' .github/workflows/.cspell.json > /tmp/cspell.json \
+            && mv /tmp/cspell.json .github/workflows/.cspell.json
+
       - uses: streetsidesoftware/cspell-action@v1.3.2
         with:
           config: ".github/workflows/.cspell.json"
