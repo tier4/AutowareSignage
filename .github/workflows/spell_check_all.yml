@@ -21,11 +21,8 @@ jobs:
         run: |
           npm install cspell
 
-      - name: Retrieve spell check dictionary
-        run: |
-          curl --silent --show-error \
-            --output .github/workflows/.cspell.json \
-            https://raw.githubusercontent.com/tier4/autoware-spell-check-dict/main/cspell/.cspell.json
+      - name: Install spell check dictionary
+        run: npm install --ignore-scripts https://github.com/tier4/autoware-spell-check-dict
 
       - name: Check spelling
         run: |
@@ -34,6 +31,6 @@ jobs:
           # How to exclude specific files:
           #   Ex. "**/!(*.osm|*.svg|CHANGELOG.rst)"
           ./node_modules/.bin/cspell \
-            --config .github/workflows/.cspell.json \
+            --config node_modules/@tier4/autoware-spell-check-dict/.cspell.json \
             "**/!(CHANGELOG.rst|${{ github.event.inputs.ignore_patterns }})" \
             2> /dev/null

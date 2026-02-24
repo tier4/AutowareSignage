@@ -10,17 +10,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Retrieve spell check dictionary
-        run: |
-          curl --silent --show-error \
-            --output .github/workflows/.cspell.json \
-            https://raw.githubusercontent.com/tier4/autoware-spell-check-dict/main/cspell/.cspell.json
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+
+      - name: Install spell check dictionary
+        run: npm install --ignore-scripts https://github.com/tier4/autoware-spell-check-dict
 
       - name: Add project-specific cspell overrides
         run: |
-          jq '.words += ["testpaths", "pythonpath", "addopts"]' .github/workflows/.cspell.json > /tmp/cspell.json \
-            && mv /tmp/cspell.json .github/workflows/.cspell.json
+          jq '.words += ["testpaths", "pythonpath", "addopts"]' node_modules/@tier4/autoware-spell-check-dict/.cspell.json > /tmp/cspell.json \
+            && mv /tmp/cspell.json node_modules/@tier4/autoware-spell-check-dict/.cspell.json
 
       - uses: streetsidesoftware/cspell-action@v1.3.2
         with:
-          config: ".github/workflows/.cspell.json"
+          config: "node_modules/@tier4/autoware-spell-check-dict/.cspell.json"
