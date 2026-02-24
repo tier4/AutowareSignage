@@ -32,5 +32,5 @@ jobs:
           #   Ex. "**/!(*.osm|*.svg|CHANGELOG.rst)"
           ./node_modules/.bin/cspell \
             --config node_modules/@tier4/autoware-spell-check-dict/.cspell.json \
-            "**/!(CHANGELOG.rst|${{ github.event.inputs.ignore_patterns }})" \
+            "**/!(CHANGELOG.rst|package.xml|${{ github.event.inputs.ignore_patterns }})" \
             2> /dev/null

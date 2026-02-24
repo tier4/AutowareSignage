@@ -18,7 +18,7 @@ jobs:
 
       - name: Add project-specific cspell overrides
         run: |
-          jq '.words += ["testpaths", "pythonpath", "addopts"]' node_modules/@tier4/autoware-spell-check-dict/.cspell.json > /tmp/cspell.json \
+          jq '.words += ["testpaths", "pythonpath", "addopts"] | .ignorePaths += ["**/package.xml"]' node_modules/@tier4/autoware-spell-check-dict/.cspell.json > /tmp/cspell.json \
             && mv /tmp/cspell.json node_modules/@tier4/autoware-spell-check-dict/.cspell.json
 
       - uses: streetsidesoftware/cspell-action@v1.3.2
