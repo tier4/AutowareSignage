@@ -4,6 +4,7 @@
 from signage.autoware_diagnostic import AutowareDiagnostic
 from diagnostic_msgs.msg import DiagnosticStatus
 
+
 class Heartbeat:
     def __init__(self, node):
         self._node = node

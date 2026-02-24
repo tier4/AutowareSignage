@@ -7,6 +7,7 @@ from rclpy.node import Node
 from external_signage.external_signage_core import ExternalSignage
 from ament_index_python.packages import get_package_share_directory
 
+
 def main(args=None):
     package_path = get_package_share_directory("external_signage")
 

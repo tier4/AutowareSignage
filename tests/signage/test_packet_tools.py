@@ -52,9 +52,9 @@ class TestGenDataPacket:
         assert result[-1] == EOT
         assert result[1] == 0x70  # addr1
         assert result[2] == 0x8F  # addr2
-        assert result[3] == 10   # length = len(data) + 8
+        assert result[3] == 10  # length = len(data) + 8
         assert result[4] == 0x20  # cmd
-        assert result[5] == 0     # seq
+        assert result[5] == 0  # seq
         assert result[6] == 0x00  # padding
         assert result[7] == 0x01  # data[0]
         assert result[8] == 0x02  # data[1]
