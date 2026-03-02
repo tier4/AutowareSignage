@@ -14,6 +14,7 @@ from autoware_adapi_v1_msgs.msg import MrmState
 from std_msgs.msg import String
 from level4_mode_manager_msgs.msg import Level4DrivingStatus
 
+
 @dataclass
 class Display:
     address1: int
@@ -27,9 +28,9 @@ class Display:
 class Protocol:
     SOT = 0xAA
     EOT = 0x55
-    SEND_COLOR = "\x1B[34;1m"
-    RECV_COLOR = "\x1B[32;1m"
-    ERR_COLOR = "\x1B[31;1m"
+    SEND_COLOR = "\x1b[34;1m"
+    RECV_COLOR = "\x1b[32;1m"
+    ERR_COLOR = "\x1b[31;1m"
 
     def __init__(self):
         self.front = Display(
@@ -209,7 +210,7 @@ class ExternalSignage:
             ),
             "mrm": packet_tools.TD5Data(
                 mrm_path, display.address1, display.address2, display.height, display.width
-            ),            
+            ),
             "null": packet_tools.TD5Data(
                 null_path, display.address1, display.address2, display.height, display.width
             ),
@@ -237,7 +238,7 @@ class ExternalSignage:
                         self.display_signage("auto")
                     else:
                         self.display_signage("null")
-            else:            
+            else:
                 if request.data:
                     self.display_signage("auto")
                 else:
@@ -251,8 +252,8 @@ class ExternalSignage:
     def sub_mrm_callback(self, msg):
         try:
             if self._settings["in_experiment"]:
-                return            
-            self.autoware_status["mrm"] = msg.state in [2,3,4]
+                return
+            self.autoware_status["mrm"] = msg.state in [2, 3, 4]
             if self._settings["airport"] and self.autoware_status["mrm"]:
                 self.display_signage("mrm")
             else:
@@ -267,7 +268,7 @@ class ExternalSignage:
     def sub_is_driving_level(self, msg):
         try:
             self.node.get_logger().info(str(msg.is_level4_driving))
-            if msg.is_level4_driving: # True is L4, False is L2.
+            if msg.is_level4_driving:  # True is L4, False is L2.
                 self.pub_mode_status(True)
                 self._settings["in_experiment"] = False
                 if self.autoware_status["driving"]:
@@ -287,7 +288,7 @@ class ExternalSignage:
     # l4かどうかのサービスを受け取り走行モードを変更する
     def change_mode(self, request, response):
         try:
-            if request.data: # True is L2, False is L4.
+            if request.data:  # True is L2, False is L4.
                 self.pub_mode_status(True)
                 self._settings["in_experiment"] = True
                 self.display_signage("experiment")
@@ -318,7 +319,6 @@ class ExternalSignage:
             self.node.get_logger().error(str(e))
             response.success = False
         return response
-
 
     def display_signage(self, display_file):
         if not self._external_signage_available:

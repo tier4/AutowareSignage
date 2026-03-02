@@ -157,4 +157,3 @@ class AnnounceControllerProperty:
         except Exception:
             response.success = False
         return response
-

@@ -100,7 +100,7 @@ class AutowareInterface:
             "/api/system/heartbeat",
             self.sub_heartbeat_callback,
             sub_qos,
-        )  
+        )
         if not self._parameter.debug_mode:
             self._autoware_connection_time = self._node.get_clock().now()
             self._node.create_timer(1, self.reset_timer)

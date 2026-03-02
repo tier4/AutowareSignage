@@ -7,7 +7,7 @@ from setuptools import setup
 
 def package_files(directory):
     paths = []
-    for (path, directories, filenames) in os.walk(directory):
+    for path, directories, filenames in os.walk(directory):
         for filename in filenames:
             paths.append(os.path.join(path, filename))
     return paths
@@ -24,7 +24,7 @@ setup(
         ("share/" + package_name + "/resource/td5_file", package_files("resource/td5_file")),
         ("share/" + package_name, ["package.xml"]),
         ("share/" + package_name + "/launch", ["launch/external_signage.launch.xml"]),
-    ],    
+    ],
     install_requires=["setuptools"],
     zip_safe=True,
     author="Makoto Yabuta",

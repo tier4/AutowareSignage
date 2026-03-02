@@ -20,7 +20,8 @@
 
 import diagnostic_updater
 
-class AutowareDiagnostic():
+
+class AutowareDiagnostic:
     def init_updater(self, node, name, update_function, hardware_id):
         updater = diagnostic_updater.Updater(node, 1)
         updater.setHardwareID(hardware_id)
