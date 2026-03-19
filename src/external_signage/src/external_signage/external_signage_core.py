@@ -107,6 +107,7 @@ class ExternalSignage:
     def __init__(self, node):
         self.node = node
         self.protocol = Protocol()
+        self.current_state = ""
 
         package_path = get_package_share_directory("external_signage") + "/resource/td5_file/"
         node.declare_parameter("serial_port", "/dev/ttyS0")
@@ -322,6 +323,12 @@ class ExternalSignage:
 
     def display_signage(self, display_file):
         if not self._external_signage_available:
+            return
+
+        # 前回の状態と同じの場合更新をスキップする
+        previous_state = self.current_state
+        self.current_state = display_file
+        if previous_state == display_file:
             return
 
         for display_key in self.displays:
