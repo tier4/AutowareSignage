@@ -15,3 +15,7 @@ repositories:
     type: git
     url: https://github.com/autowarefoundation/autoware_internal_msgs.git
     version: 1.6.0
+  erga_ev_external_signage:
+    type: git
+    url: https://github.com/tier4/erga_ev_external_signage.git
+    version: main
