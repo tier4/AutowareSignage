@@ -7,7 +7,9 @@
     <param from="$(var signage_param)"/>
     <param name="debug_mode" value="$(var debug_mode)" />
   </node>
-  <node pkg="external_signage" exec="external_signage"  output="screen" />
+  <node pkg="erga_ev_external_signage" exec="erga_ev_external_signage" name="erga_ev_external_signage" output="screen">
+    <param from="$(find-pkg-share erga_ev_external_signage)/config/controller_params.yaml"/>
+  </node>
 
   <node pkg="signage_fms_client" exec="signage_fms_client"  output="screen" >
     <param from="$(var fms_client_param)"/>
