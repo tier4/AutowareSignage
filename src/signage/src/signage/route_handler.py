@@ -372,6 +372,9 @@ class RouteHandler:
             if self._current_task_details == utils.init_CurrentTask():
                 return
 
+            if self._current_task_details.depart_time <= 0:
+                return
+
             remain_minute = utils.get_remain_minute(
                 self._current_task_details.depart_time, self._node.get_clock().now().to_msg().sec
             )
