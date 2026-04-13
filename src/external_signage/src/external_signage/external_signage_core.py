@@ -252,9 +252,9 @@ class ExternalSignage:
     # MRMが発生していて空港モードの場合は「緊急停止中」表示にする
     def sub_mrm_callback(self, msg):
         try:
+            self.autoware_status["mrm"] = msg.state in [2, 3, 4]
             if self._settings["in_experiment"]:
                 return
-            self.autoware_status["mrm"] = msg.state in [2, 3, 4]
             if self._settings["airport"] and self.autoware_status["mrm"]:
                 self.display_signage("mrm")
             else:
