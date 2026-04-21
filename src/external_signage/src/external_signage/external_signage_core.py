@@ -151,7 +151,7 @@ class ExternalSignage:
 
         node.create_service(SetBool, "/signage/trigger_external", self.trigger_external_signage)
         node.create_service(SetBool, "/signage/mode_change", self.change_mode)
-        node.create_service(SetBool, "/signage/airport_mode_change", self.change_airport_mode)
+        self._sub_airport_mode = node.create_subscription(Bool, "/signage/airport_mode", self.change_airport_mode, api_qos)
         self.mode_status_pub_ = node.create_publisher(Bool, "/signage/mode_status", api_qos)
         self.setting_pub_ = node.create_publisher(String, "/signage/external/settings", api_qos)
         self._sub_mrm = node.create_subscription(
@@ -307,19 +307,13 @@ class ExternalSignage:
         return response
 
     # 空港モードにするかどうかのトピックを受け取り空港モードを変更する
-    def change_airport_mode(self, request, response):
+    def change_airport_mode(self, msg):
         try:
-            if request.data:
-                self._settings["airport"] = True
-            else:
-                self._settings["airport"] = False
+            self._settings["airport"] = msg.data
             with open(self._settings_file, "w") as f:
                 json.dump(self._settings, f, indent=4)
-            response.success = True
         except Exception as e:
             self.node.get_logger().error(str(e))
-            response.success = False
-        return response
 
     def display_signage(self, display_file):
         if not self._external_signage_available:
