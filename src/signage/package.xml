@@ -11,6 +11,7 @@
   <exec_depend>signage_version</exec_depend>
 
   <depend>diagnostic_updater</depend>
+  <depend>external_signage</depend>
   <depend>python-pulsectl-pip</depend>
   <depend>rclpy</depend>
   <depend>signage_fms_client</depend>

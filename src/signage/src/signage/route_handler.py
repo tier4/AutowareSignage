@@ -54,6 +54,7 @@ class RouteHandler:
         self._in_slowing_state = False
         self._announced_depart = False
         self._announced_arrive = False
+        self._trigger_external_signage = False
         self._processing_thread = False
 
         self.process_station_list_from_fms()
@@ -298,11 +299,19 @@ class RouteHandler:
                 self._announced_depart = False
 
                 if (
+                    not self._trigger_external_signage
+                    and self._autoware.information.autoware_control
+                ):
+                    self._service_interface.trigger_external_signage(True)
+                    self._trigger_external_signage = True
+                if (
                     not self._announce_engage
                     and self._parameter.signage_stand_alone
                     and self._autoware.information.autoware_control
                 ):
                     self._announce_interface.send_announce("engage")
+                    self._service_interface.trigger_external_signage(True)
+                    self._trigger_external_signage = True
                     self._announce_engage = True
             elif self._autoware.information.route_state in [RouteState.ARRIVED, RouteState.UNSET]:
                 # Check whether the vehicle arrive to goal
@@ -311,6 +320,13 @@ class RouteHandler:
                 self._skip_announce = False
                 self._announce_engage = False
                 self._announced_arrive = False
+
+            if (
+                self._autoware.information.operation_mode != OperationModeState.AUTONOMOUS
+                or self._autoware.information.autoware_control != True
+            ) and self._trigger_external_signage:
+                self._service_interface.trigger_external_signage(False)
+                self._trigger_external_signage = False
 
             if self._prev_route_state != RouteState.SET:
                 if self._autoware.information.route_state == RouteState.SET:
