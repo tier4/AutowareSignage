@@ -10,7 +10,7 @@ from std_srvs.srv import SetBool
 from std_msgs.msg import Bool
 from ament_index_python.packages import get_package_share_directory
 import external_signage.packet_tools as packet_tools
-from autoware_adapi_v1_msgs.msg import MrmState
+from autoware_adapi_v1_msgs.msg import MrmState, OperationModeState
 from std_msgs.msg import String
 from level4_mode_manager_msgs.msg import Level4DrivingStatus
 
@@ -137,9 +137,10 @@ class ExternalSignage:
             self.node.get_logger().error(str(e))
 
         self.autoware_status = {
-            "driving": True,
+            "driving": False,
             "mrm": False,
         }
+        self.is_autoware_launch = False
 
         # ros interface
         api_qos = rclpy.qos.QoSProfile(
@@ -155,7 +156,6 @@ class ExternalSignage:
             durability=rclpy.qos.QoSDurabilityPolicy.VOLATILE,
         )
 
-        node.create_service(SetBool, "/signage/trigger_external", self.trigger_external_signage)
         node.create_service(SetBool, "/signage/mode_change", self.change_mode)
         self._sub_airport_mode = node.create_subscription(
             Bool, "/signage/airport_mode", self.change_airport_mode, airport_mode_qos
@@ -166,6 +166,12 @@ class ExternalSignage:
             MrmState,
             "/api/fail_safe/mrm_state",
             self.sub_mrm_callback,
+            api_qos,
+        )
+        self._sub_operation_mode = node.create_subscription(
+            OperationModeState,
+            "/api/operation_mode/state",
+            self.sub_operation_mode_callback,
             api_qos,
         )
 
@@ -233,29 +239,27 @@ class ExternalSignage:
         sender = DataSender(self.bus, self.parser, self.protocol, self.node.get_logger())
         sender.send(data, ack_query_ack, ack_data_chunk)
 
-    # Lv4のときは自動運転中かどうかで表示を変更する。Lv2のときは変更しない
-    def trigger_external_signage(self, request, response):
+    # operation modeを受け取り、Lv4のときは自動運転中かどうかで表示を変更する。Lv2のときは変更しない
+    def sub_operation_mode_callback(self, msg):
         try:
-            self.autoware_status["driving"] = request.data
+            self.is_autoware_launch = True
+            self.autoware_status["driving"] = msg.mode == OperationModeState.AUTONOMOUS
             if self._settings["in_experiment"]:
-                return response
+                return
             elif self._settings["airport"]:
                 if self.autoware_status["mrm"]:
                     self.display_signage("mrm")
-                else:
-                    if request.data:
-                        self.display_signage("auto")
-                    else:
-                        self.display_signage("null")
-            else:
-                if request.data:
+                elif self.autoware_status["driving"]:
                     self.display_signage("auto")
                 else:
                     self.display_signage("null")
-            response.success = True
+            else:
+                if self.autoware_status["driving"]:
+                    self.display_signage("auto")
+                else:
+                    self.display_signage("null")
         except Exception as e:
-            self.node.get_logger().error(str(e))
-        return response
+            self.node.get_logger().error("Unable to get the operation mode, ERROR: " + str(e))
 
     # MRMが発生していて空港モードの場合は「緊急停止中」表示にする
     def sub_mrm_callback(self, msg):
