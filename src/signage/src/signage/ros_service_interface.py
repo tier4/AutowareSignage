@@ -35,7 +35,10 @@ class RosServiceInterface:
                 self._cli_accept_start = self.__create_client(
                     AcceptStart, "/api/motion/accept_start"
                 )
-            self._cli_trigger_external = self.__create_client(SetBool, "/signage/trigger_external")
+            if self._parameter.use_external_signage:
+                self._cli_trigger_external = self.__create_client(
+                    SetBool, "/signage/trigger_external"
+                )
 
     # service call function
     def accept_start(self):
@@ -47,7 +50,7 @@ class RosServiceInterface:
 
     # service call function
     def trigger_external_signage(self, on):
-        if self._parameter.debug_mode:
+        if self._parameter.debug_mode or not self._parameter.use_external_signage:
             return
 
         request = SetBool.Request()
