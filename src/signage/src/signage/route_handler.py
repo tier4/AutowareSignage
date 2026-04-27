@@ -25,6 +25,7 @@ class RouteHandler:
         autoware_interface,
         parameter_interface,
         ros_service_interface,
+        cvm_interface,
     ):
         self._node = node
         self._viewController = viewController
@@ -32,6 +33,7 @@ class RouteHandler:
         self._autoware = autoware_interface
         self._parameter = parameter_interface.parameter
         self._service_interface = ros_service_interface
+        self._cvm = cvm_interface
         self._schedule_details = utils.init_ScheduleDetails()
         self._display_details = utils.init_DisplayDetails()
         self._current_task_details = utils.init_CurrentTask()
@@ -426,12 +428,16 @@ class RouteHandler:
             self._viewController.next_station_list = self._display_details.next_station_list
             self._viewController.display_phrase = self._display_phrase
 
+            cvm_override = self._cvm.get_view_mode_override()
+
             if (
                 self._autoware.is_disconnected
                 and not self._parameter.ignore_disconnected
                 and not self._parameter.ignore_emergency
             ):
                 view_mode = "disconnected"
+            elif cvm_override is not None:
+                view_mode = cvm_override
             elif (
                 not self._autoware.information.autoware_control
                 and not self._parameter.ignore_manual_driving
@@ -455,6 +461,7 @@ class RouteHandler:
                 view_mode = "out_of_service"
                 self._announced_depart = False
 
+            self._cvm.set_current_view_mode(view_mode)
             self._viewController.view_mode = view_mode
         except Exception as e:
             self._node.get_logger().error("Error in updating the view mode: " + str(e))

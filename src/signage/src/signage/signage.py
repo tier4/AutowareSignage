@@ -11,6 +11,7 @@ from signage.heartbeat import Heartbeat
 from signage.view_controller import ViewControllerProperty
 from signage.announce_controller import AnnounceControllerProperty
 from signage.autoware_interface import AutowareInterface
+from signage.cvm_interface import CvmInterface
 from signage.parameter_interface import ParameterInterface
 from signage.route_handler import RouteHandler
 from signage.ros_service_interface import RosServiceInterface
@@ -32,6 +33,7 @@ def main(args=None):
     ros_service_interface = RosServiceInterface(node, parameter_interface)
     viewController = ViewControllerProperty(node, parameter_interface)
     announceController = AnnounceControllerProperty(node, autoware_interface, parameter_interface)
+    cvm_interface = CvmInterface(node, parameter_interface.parameter.cvm_device_id)
     route_handler = RouteHandler(
         node,
         viewController,
@@ -39,6 +41,7 @@ def main(args=None):
         autoware_interface,
         parameter_interface,
         ros_service_interface,
+        cvm_interface,
     )
 
     ctx = engine.rootContext()
