@@ -18,10 +18,12 @@ COMMAND_TOPIC_TEMPLATE = "/command_view_manager/devices/{device_id}/command"
 STATE_TOPIC_TEMPLATE = "/command_view_manager/devices/{device_id}/state"
 GET_MANIFEST_SERVICE = "/command_view_manager/get_manifest"
 
-# CVM display_mode_id → signage internal view_mode
-CVM_TO_VIEW_MODE = {
-    "emergency_display": "emergency_stopped",
-}
+# CVM コマンドを受けたときの内部 view_mode。
+# 個別の表示は QML 側で cvm_display_mode_id を見て分岐する。
+CVM_VIEW_MODE = "cvm_display"
+
+# CVM コマンドとして受け付ける display_mode_id（cvm_display ページ内で表示分岐するもの）
+SUPPORTED_CVM_DISPLAY_MODES = {"emergency_display"}
 
 # 受信すると override を解除し autoware 由来の view_mode に戻す display_mode_id
 RELEASE_DISPLAY_MODES = {"idle_display"}
@@ -62,6 +64,7 @@ class CvmInterface:
         self._device_id = device_id
         self._lock = Lock()
         self._cvm_view_mode_override = None
+        self._cvm_display_mode_id_override = None
         self._current_view_mode = ""
         # マニフェスト取得状態
         # None: 未取得（DEFAULT_REPORTED_DISPLAY_MODE 固定で報告）
@@ -121,10 +124,10 @@ class CvmInterface:
             )
             with self._lock:
                 self._cvm_view_mode_override = None
+                self._cvm_display_mode_id_override = None
             return
 
-        view_mode = CVM_TO_VIEW_MODE.get(msg.display_mode_id)
-        if view_mode is None:
+        if msg.display_mode_id not in SUPPORTED_CVM_DISPLAY_MODES:
             self._node.get_logger().warning(
                 "CVM command with unsupported display_mode_id ignored: "
                 "display_mode_id={}, issuer={}".format(
@@ -134,20 +137,21 @@ class CvmInterface:
             return
 
         self._node.get_logger().info(
-            "CVM command received: display_mode_id={}, view_mode={}, "
-            "issuer={}, priority={}".format(
-                msg.display_mode_id,
-                view_mode,
-                msg.issuer_client_id,
-                msg.priority,
+            "CVM command received: display_mode_id={}, issuer={}, priority={}".format(
+                msg.display_mode_id, msg.issuer_client_id, msg.priority,
             )
         )
         with self._lock:
-            self._cvm_view_mode_override = view_mode
+            self._cvm_view_mode_override = CVM_VIEW_MODE
+            self._cvm_display_mode_id_override = msg.display_mode_id
 
     def get_view_mode_override(self):
         with self._lock:
             return self._cvm_view_mode_override
+
+    def get_display_mode_id_override(self):
+        with self._lock:
+            return self._cvm_display_mode_id_override
 
     def set_current_view_mode(self, view_mode):
         with self._lock:
@@ -157,8 +161,10 @@ class CvmInterface:
         with self._lock:
             view_mode = self._current_view_mode
             supported = self._supported_modes
+            cvm_override_id = self._cvm_display_mode_id_override
 
-        preferred = VIEW_MODE_TO_CVM.get(view_mode)
+        # CVM override 中は受け付けた display_mode_id をそのまま CVM に返す
+        preferred = cvm_override_id if cvm_override_id else VIEW_MODE_TO_CVM.get(view_mode)
         if supported is not None and preferred is not None and preferred in supported:
             display_mode_id = preferred
         else:

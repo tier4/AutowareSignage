@@ -462,6 +462,9 @@ class RouteHandler:
                 self._announced_depart = False
 
             self._cvm.set_current_view_mode(view_mode)
+            self._viewController.cvm_display_mode_id = (
+                self._cvm.get_display_mode_id_override() or ""
+            )
             self._viewController.view_mode = view_mode
         except Exception as e:
             self._node.get_logger().error("Error in updating the view mode: " + str(e))

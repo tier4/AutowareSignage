@@ -37,6 +37,10 @@ setup(
             package_files("resource/page/EmergencyStopView"),
         ),
         (
+            "share/" + package_name + "/resource/page/CvmDisplayView",
+            package_files("resource/page/CvmDisplayView"),
+        ),
+        (
             "share/" + package_name + "/resource/page/Common",
             package_files("resource/page/Common"),
         ),
