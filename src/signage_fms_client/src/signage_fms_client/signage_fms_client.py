@@ -18,11 +18,12 @@ class FMSClient(Node):
         self._fms_payload = {
             "method": "get",
             "url": "https://"
-            + os.getenv("FMS_URL", "fms.web.auto")
+            + os.getenv("FMS_URL", "")
             + "/v1/projects/{project_id}/environments/{environment_id}/vehicles/{vehicle_id}/active_schedule",
             "body": {},
         }
         self.AUTOWARE_IP = os.getenv("AUTOWARE_IP", "localhost")
+        self.AUTOWARE_PORT = os.getenv("AUTOWARE_PORT", "")
         self.schedule_pub_ = node.create_publisher(String, "/signage/active_schedule", 10)
         self.timer = node.create_timer(self._post_request_time + 0.5, self.pub_schedule)
 
@@ -30,7 +31,7 @@ class FMSClient(Node):
         try:
             msg = String()
             respond = requests.post(
-                "http://{}:4711/v1/services/order".format(self.AUTOWARE_IP),
+                "http://{}:{}/v1/services/order".format(self.AUTOWARE_IP, self.AUTOWARE_PORT),
                 json=self._fms_payload,
                 timeout=self._post_request_time,
             )
