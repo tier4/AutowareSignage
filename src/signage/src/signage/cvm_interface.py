@@ -23,7 +23,7 @@ GET_MANIFEST_SERVICE = "/command_view_manager/get_manifest"
 CVM_VIEW_MODE = "cvm_display"
 
 # CVM コマンドとして受け付ける display_mode_id（cvm_display ページ内で表示分岐するもの）
-SUPPORTED_CVM_DISPLAY_MODES = {"emergency_display"}
+SUPPORTED_CVM_DISPLAY_MODES = {"remote_emergency_display"}
 
 # 受信すると override を解除し autoware 由来の view_mode に戻す display_mode_id
 RELEASE_DISPLAY_MODES = {"idle_display"}
@@ -32,7 +32,7 @@ RELEASE_DISPLAY_MODES = {"idle_display"}
 # マニフェストの supported_display_mode_ids に含まれる候補のみ採用し、
 # 含まれていない場合は DEFAULT_REPORTED_DISPLAY_MODE にフォールバックする。
 VIEW_MODE_TO_CVM = {
-    "emergency_stopped": "emergency_display",
+    "emergency_stopped": "mrm_emergency_display",
     "disconnected": "disconnected_display",
     "manual_driving": "manual_driving_display",
     "auto_driving": "auto_driving_display",

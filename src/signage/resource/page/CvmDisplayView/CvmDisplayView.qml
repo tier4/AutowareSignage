@@ -7,6 +7,6 @@ Rectangle {
     height: viewController.monitor_height
 
     CvmEmergencyStop {
-        visible: viewController.cvm_display_mode_id === "emergency_display"
+        visible: viewController.cvm_display_mode_id === "remote_emergency_display"
     }
 }
