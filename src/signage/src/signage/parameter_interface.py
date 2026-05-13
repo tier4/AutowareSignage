@@ -8,6 +8,7 @@ from dataclasses import dataclass
 @dataclass
 class SignageParameter:
     debug_mode: bool = False
+    use_external_signage: bool = False
     signage_stand_alone: bool = False
     ignore_manual_driving: bool = False
     ignore_disconnected: bool = False
@@ -43,6 +44,7 @@ class ParameterInterface:
         self.announce_settings = AnnounceParameter()
 
         node.declare_parameter("debug_mode", False)
+        node.declare_parameter("use_external_signage", False)
         node.declare_parameter("signage_stand_alone", False)
         node.declare_parameter("ignore_disconnected", False)
         node.declare_parameter("ignore_manual_driving", False)
@@ -59,6 +61,9 @@ class ParameterInterface:
 
         self.parameter.debug_mode = (
             node.get_parameter("debug_mode").get_parameter_value().bool_value
+        )
+        self.parameter.use_external_signage = (
+            node.get_parameter("use_external_signage").get_parameter_value().bool_value
         )
         self.parameter.signage_stand_alone = (
             node.get_parameter("signage_stand_alone").get_parameter_value().bool_value

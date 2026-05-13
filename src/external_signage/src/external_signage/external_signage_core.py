@@ -148,10 +148,18 @@ class ExternalSignage:
             reliability=rclpy.qos.QoSReliabilityPolicy.RELIABLE,
             durability=rclpy.qos.QoSDurabilityPolicy.TRANSIENT_LOCAL,
         )
+        airport_mode_qos = rclpy.qos.QoSProfile(
+            history=rclpy.qos.QoSHistoryPolicy.KEEP_LAST,
+            depth=10,
+            reliability=rclpy.qos.QoSReliabilityPolicy.RELIABLE,
+            durability=rclpy.qos.QoSDurabilityPolicy.VOLATILE,
+        )
 
         node.create_service(SetBool, "/signage/trigger_external", self.trigger_external_signage)
         node.create_service(SetBool, "/signage/mode_change", self.change_mode)
-        self._sub_airport_mode = node.create_subscription(Bool, "/signage/airport_mode", self.change_airport_mode, api_qos)
+        self._sub_airport_mode = node.create_subscription(
+            Bool, "/signage/airport_mode", self.change_airport_mode, airport_mode_qos
+        )
         self.mode_status_pub_ = node.create_publisher(Bool, "/signage/mode_status", api_qos)
         self.setting_pub_ = node.create_publisher(String, "/signage/external/settings", api_qos)
         self._sub_mrm = node.create_subscription(
