@@ -5,6 +5,7 @@ import QtQuick.Controls 2.2
 import "BusStopView"
 import "BusMoveView"
 import "EmergencyStopView"
+import "CvmDisplayView"
 
 Window {
     id: window
@@ -17,6 +18,11 @@ Window {
     EmergencyStopView {
         id: emergencyStopView
         visible: viewController.view_mode === "emergency_stopped"
+    }
+
+    CvmDisplayView {
+        id: cvmDisplayView
+        visible: viewController.view_mode === "cvm_display"
     }
 
     Disconnected {

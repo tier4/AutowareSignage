@@ -10,6 +10,7 @@ from PyQt5.QtCore import QObject
 
 class ViewControllerProperty(QObject):
     _view_mode_changed_signal = pyqtSignal(str)
+    _cvm_display_mode_id_changed_signal = pyqtSignal(str)
     _route_name_signal = pyqtSignal(list)
     _get_departure_station_name_signal = pyqtSignal(list)
     _get_arrival_station_name_signal = pyqtSignal(list)
@@ -25,6 +26,7 @@ class ViewControllerProperty(QObject):
         super(ViewControllerProperty, self).__init__()
         self._node = node
         self._view_mode = ""
+        self._cvm_display_mode_id = ""
         self._route_name = ["", ""]
         self._departure_station_name = ["", ""]
         self._arrival_station_name = ["", ""]
@@ -49,6 +51,17 @@ class ViewControllerProperty(QObject):
             return
         self._view_mode = view_mode
         self._view_mode_changed_signal.emit(view_mode)
+
+    @pyqtProperty(str, notify=_cvm_display_mode_id_changed_signal)
+    def cvm_display_mode_id(self):
+        return self._cvm_display_mode_id
+
+    @cvm_display_mode_id.setter
+    def cvm_display_mode_id(self, cvm_display_mode_id):
+        if self._cvm_display_mode_id == cvm_display_mode_id:
+            return
+        self._cvm_display_mode_id = cvm_display_mode_id
+        self._cvm_display_mode_id_changed_signal.emit(cvm_display_mode_id)
 
     # QMLへroute_nameを反映させる
     @pyqtProperty(list, notify=_route_name_signal)
