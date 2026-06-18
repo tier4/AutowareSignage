@@ -8,18 +8,6 @@ Rectangle {
     color: "#ff8c00"
 
     Text {
-        id: cvmEmergencyStopIcon
-        color: "#ffffff"
-        text: "⚠"
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: cvmEmergencyStopText.top
-        anchors.bottomMargin: 20*viewController.size_ratio
-        horizontalAlignment: Text.AlignHCenter
-        font.pointSize: 120*viewController.size_ratio
-        font.bold: true
-    }
-
-    Text {
         id: cvmEmergencyStopText
         color: "#ffffff"
         text: qsTr("オペレーター停止指示")
