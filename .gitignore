@@ -132,3 +132,6 @@ dmypy.json
 # ros output
 install/
 log/
+
+# GraphRAG knowledge vault (managed in separate repository)
+.graphrag/
