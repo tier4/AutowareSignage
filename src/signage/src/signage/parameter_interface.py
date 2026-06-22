@@ -23,6 +23,11 @@ class SignageParameter:
     monitor_width: int = 1920
     monitor_height: int = 540
     cvm_device_id: str = "in_vehicle_signage"
+    standing_mode_default: bool = False
+    standing_warning_cooldown: float = 10.0
+    sudden_decel_threshold: float = 0.8
+    sudden_decel_jerk_threshold: float = 0.6
+    sudden_lateral_accel_threshold: float = 0.8
 
 
 @dataclass
@@ -37,6 +42,8 @@ class AnnounceParameter:
     in_emergency: bool = True
     going_to_depart: bool = True
     going_to_arrive: bool = True
+    standing_depart: bool = True
+    standing_sudden: bool = True
 
 
 class ParameterInterface:
@@ -60,6 +67,11 @@ class ParameterInterface:
         node.declare_parameter("monitor_width", 1920)
         node.declare_parameter("monitor_height", 540)
         node.declare_parameter("cvm_device_id", "in_vehicle_signage")
+        node.declare_parameter("standing_mode_default", False)
+        node.declare_parameter("standing_warning_cooldown", 10.0)
+        node.declare_parameter("sudden_decel_threshold", 0.8)
+        node.declare_parameter("sudden_decel_jerk_threshold", 0.6)
+        node.declare_parameter("sudden_lateral_accel_threshold", 0.8)
 
         self.parameter.debug_mode = (
             node.get_parameter("debug_mode").get_parameter_value().bool_value
@@ -109,6 +121,21 @@ class ParameterInterface:
         self.parameter.cvm_device_id = (
             node.get_parameter("cvm_device_id").get_parameter_value().string_value
         )
+        self.parameter.standing_mode_default = (
+            node.get_parameter("standing_mode_default").get_parameter_value().bool_value
+        )
+        self.parameter.standing_warning_cooldown = (
+            node.get_parameter("standing_warning_cooldown").get_parameter_value().double_value
+        )
+        self.parameter.sudden_decel_threshold = (
+            node.get_parameter("sudden_decel_threshold").get_parameter_value().double_value
+        )
+        self.parameter.sudden_decel_jerk_threshold = (
+            node.get_parameter("sudden_decel_jerk_threshold").get_parameter_value().double_value
+        )
+        self.parameter.sudden_lateral_accel_threshold = (
+            node.get_parameter("sudden_lateral_accel_threshold").get_parameter_value().double_value
+        )
 
         node.declare_parameter("announce.emergency", True)
         node.declare_parameter("announce.restart_engage", True)
@@ -119,6 +146,8 @@ class ParameterInterface:
         node.declare_parameter("announce.in_emergency", True)
         node.declare_parameter("announce.going_to_depart", True)
         node.declare_parameter("announce.going_to_arrive", True)
+        node.declare_parameter("announce.standing_depart", True)
+        node.declare_parameter("announce.standing_sudden", True)
 
         announce_prefix = node.get_parameters_by_prefix("announce")
 

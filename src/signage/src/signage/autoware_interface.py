@@ -16,8 +16,20 @@ from std_msgs.msg import String
 import signage.signage_utils as utils
 from autoware_internal_debug_msgs.msg import Float64Stamped
 from tier4_external_api_msgs.msg import DoorStatus
+from tier4_metric_msgs.msg import MetricArray
 
 DISCONNECT_THRESHOLD = 2
+
+# /control/control_evaluator/metrics の metric名 -> AutowareInformation の属性名
+# (UC-03: 急減速・急操舵判定に使用)
+CONTROL_METRIC_ATTR_MAP = {
+    "acceleration": "longitudinal_acceleration",
+    "jerk": "longitudinal_jerk",
+    "lateral_acceleration_abs": "lateral_acceleration_abs",
+    "steering_angle_abs": "steering_angle_abs",
+    "steering_rate": "steering_rate",
+    "steering_acceleration": "steering_acceleration",
+}
 
 
 @dataclass
@@ -31,6 +43,12 @@ class AutowareInformation:
     motion_state: int = 0
     localization_init_state: int = 0
     active_schedule: str = ""
+    longitudinal_acceleration: float = 0.0
+    longitudinal_jerk: float = 0.0
+    lateral_acceleration_abs: float = 0.0
+    steering_angle_abs: float = 0.0
+    steering_rate: float = 0.0
+    steering_acceleration: float = 0.0
 
 
 class AutowareInterface:
@@ -99,6 +117,12 @@ class AutowareInterface:
             Heartbeat,
             "/api/system/heartbeat",
             self.sub_heartbeat_callback,
+            sub_qos,
+        )
+        self._sub_control_metrics = node.create_subscription(
+            MetricArray,
+            "/control/control_evaluator/metrics",
+            self.sub_control_metrics_callback,
             sub_qos,
         )
         if not self._parameter.debug_mode:
@@ -173,3 +197,17 @@ class AutowareInterface:
             self._autoware_connection_time = self._node.get_clock().now()
         except Exception as e:
             self._node.get_logger().error("Unable to get the heartbeat, ERROR: " + str(e))
+
+    def sub_control_metrics_callback(self, msg):
+        # MetricArray の value は文字列のため float に変換して保持する
+        try:
+            for metric in msg.metric_array:
+                attr = CONTROL_METRIC_ATTR_MAP.get(metric.name)
+                if attr is None:
+                    continue
+                try:
+                    setattr(self.information, attr, float(metric.value))
+                except ValueError:
+                    continue
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the control metrics, ERROR: " + str(e))

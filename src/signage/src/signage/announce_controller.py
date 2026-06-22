@@ -24,6 +24,13 @@ PRIORITY_DICT = {
     "arrived": 2,
     "thank_you": 2,
     "in_emergency": 2,
+    # 立席運行 転倒防止アナウンス (MRM=3 の下に配置)
+    # 急減速・急操舵は priority 2。発車警告は engage(2) に続けて再生させるため
+    # priority 1 とし、engage 再生中はキューに積んで後続で再生する。
+    "standing_sudden_stop": 2,
+    "standing_sudden_turn": 2,
+    "standing_sudden_stop_turn": 2,
+    "standing_depart": 1,
     "going_to_depart": 1,
     "going_to_arrive": 1,
 }
@@ -91,6 +98,9 @@ class AnnounceControllerProperty:
     # skip announce by setting
     def check_announce_or_not(self, message):
         try:
+            # 急減速・急操舵の各アナウンスは単一の standing_sudden フラグで制御する
+            if message.startswith("standing_sudden"):
+                return self._announce_settings.standing_sudden
             return getattr(self._announce_settings, message)
         except Exception as e:
             self._node.get_logger().error("check announce or not: " + str(e))
@@ -123,6 +133,12 @@ class AnnounceControllerProperty:
                     }
                 )
         self._current_announce = message
+
+    def stop_standing_announce(self):
+        # MRM最優先: 再生中の立席アナウンスを停止する (画面はMRMへ切替わるため音声も揃える)
+        if self._current_announce.startswith("standing_"):
+            self._sound.stop()
+            self._current_announce = ""
 
     def announce_arrived(self):
         if self._parameter.signage_stand_alone:

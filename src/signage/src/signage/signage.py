@@ -14,6 +14,7 @@ from signage.autoware_interface import AutowareInterface
 from signage.cvm_interface import CvmInterface
 from signage.parameter_interface import ParameterInterface
 from signage.route_handler import RouteHandler
+from signage.standing_mode_interface import StandingModeInterface
 from signage.ros_service_interface import RosServiceInterface
 from ament_index_python.packages import get_package_share_directory
 
@@ -34,6 +35,9 @@ def main(args=None):
     viewController = ViewControllerProperty(node, parameter_interface)
     announceController = AnnounceControllerProperty(node, autoware_interface, parameter_interface)
     cvm_interface = CvmInterface(node, parameter_interface.parameter.cvm_device_id)
+    standing_mode_interface = StandingModeInterface(
+        node, autoware_interface, parameter_interface
+    )
     route_handler = RouteHandler(
         node,
         viewController,
@@ -42,6 +46,7 @@ def main(args=None):
         parameter_interface,
         ros_service_interface,
         cvm_interface,
+        standing_mode_interface,
     )
 
     ctx = engine.rootContext()
