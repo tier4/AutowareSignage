@@ -1,20 +1,22 @@
 # !/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import math
 import rclpy
 from dataclasses import dataclass
 from autoware_adapi_v1_msgs.msg import (
     RouteState,
+    Route,
     MrmState,
     OperationModeState,
     MotionState,
     LocalizationInitializationState,
     VelocityFactorArray,
+    VehicleKinematics,
     Heartbeat,
 )
 from std_msgs.msg import String
 import signage.signage_utils as utils
-from autoware_internal_debug_msgs.msg import Float64Stamped
 from tier4_external_api_msgs.msg import DoorStatus
 
 DISCONNECT_THRESHOLD = 2
@@ -39,6 +41,8 @@ class AutowareInterface:
         self.information = AutowareInformation()
         self._parameter = parameter_interface.parameter
         self.is_disconnected = False
+        # 現在のルートのゴール座標 (map系)。ルート未設定時は None
+        self._goal_position = None
 
         sub_qos = rclpy.qos.QoSProfile(
             history=rclpy.qos.QoSHistoryPolicy.KEEP_LAST,
@@ -74,10 +78,21 @@ class AutowareInterface:
         self._sub_vehicle_door = node.create_subscription(
             DoorStatus, "/api/external/get/door", self.sub_vehicle_door_callback, sub_qos
         )
-        self._sub_path_distance = node.create_subscription(
-            Float64Stamped,
-            "/autoware_api/utils/path_distance_calculator/distance",
-            self.sub_path_distance_callback,
+        # /autoware_api/utils/path_distance_calculator/distance が廃止予定のため、
+        # ゴール姿勢 (/api/routing/route) と自車位置 (/api/vehicle/kinematics) から
+        # ゴールまでの直線距離を算出して goal_distance を求める。
+        # ゴール直前がカーブ / 経路がゴール近傍を通過する場合は実際の経路長と乖離するが、
+        # ゴール近傍 (<100m) の到着判定用途としては許容範囲とする。
+        self._sub_route = node.create_subscription(
+            Route,
+            "/api/routing/route",
+            self.sub_route_callback,
+            api_qos,
+        )
+        self._sub_kinematics = node.create_subscription(
+            VehicleKinematics,
+            "/api/vehicle/kinematics",
+            self.sub_kinematics_callback,
             sub_qos,
         )
         self._sub_motion_state = node.create_subscription(
@@ -142,9 +157,25 @@ class AutowareInterface:
         except Exception as e:
             self._node.get_logger().error("Unable to get the vehicle door status, ERROR: " + str(e))
 
-    def sub_path_distance_callback(self, msg):
+    def sub_route_callback(self, msg):
         try:
-            self.information.goal_distance = msg.data
+            if msg.data:
+                self._goal_position = msg.data[0].goal.position
+            else:
+                # ルートがクリアされた場合はゴール距離をデフォルトへ戻す
+                self._goal_position = None
+                self.information.goal_distance = 1000.0
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the route goal, ERROR: " + str(e))
+
+    def sub_kinematics_callback(self, msg):
+        try:
+            if self._goal_position is None:
+                return
+            ego = msg.pose.pose.pose.position
+            self.information.goal_distance = math.hypot(
+                self._goal_position.x - ego.x, self._goal_position.y - ego.y
+            )
         except Exception as e:
             self._node.get_logger().error("Unable to get the goal distance, ERROR: " + str(e))
 
