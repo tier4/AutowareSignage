@@ -487,10 +487,12 @@ class RouteHandler:
                         info.longitudinal_acceleration, param.sudden_decel_threshold
                     )
                 )
-            if abs(info.longitudinal_jerk) >= param.sudden_decel_jerk_threshold:
+            # jerk は減速方向 (負値) のみを対象とする。
+            # 加速方向 (正のjerk) は転倒リスクが低く、閾値以下 (例: -0.6以下) で判定する
+            if info.longitudinal_jerk <= -param.sudden_decel_jerk_threshold:
                 decel_reasons.append(
-                    "|jerk|={:.3f} >= {:.3f}".format(
-                        abs(info.longitudinal_jerk), param.sudden_decel_jerk_threshold
+                    "jerk={:.3f} <= -{:.3f}".format(
+                        info.longitudinal_jerk, param.sudden_decel_jerk_threshold
                     )
                 )
 

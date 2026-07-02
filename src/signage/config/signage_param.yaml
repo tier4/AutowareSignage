@@ -17,7 +17,7 @@ signage:
     standing_mode_default: false # 立席運用モードの起動時デフォルト (ファイルが優先)
     standing_warning_cooldown: 10.0 # second
     sudden_decel_threshold: 0.8 # m/s^2 (acceleration <= -本値 で急減速)
-    sudden_decel_jerk_threshold: 0.6 # m/s^3 (|jerk| >= 本値)
+    sudden_decel_jerk_threshold: 0.6 # m/s^3 (jerk <= -本値 で急減速。減速方向のみ)
     sudden_lateral_accel_threshold: 0.8 # m/s^2 (lateral_acceleration_abs >= 本値)
     announce:
       emergency: true
