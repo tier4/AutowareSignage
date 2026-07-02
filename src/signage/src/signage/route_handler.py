@@ -320,10 +320,13 @@ class RouteHandler:
                     and self._parameter.signage_stand_alone
                     and self._autoware.information.autoware_control
                 ):
-                    self._announce_interface.send_announce("engage")
-                    # UC-02: バス停発車 (STOP->AUTONOMOUS) のタイミングで
-                    # 立席乗客へ転倒防止アナウンスを併設する
-                    self.trigger_depart_warning()
+                    # UC-02: バス停発車 (STOP->AUTONOMOUS) のタイミング。
+                    # 立席モードON時は standing_depart (発進します+転倒防止の注意) のみ再生し、
+                    # engage との「発進します」二重発話を避ける。
+                    # 立席モードOFF、またはクールダウン等で standing_depart を再生しなかった
+                    # 場合は通常の engage (発進します) を再生する。
+                    if not self.trigger_depart_warning():
+                        self._announce_interface.send_announce("engage")
                     self._service_interface.trigger_external_signage(True)
                     self._trigger_external_signage = True
                     self._announce_engage = True
@@ -439,15 +442,17 @@ class RouteHandler:
         )
 
     def trigger_depart_warning(self):
+        # standing_depart を再生したら True を返す (発進アナウンスを兼ねるため呼び出し側で利用)
         # 立席運用モードOFF時は提供しない (SYS2-UC02-02)
         if not self._standing_mode.is_standing_mode:
-            return
+            return False
         # SYS2-UC02-05: クールダウン中の再発車はスキップ (キューに積まない)
         if self._is_warning_active(self._depart_warning_time):
-            return
+            return False
         self._depart_warning_time = self._node.get_clock().now()
         self._announce_interface.send_announce("standing_depart")
         self._node.get_logger().info("UC-02: standing depart warning triggered")
+        return True
 
     def trigger_sudden_warning(self, warning_type, reasons):
         # SYS2-UC03-06: クールダウン中の同種イベントはスキップ (キューに積まない)
