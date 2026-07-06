@@ -448,13 +448,10 @@ class RouteHandler:
         if not self._standing_mode.is_standing_mode:
             return False
         # SYS2-UC02-05: クールダウン(5s)中の再発車はスキップ (キューに積まない)
+        # スキップ分はログに残さず、実際に発話するときのみ記録する (UC-03 と方針統一)
         if self._is_warning_active(
             self._depart_warning_time, self._parameter.standing_depart_cooldown
         ):
-            # スキップした発車イベントも記録する (NFR-09/NFR-10)
-            self._node.get_logger().info(
-                "UC-02: depart event skipped in cooldown"
-            )
             return False
         self._depart_warning_time = self._node.get_clock().now()
         # 提供結果 (played/queued/failed 等) は send_announce 側で記録される
