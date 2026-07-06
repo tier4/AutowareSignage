@@ -92,8 +92,23 @@ class AnnounceControllerProperty:
             self._node.get_logger().error("not able to check the current playing: " + str(e))
 
     def play_sound(self, message):
-        self._sound = QSound(self._package_path + message + ".wav")
-        self._sound.play()
+        # 音声ファイルが無い/再生に失敗した場合は False を返し、呼び出し側で
+        # 提供失敗として記録できるようにする (NFR-08/UC02-04/UC03-05)
+        sound_path = self._package_path + message + ".wav"
+        if not os.path.isfile(sound_path):
+            self._node.get_logger().error(
+                "announce sound file not found: {}".format(sound_path)
+            )
+            return False
+        try:
+            self._sound = QSound(sound_path)
+            self._sound.play()
+            return True
+        except Exception as e:
+            self._node.get_logger().error(
+                "not able to play the announce '{}': {}".format(message, str(e))
+            )
+            return False
 
     # skip announce by setting
     def check_announce_or_not(self, message):
@@ -106,25 +121,42 @@ class AnnounceControllerProperty:
             self._node.get_logger().error("check announce or not: " + str(e))
             return False
 
+    def _log_announce_outcome(self, message, outcome):
+        # 全アナウンス共通の提供結果ログ (NFR-08/NFR-10)。
+        # played / queued / skipped_by_setting / suppressed_by_priority / failed
+        # 提供失敗のみ error、それ以外は info で記録する。戻り値はそのまま返す
+        log = "announce '{}' provided -> {}".format(message, outcome)
+        if outcome == "failed":
+            self._node.get_logger().error(log)
+        else:
+            self._node.get_logger().info(log)
+        return outcome
+
     def send_announce(self, message):
+        # 提供結果を返す: played / queued / skipped_by_setting /
+        # suppressed_by_priority / failed
         priority = PRIORITY_DICT.get(message, 0)
         previous_priority = PRIORITY_DICT.get(self._current_announce, 0)
 
         if not self.check_announce_or_not(message):
-            return
+            return self._log_announce_outcome(message, "skipped_by_setting")
 
+        def _play():
+            return "played" if self.play_sound(message) else "failed"
+
+        outcome = "suppressed_by_priority"
         if priority == 3:
             self._sound.stop()
-            self.play_sound(message)
+            outcome = _play()
         elif priority == 2:
             if priority > previous_priority:
                 self._sound.stop()
-                self.play_sound(message)
+                outcome = _play()
             elif priority == previous_priority:
-                self.play_sound(message)
+                outcome = _play()
         elif priority == 1:
             if not previous_priority:
-                self.play_sound(message)
+                outcome = _play()
             elif previous_priority in [2, 1]:
                 self._pending_announce_list.append(
                     {
@@ -132,7 +164,9 @@ class AnnounceControllerProperty:
                         "requested_time": self._node.get_clock().now(),
                     }
                 )
+                outcome = "queued"
         self._current_announce = message
+        return self._log_announce_outcome(message, outcome)
 
     def stop_standing_announce(self):
         # MRM最優先: 再生中の立席アナウンスを停止する (画面はMRMへ切替わるため音声も揃える)

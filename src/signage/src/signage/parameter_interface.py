@@ -24,7 +24,8 @@ class SignageParameter:
     monitor_height: int = 540
     cvm_device_id: str = "in_vehicle_signage"
     standing_mode_default: bool = False
-    standing_warning_cooldown: float = 10.0
+    standing_depart_cooldown: float = 5.0
+    standing_sudden_cooldown: float = 10.0
     sudden_decel_threshold: float = 0.8
     sudden_decel_jerk_threshold: float = 0.6
     sudden_lateral_accel_threshold: float = 0.8
@@ -68,7 +69,8 @@ class ParameterInterface:
         node.declare_parameter("monitor_height", 540)
         node.declare_parameter("cvm_device_id", "in_vehicle_signage")
         node.declare_parameter("standing_mode_default", False)
-        node.declare_parameter("standing_warning_cooldown", 10.0)
+        node.declare_parameter("standing_depart_cooldown", 5.0)
+        node.declare_parameter("standing_sudden_cooldown", 10.0)
         node.declare_parameter("sudden_decel_threshold", 0.8)
         node.declare_parameter("sudden_decel_jerk_threshold", 0.6)
         node.declare_parameter("sudden_lateral_accel_threshold", 0.8)
@@ -124,8 +126,11 @@ class ParameterInterface:
         self.parameter.standing_mode_default = (
             node.get_parameter("standing_mode_default").get_parameter_value().bool_value
         )
-        self.parameter.standing_warning_cooldown = (
-            node.get_parameter("standing_warning_cooldown").get_parameter_value().double_value
+        self.parameter.standing_depart_cooldown = (
+            node.get_parameter("standing_depart_cooldown").get_parameter_value().double_value
+        )
+        self.parameter.standing_sudden_cooldown = (
+            node.get_parameter("standing_sudden_cooldown").get_parameter_value().double_value
         )
         self.parameter.sudden_decel_threshold = (
             node.get_parameter("sudden_decel_threshold").get_parameter_value().double_value

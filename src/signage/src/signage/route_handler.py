@@ -431,14 +431,15 @@ class RouteHandler:
         except Exception as e:
             self._node.get_logger().error("Error in getting calculate the time: " + str(e))
 
-    def _is_warning_active(self, trigger_time):
-        # トリガーからクールダウン(既定10s)経過までを「警告表示中」とみなす
+    def _is_warning_active(self, trigger_time, cooldown):
+        # トリガーからクールダウン経過までを「警告表示中」とみなす
+        # 表示秒数＝クールダウン (UC-02: 5s / UC-03: 10s) で連動する
         if trigger_time is None:
             return False
         return not utils.check_timeout(
             self._node.get_clock().now(),
             trigger_time,
-            self._parameter.standing_warning_cooldown,
+            cooldown,
         )
 
     def trigger_depart_warning(self):
@@ -446,27 +447,37 @@ class RouteHandler:
         # 立席運用モードOFF時は提供しない (SYS2-UC02-02)
         if not self._standing_mode.is_standing_mode:
             return False
-        # SYS2-UC02-05: クールダウン中の再発車はスキップ (キューに積まない)
-        if self._is_warning_active(self._depart_warning_time):
+        # SYS2-UC02-05: クールダウン(5s)中の再発車はスキップ (キューに積まない)
+        if self._is_warning_active(
+            self._depart_warning_time, self._parameter.standing_depart_cooldown
+        ):
+            # スキップした発車イベントも記録する (NFR-09/NFR-10)
+            self._node.get_logger().info(
+                "UC-02: depart event skipped in cooldown"
+            )
             return False
         self._depart_warning_time = self._node.get_clock().now()
+        # 提供結果 (played/queued/failed 等) は send_announce 側で記録される
         self._announce_interface.send_announce("standing_depart")
-        self._node.get_logger().info("UC-02: standing depart warning triggered")
         return True
 
     def trigger_sudden_warning(self, warning_type, reasons):
-        # SYS2-UC03-06: クールダウン中の同種イベントはスキップ (キューに積まない)
-        if self._is_warning_active(self._sudden_warning_time):
+        # SYS2-UC03-06: クールダウン(10s)中の同種イベントはスキップ (キューに積まない)
+        # スキップ分はログに残さず、実際に発話するときのみ記録する
+        if self._is_warning_active(
+            self._sudden_warning_time, self._parameter.standing_sudden_cooldown
+        ):
             return
         self._sudden_warning_time = self._node.get_clock().now()
         self._sudden_warning_type = warning_type
-        self._announce_interface.send_announce("standing_" + warning_type)
-        # 閾値チューニング用: どの値がどの閾値を超えてトリガーしたかを記録する
+        # 閾値チューニング用: どの値がどの閾値を超えて発話したかを記録する
+        # (提供結果 played/queued/failed 等は send_announce 側で別途記録される)
         self._node.get_logger().info(
-            "UC-03: standing sudden warning triggered (type={}): {}".format(
+            "UC-03: sudden motion triggered [{}: {}]".format(
                 warning_type, ", ".join(reasons)
             )
         )
+        self._announce_interface.send_announce("standing_" + warning_type)
 
     def sudden_motion_checker_callback(self):
         # UC-03: 急減速・急操舵の事後検知。立席運用モードON・走行中・MRM非作動のときのみ評価する。
@@ -492,12 +503,12 @@ class RouteHandler:
                         info.longitudinal_acceleration, param.sudden_decel_threshold
                     )
                 )
-            # jerk は減速方向 (負値) のみを対象とする。
-            # 加速方向 (正のjerk) は転倒リスクが低く、閾値以下 (例: -0.6以下) で判定する
-            if info.longitudinal_jerk <= -param.sudden_decel_jerk_threshold:
+            # 要件 (縦ジャーク |±0.6| 以上) に準拠し、加減速いずれの方向でも
+            # 絶対値が閾値以上なら急減速側の判定要因として扱う
+            if abs(info.longitudinal_jerk) >= param.sudden_decel_jerk_threshold:
                 decel_reasons.append(
-                    "jerk={:.3f} <= -{:.3f}".format(
-                        info.longitudinal_jerk, param.sudden_decel_jerk_threshold
+                    "|jerk|={:.3f} >= {:.3f}".format(
+                        abs(info.longitudinal_jerk), param.sudden_decel_jerk_threshold
                     )
                 )
 
@@ -559,10 +570,14 @@ class RouteHandler:
                 view_mode = "slowing"
             elif self._in_slow_stop_state:
                 view_mode = "slow_stop"
-            elif self._is_warning_active(self._sudden_warning_time):
+            elif self._is_warning_active(
+                self._sudden_warning_time, self._parameter.standing_sudden_cooldown
+            ):
                 # UC-03: 急減速・急操舵警告 (MRMの直下・発車警告より上位)
                 view_mode = "standing_sudden_warning"
-            elif self._is_warning_active(self._depart_warning_time):
+            elif self._is_warning_active(
+                self._depart_warning_time, self._parameter.standing_depart_cooldown
+            ):
                 # UC-02: 発車時警告
                 view_mode = "standing_depart_warning"
             elif self._is_stopping and self._current_task_details.departure_station != ["", ""]:

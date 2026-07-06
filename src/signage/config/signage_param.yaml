@@ -15,9 +15,10 @@ signage:
     monitor_height: 540
     cvm_device_id: in_vehicle_signage
     standing_mode_default: false # 立席運用モードの起動時デフォルト (ファイルが優先)
-    standing_warning_cooldown: 10.0 # second
+    standing_depart_cooldown: 5.0 # second (UC-02 発車警告の待ち時間 SYS2-UC02-01)
+    standing_sudden_cooldown: 10.0 # second (UC-03 急減速・急操舵警告の待ち時間 SYS2-UC03-06)
     sudden_decel_threshold: 0.8 # m/s^2 (acceleration <= -本値 で急減速)
-    sudden_decel_jerk_threshold: 0.6 # m/s^3 (jerk <= -本値 で急減速。減速方向のみ)
+    sudden_decel_jerk_threshold: 0.6 # m/s^3 (|jerk| >= 本値 で急減速。要件 縦ジャーク |±0.6| に準拠し両方向判定)
     sudden_lateral_accel_threshold: 0.8 # m/s^2 (lateral_acceleration_abs >= 本値)
     announce:
       emergency: true
