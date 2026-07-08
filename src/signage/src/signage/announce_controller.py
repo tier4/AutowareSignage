@@ -14,6 +14,8 @@ from std_srvs.srv import Trigger
 from tier4_hmi_msgs.srv import SetVolume
 from tier4_external_api_msgs.msg import ResponseStatus
 
+from signage.settings_store import KEY_VOLUME
+
 # The higher the value, the higher the priority
 PRIORITY_DICT = {
     "emergency": 3,
@@ -35,16 +37,18 @@ PRIORITY_DICT = {
     "going_to_arrive": 1,
 }
 
-CURRENT_VOLUME_PATH = "/opt/autoware/volume.txt"
-
-
 class AnnounceControllerProperty:
-    def __init__(self, node, autoware_interface, parameter_interface):
+    def __init__(self, node, autoware_interface, parameter_interface, settings_store):
         super(AnnounceControllerProperty, self).__init__()
 
         self._node = node
         self._parameter = parameter_interface.parameter
+        self._settings = settings_store
         self._announce_settings = parameter_interface.announce_settings
+        self._announce_interval = parameter_interface.announce_interval
+        # 発話カテゴリごとの前回発話時刻 (VVAS の TimeoutClass 相当)。
+        # 未発話のカテゴリはキーを持たず、in_interval は False を返す。
+        self._announce_timeout = {}
         self._current_announce = ""
         self._pending_announce_list = []
         self._sound = QSound("")
@@ -53,14 +57,12 @@ class AnnounceControllerProperty:
         self._check_playing_timer = self._node.create_timer(1, self.check_playing_callback)
 
         self._pulse = Pulse()
-        if os.path.isfile(CURRENT_VOLUME_PATH):
-            with open(CURRENT_VOLUME_PATH, "r") as f:
-                volume = f.readline()
-                if volume != "":
-                    self._sink = self._pulse.get_sink_by_name(
-                        self._pulse.server_info().default_sink_name
-                    )
-                    self._pulse.volume_set_all_chans(self._sink, float(volume))
+        volume = self._settings.get(KEY_VOLUME)
+        if volume is not None:
+            self._sink = self._pulse.get_sink_by_name(
+                self._pulse.server_info().default_sink_name
+            )
+            self._pulse.volume_set_all_chans(self._sink, float(volume))
 
         self._get_volume_pub = self._node.create_publisher(Float32, "~/get/volume", 1)
         self._node.create_timer(1.0, self.publish_volume_callback)
@@ -174,6 +176,19 @@ class AnnounceControllerProperty:
             self._sound.stop()
             self._current_announce = ""
 
+    def in_interval(self, category):
+        # VVAS の announce_interval と同方式: 前回発話から interval 秒未満なら True
+        # (= 再発話抑止中)。未発話のカテゴリは False (起動直後に警告表示が出ないように)。
+        trigger_time = self._announce_timeout.get(category)
+        if trigger_time is None:
+            return False
+        duration = getattr(self._announce_interval, category)
+        return self._node.get_clock().now() - trigger_time < Duration(seconds=duration)
+
+    def set_timeout(self, category):
+        # 発話トリガー時に呼び、当該カテゴリの前回発話時刻を「今」に更新する
+        self._announce_timeout[category] = self._node.get_clock().now()
+
     def announce_arrived(self):
         if self._parameter.signage_stand_alone:
             self.send_announce("thank_you")
@@ -193,8 +208,7 @@ class AnnounceControllerProperty:
         try:
             self._sink = self._pulse.get_sink_by_name(self._pulse.server_info().default_sink_name)
             self._pulse.volume_set_all_chans(self._sink, request.volume)
-            with open(CURRENT_VOLUME_PATH, "w") as f:
-                f.write(f"{self._sink.volume.value_flat}\n")
+            self._settings.set(KEY_VOLUME, self._sink.volume.value_flat)
             response.status.code = ResponseStatus.SUCCESS
         except Exception:
             response.status.code = ResponseStatus.ERROR

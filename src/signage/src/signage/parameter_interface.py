@@ -24,8 +24,6 @@ class SignageParameter:
     monitor_height: int = 540
     cvm_device_id: str = "in_vehicle_signage"
     standing_mode_default: bool = False
-    standing_depart_cooldown: float = 5.0
-    standing_sudden_cooldown: float = 10.0
     sudden_decel_threshold: float = 0.8
     sudden_decel_jerk_threshold: float = 0.6
     sudden_lateral_accel_threshold: float = 0.8
@@ -47,10 +45,19 @@ class AnnounceParameter:
     standing_sudden: bool = True
 
 
+@dataclass
+class AnnounceIntervalParameter:
+    # 発話後にその期間だけ再発話を抑止する (秒)。VVAS の announce_interval と同方式。
+    # standing_sudden は急減速/急操舵/複合の3種で共有する (VVAS の turn_signal と同様)。
+    standing_depart: float = 5.0  # UC-02 発車警告 (SYS2-UC02-01)
+    standing_sudden: float = 10.0  # UC-03 急減速・急操舵警告 (SYS2-UC03-06)
+
+
 class ParameterInterface:
     def __init__(self, node):
         self.parameter = SignageParameter()
         self.announce_settings = AnnounceParameter()
+        self.announce_interval = AnnounceIntervalParameter()
 
         node.declare_parameter("debug_mode", False)
         node.declare_parameter("use_external_signage", False)
@@ -69,8 +76,6 @@ class ParameterInterface:
         node.declare_parameter("monitor_height", 540)
         node.declare_parameter("cvm_device_id", "in_vehicle_signage")
         node.declare_parameter("standing_mode_default", False)
-        node.declare_parameter("standing_depart_cooldown", 5.0)
-        node.declare_parameter("standing_sudden_cooldown", 10.0)
         node.declare_parameter("sudden_decel_threshold", 0.8)
         node.declare_parameter("sudden_decel_jerk_threshold", 0.6)
         node.declare_parameter("sudden_lateral_accel_threshold", 0.8)
@@ -126,12 +131,6 @@ class ParameterInterface:
         self.parameter.standing_mode_default = (
             node.get_parameter("standing_mode_default").get_parameter_value().bool_value
         )
-        self.parameter.standing_depart_cooldown = (
-            node.get_parameter("standing_depart_cooldown").get_parameter_value().double_value
-        )
-        self.parameter.standing_sudden_cooldown = (
-            node.get_parameter("standing_sudden_cooldown").get_parameter_value().double_value
-        )
         self.parameter.sudden_decel_threshold = (
             node.get_parameter("sudden_decel_threshold").get_parameter_value().double_value
         )
@@ -161,4 +160,16 @@ class ParameterInterface:
                 self.announce_settings,
                 key,
                 announce_prefix[key].get_parameter_value().bool_value,
+            )
+
+        node.declare_parameter("announce_interval.standing_depart", 5.0)
+        node.declare_parameter("announce_interval.standing_sudden", 10.0)
+
+        announce_interval_prefix = node.get_parameters_by_prefix("announce_interval")
+
+        for key in announce_interval_prefix.keys():
+            setattr(
+                self.announce_interval,
+                key,
+                announce_interval_prefix[key].get_parameter_value().double_value,
             )

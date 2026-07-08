@@ -14,6 +14,7 @@ from signage.autoware_interface import AutowareInterface
 from signage.cvm_interface import CvmInterface
 from signage.parameter_interface import ParameterInterface
 from signage.route_handler import RouteHandler
+from signage.settings_store import SettingsStore
 from signage.standing_mode_interface import StandingModeInterface
 from signage.ros_service_interface import RosServiceInterface
 from ament_index_python.packages import get_package_share_directory
@@ -30,13 +31,16 @@ def main(args=None):
 
     heartbeat = Heartbeat(node)
     parameter_interface = ParameterInterface(node)
+    settings_store = SettingsStore(node)
     autoware_interface = AutowareInterface(node, parameter_interface)
     ros_service_interface = RosServiceInterface(node, parameter_interface)
     viewController = ViewControllerProperty(node, parameter_interface)
-    announceController = AnnounceControllerProperty(node, autoware_interface, parameter_interface)
+    announceController = AnnounceControllerProperty(
+        node, autoware_interface, parameter_interface, settings_store
+    )
     cvm_interface = CvmInterface(node, parameter_interface.parameter.cvm_device_id)
     standing_mode_interface = StandingModeInterface(
-        node, autoware_interface, parameter_interface
+        node, autoware_interface, parameter_interface, settings_store
     )
     route_handler = RouteHandler(
         node,

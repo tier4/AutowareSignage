@@ -63,8 +63,8 @@ class RouteHandler:
 
         # 立席運行 転倒防止アナウンスの状態 (UC-02/UC-03)
         # 発車警告と急減速・急操舵警告はそれぞれ独立したクールダウンを持つ
-        self._depart_warning_time = None
-        self._sudden_warning_time = None
+        # 再発話抑止・警告表示時間は announce_controller の announce_interval で管理する
+        # (VVAS と同方式)。ここでは表示に使う直近の急制動種別のみ保持する。
         self._sudden_warning_type = ""
 
         self.process_station_list_from_fms()
@@ -431,41 +431,26 @@ class RouteHandler:
         except Exception as e:
             self._node.get_logger().error("Error in getting calculate the time: " + str(e))
 
-    def _is_warning_active(self, trigger_time, cooldown):
-        # トリガーからクールダウン経過までを「警告表示中」とみなす
-        # 表示秒数＝クールダウン (UC-02: 5s / UC-03: 10s) で連動する
-        if trigger_time is None:
-            return False
-        return not utils.check_timeout(
-            self._node.get_clock().now(),
-            trigger_time,
-            cooldown,
-        )
-
     def trigger_depart_warning(self):
         # standing_depart を再生したら True を返す (発進アナウンスを兼ねるため呼び出し側で利用)
         # 立席運用モードOFF時は提供しない (SYS2-UC02-02)
         if not self._standing_mode.is_standing_mode:
             return False
-        # SYS2-UC02-05: クールダウン(5s)中の再発車はスキップ (キューに積まない)
+        # SYS2-UC02-05: インターバル(5s)中の再発車はスキップ (キューに積まない)
         # スキップ分はログに残さず、実際に発話するときのみ記録する (UC-03 と方針統一)
-        if self._is_warning_active(
-            self._depart_warning_time, self._parameter.standing_depart_cooldown
-        ):
+        if self._announce_interface.in_interval("standing_depart"):
             return False
-        self._depart_warning_time = self._node.get_clock().now()
+        self._announce_interface.set_timeout("standing_depart")
         # 提供結果 (played/queued/failed 等) は send_announce 側で記録される
         self._announce_interface.send_announce("standing_depart")
         return True
 
     def trigger_sudden_warning(self, warning_type, reasons):
-        # SYS2-UC03-06: クールダウン(10s)中の同種イベントはスキップ (キューに積まない)
+        # SYS2-UC03-06: インターバル(10s)中の同種イベントはスキップ (キューに積まない)
         # スキップ分はログに残さず、実際に発話するときのみ記録する
-        if self._is_warning_active(
-            self._sudden_warning_time, self._parameter.standing_sudden_cooldown
-        ):
+        if self._announce_interface.in_interval("standing_sudden"):
             return
-        self._sudden_warning_time = self._node.get_clock().now()
+        self._announce_interface.set_timeout("standing_sudden")
         self._sudden_warning_type = warning_type
         # 閾値チューニング用: どの値がどの閾値を超えて発話したかを記録する
         # (提供結果 played/queued/failed 等は send_announce 側で別途記録される)
@@ -567,15 +552,12 @@ class RouteHandler:
                 view_mode = "slowing"
             elif self._in_slow_stop_state:
                 view_mode = "slow_stop"
-            elif self._is_warning_active(
-                self._sudden_warning_time, self._parameter.standing_sudden_cooldown
-            ):
+            elif self._announce_interface.in_interval("standing_sudden"):
                 # UC-03: 急減速・急操舵警告 (MRMの直下・発車警告より上位)
+                # 表示時間＝再発話抑止インターバル (announce_interval.standing_sudden) で連動
                 view_mode = "standing_sudden_warning"
-            elif self._is_warning_active(
-                self._depart_warning_time, self._parameter.standing_depart_cooldown
-            ):
-                # UC-02: 発車時警告
+            elif self._announce_interface.in_interval("standing_depart"):
+                # UC-02: 発車時警告 (表示時間＝announce_interval.standing_depart)
                 view_mode = "standing_depart_warning"
             elif self._is_stopping and self._current_task_details.departure_station != ["", ""]:
                 view_mode = "stopping"
