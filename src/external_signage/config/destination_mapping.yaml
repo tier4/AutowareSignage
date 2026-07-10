@@ -14,8 +14,9 @@
 #   destination/shibuya_128x16.td5 と destination/shibuya_80x24.td5 を配置し、
 #   下記に "01JXXXX...shibuya": "shibuya" を追加する。
 #
-# 未登録の destination.id、td5 未配置/ロード失敗、行先なしの場合は空白 (null td5) を表示する。
-# doing/todo タスクが存在しない (スケジュール完了/未登録) 場合は回送中 (kaiso td5) を表示する。
+# 未登録の destination.id、td5 未配置/ロード失敗の場合は空白 (null td5) を表示する。
+# 有効な行先が取れない状態 (スケジュール無し/未受信/未登録/doing・todo 全完了) は
+# 回送中 (kaiso td5) を表示する。行先表示モードでは走行中の自動運行中表示は行わない。
 #
 # 実 td5 ファイルはディスプレイベンダ提供ツールで事前作成する。
 destination_mapping: {}

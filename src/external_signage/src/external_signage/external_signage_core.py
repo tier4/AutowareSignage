@@ -459,16 +459,19 @@ class ExternalSignage:
         self._display_state(state_key)
 
     def _resolve_destination(self, data):
-        # 行先決定ロジック: doing[0] -> todo[0] -> 行先なし。
+        # 行先決定ロジック: doing[0] -> todo[0] -> 有効な行先なし。
         # 戻り値 (state_key, detail)。state_key は displays のデータキー (prefix / "kaiso" / "null")。
+        # 有効な行先が取れない状態 (スケジュール無し/未登録/全完了) は回送中 (kaiso) とする (SYS-HMI-08)。
+        # 行先表示モードでは走行中の自動運行中(auto)表示は行わない。
         if not data:
-            return "null", "no schedule"
+            # スケジュール無し/未受信 -> 回送中
+            return "kaiso", "no schedule"
         tasks = data.get("tasks", [])
         doing = [t for t in tasks if t.get("task_type") == "move" and t.get("status") == "doing"]
         todo = [t for t in tasks if t.get("task_type") == "move" and t.get("status") == "todo"]
         task = doing[0] if doing else (todo[0] if todo else None)
         if task is None:
-            # doing/todo タスクなし = スケジュール完了/未登録 -> 回送中 (SYS-HMI-08)
+            # doing/todo の move タスクなし = スケジュール完了/未登録 -> 回送中
             return "kaiso", "schedule complete"
         dest_id = (task.get("destination") or {}).get("id")
         if not dest_id:
