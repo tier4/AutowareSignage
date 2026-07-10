@@ -1,0 +1,18 @@
+# SYS-HMI-03 車外サイネージ行先表示: destination.id と td5ファイル名prefix の対応表
+#
+# active_schedule (FMS) の move タスクの destination.id をキーに、表示する td5 ファイルの
+# prefix を引く。td5 ファイルは以下の命名規約で配置する:
+#
+#   resource/td5_file/destination/{prefix}_{width}x{height}.td5
+#     front / back = 128x16, side = 80x24 (両サイズを用意する)
+#
+# 例) destination.id "01JXXXX...shibuya" を prefix "shibuya" に対応させる場合、
+#   destination/shibuya_128x16.td5 と destination/shibuya_80x24.td5 を配置し、
+#   下記に "01JXXXX...shibuya": "shibuya" を追加する。
+#
+# 未登録の destination.id、td5 未配置/ロード失敗、行先なしの場合は空白 (null td5) を表示する。
+# doing/todo タスクが存在しない (スケジュール完了/未登録) 場合は回送中 (kaiso td5) を表示する。
+#
+# 実 td5 ファイルはディスプレイベンダ提供ツールで事前作成する。
+destination_mapping: {}
+  # "01EXAMPLE_DESTINATION_ID": "example"
