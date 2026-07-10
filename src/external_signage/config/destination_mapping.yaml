@@ -1,5 +1,9 @@
 # SYS-HMI-03 車外サイネージ行先表示: destination.id と td5ファイル名prefix の対応表
 #
+# 【これはテンプレート】実行時は /opt/autoware/destination_mapping.yaml を読み込む。
+# 同ファイルが無ければ本テンプレートが自動コピーされる。運用時の紐付け編集は
+# /opt/autoware/destination_mapping.yaml 側を直接編集する(リビルド不要で反映)。
+#
 # active_schedule (FMS) の move タスクの destination.id をキーに、表示する td5 ファイルの
 # prefix を引く。td5 ファイルは以下の命名規約で配置する:
 #
