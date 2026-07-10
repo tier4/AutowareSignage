@@ -18,6 +18,12 @@ shibuya_128x16.td5
 shibuya_80x24.td5
 ```
 
+## destination.id との紐付け
+
+`destination.id` と prefix の対応は外部ファイル **`/opt/autoware/destination_mapping.yaml`** に記載する
+（`signage_settings.json` と同じ場所。リビルド不要で編集反映）。同ファイルが無い場合は
+パッケージ同梱テンプレート `config/destination_mapping.yaml` が起動時に自動コピーされる。
+
 ## 補足
 
 - td5 ファイルはディスプレイベンダ提供ツールで事前作成する（実行時に動的生成しない）。

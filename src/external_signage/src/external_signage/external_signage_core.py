@@ -15,6 +15,11 @@ from autoware_adapi_v1_msgs.msg import MrmState
 from std_msgs.msg import String
 from level4_mode_manager_msgs.msg import Level4DrivingStatus
 
+# SYS-HMI-03: destination.id -> td5ファイル名prefix の紐付けを記載する外部ファイル。
+# signage_settings.json と同様に /opt/autoware 下へ置き、リビルド不要で運用時に編集できる。
+# 存在しなければパッケージ同梱テンプレート (config/destination_mapping.yaml) から生成する。
+DESTINATION_MAPPING_PATH = "/opt/autoware/destination_mapping.yaml"
+
 
 @dataclass
 class Display:
@@ -230,24 +235,40 @@ class ExternalSignage:
         self.mode_status_pub_.publish(msg)
 
     def _load_destination_mapping(self):
-        # destination_mapping.yaml (destination.id -> td5ファイル名prefix) をロードする。
-        # ファイルが無い/壊れている場合は空マッピングで継続する (フォールバックで null 表示)。
-        mapping_path = (
-            get_package_share_directory("external_signage") + "/config/destination_mapping.yaml"
-        )
+        # destination.id -> td5ファイル名prefix の紐付けを外部ファイル (/opt/autoware) から読む。
+        # 無ければパッケージ同梱テンプレートから生成する。壊れている場合は空マッピングで継続する
+        # (フォールバックで null 表示)。運用時はこの外部ファイルを編集すればリビルド不要で反映される。
         try:
-            with open(mapping_path, "r") as f:
+            if not os.path.isfile(DESTINATION_MAPPING_PATH):
+                self._seed_destination_mapping()
+            with open(DESTINATION_MAPPING_PATH, "r") as f:
                 data = yaml.safe_load(f) or {}
             mapping = data.get("destination_mapping", {}) or {}
             self.node.get_logger().info(
-                "loaded destination_mapping: {} entries".format(len(mapping))
+                "loaded destination_mapping from {}: {} entries".format(
+                    DESTINATION_MAPPING_PATH, len(mapping)
+                )
             )
             return mapping
         except Exception as e:
             self.node.get_logger().warning(
-                "destination_mapping.yaml load failed, use empty mapping: " + str(e)
+                "destination_mapping load failed ({}), use empty mapping: {}".format(
+                    DESTINATION_MAPPING_PATH, str(e)
+                )
             )
             return {}
+
+    def _seed_destination_mapping(self):
+        # 初回のみ: パッケージ同梱テンプレートを /opt/autoware へコピーして初期化する。
+        template = (
+            get_package_share_directory("external_signage") + "/config/destination_mapping.yaml"
+        )
+        os.makedirs(os.path.dirname(DESTINATION_MAPPING_PATH), exist_ok=True)
+        with open(template, "r") as src, open(DESTINATION_MAPPING_PATH, "w") as dst:
+            dst.write(src.read())
+        self.node.get_logger().info(
+            "seeded destination_mapping template to {}".format(DESTINATION_MAPPING_PATH)
+        )
 
     def _load_td5(self, path, display):
         return packet_tools.TD5Data(
