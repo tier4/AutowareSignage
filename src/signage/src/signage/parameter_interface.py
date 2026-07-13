@@ -40,7 +40,6 @@ class AnnounceParameter:
     going_to_arrive: bool = True
     arrive_caution: bool = True
     temporary_stop: bool = True
-    obstacle_stop: bool = True
 
 
 @dataclass
@@ -136,9 +135,7 @@ class ParameterInterface:
         node.declare_parameter("announce.going_to_depart", True)
         node.declare_parameter("announce.going_to_arrive", True)
         node.declare_parameter("announce.arrive_caution", True)
-        node.declare_parameter("announce.arrived", True)
         node.declare_parameter("announce.temporary_stop", True)
-        node.declare_parameter("announce.obstacle_stop", True)
 
         announce_prefix = node.get_parameters_by_prefix("announce")
 

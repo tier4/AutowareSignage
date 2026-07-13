@@ -35,8 +35,6 @@ STOP_ANNOUNCE_BEHAVIORS = [
     "user-defined-attention-area",
     "virtual-traffic-light",
 ]
-# 障害物起因の停止。車内は障害物のみ区別し、横断歩道・一般は temporary_stop で共通とする。
-OBSTACLE_BEHAVIORS = ["surrounding-obstacle", "route-obstacle"]
 
 
 class RouteHandler:
@@ -253,20 +251,14 @@ class RouteHandler:
             ):
                 if self._announce_interface.in_interval("stop_reason"):
                     return
-                category = self._select_stop_category(matched_behaviors)
-                self._announce_interface.send_announce(category)
+                # 停止種別によらず「停車します」で共通案内する (UC-04, SYS-HMI-04/05/06)
+                self._announce_interface.send_announce("temporary_stop")
                 self._announce_interface.set_timeout("stop_reason")
                 self._stop_announce_executed = True
         except Exception as e:
             self._node.get_logger().error(
                 "not able to check the stop reason, ERROR: {}".format(str(e))
             )
-
-    def _select_stop_category(self, behaviors):
-        # 車内は障害物のみ区別し、横断歩道・一般は temporary_stop で共通 (SYS-HMI-04/05/06)。
-        if any(behavior in OBSTACLE_BEHAVIORS for behavior in behaviors):
-            return "obstacle_stop"
-        return "temporary_stop"
 
     def process_station_list_from_fms(self, force_update=False):
         try:
@@ -336,7 +328,7 @@ class RouteHandler:
             # UC-05: 終点は従来の thank_you、通常停留所は到着案内(arrived)に分岐する
             is_final = not self.task_list.todo_list
             arrived_station = self._current_task_details.arrival_station
-            self._announce_interface.announce_arrived(is_final)
+            self._announce_interface.announce_arrived()
             # 次の接近で再度安全配慮を出せるようリセット
             self._announced_arrive_caution = False
 

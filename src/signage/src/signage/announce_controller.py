@@ -24,9 +24,8 @@ PRIORITY_DICT = {
     "arrived": 2,
     "thank_you": 2,
     "in_emergency": 2,
-    # UC-04 停止案内 (SYS-HMI-04/05/06)。engage 等と同格の安全配慮アナウンス。
+    # UC-04 停止案内 (SYS-HMI-04/05/06)。障害物/横断歩道/一般とも共通で「停車します」。
     "temporary_stop": 2,
-    "obstacle_stop": 2,
     "going_to_depart": 1,
     "going_to_arrive": 1,
     "arrive_caution": 1,  # UC-05 接近時(10m)の車内安全配慮アナウンス (SYS-HMI-07)
@@ -131,10 +130,11 @@ class AnnounceControllerProperty:
                 )
         self._current_announce = message
 
-    def announce_arrived(self, is_final=False):
+    def announce_arrived(self):
         if self._parameter.signage_stand_alone:
-            # 終点は従来の「ご乗車ありがとうございました」、通常停留所は到着案内 (SYS-HMI-07)
-            self.send_announce("thank_you" if is_final else "arrived")
+            # 終点・通常停留所とも音声は「ご乗車ありがとうございました」(thank_you) を流用する。
+            # 到着停留所名は route_handler 側の乗客サイネージ表示で提示する (SYS-HMI-07)。
+            self.send_announce("thank_you")
 
     def in_interval(self, category):
         # VVAS の announce_interval と同方式: 前回発話から interval 秒未満なら True
