@@ -24,8 +24,12 @@ PRIORITY_DICT = {
     "arrived": 2,
     "thank_you": 2,
     "in_emergency": 2,
+    # UC-04 停止案内 (SYS-HMI-04/05/06)。engage 等と同格の安全配慮アナウンス。
+    "temporary_stop": 2,
+    "obstacle_stop": 2,
     "going_to_depart": 1,
     "going_to_arrive": 1,
+    "arrive_caution": 1,  # UC-05 接近時(10m)の車内安全配慮アナウンス (SYS-HMI-07)
 }
 
 CURRENT_VOLUME_PATH = "/opt/autoware/volume.txt"
@@ -40,6 +44,9 @@ class AnnounceControllerProperty:
         self._announce_settings = parameter_interface.announce_settings
         self._current_announce = ""
         self._pending_announce_list = []
+        # UC-04/05: 発話後の再発話抑止 (announce_interval 方式)。category -> 前回発話時刻
+        self._announce_timeout = {}
+        self._announce_interval = parameter_interface.announce_interval
         self._sound = QSound("")
         self._prev_depart_and_arrive_type = ""
         self._package_path = get_package_share_directory("signage") + "/resource/sound/"
@@ -124,9 +131,23 @@ class AnnounceControllerProperty:
                 )
         self._current_announce = message
 
-    def announce_arrived(self):
+    def announce_arrived(self, is_final=False):
         if self._parameter.signage_stand_alone:
-            self.send_announce("thank_you")
+            # 終点は従来の「ご乗車ありがとうございました」、通常停留所は到着案内 (SYS-HMI-07)
+            self.send_announce("thank_you" if is_final else "arrived")
+
+    def in_interval(self, category):
+        # VVAS の announce_interval と同方式: 前回発話から interval 秒未満なら True
+        # (= 再発話抑止中)。未発話のカテゴリは False (起動直後に表示が出ないように)。
+        trigger_time = self._announce_timeout.get(category)
+        if trigger_time is None:
+            return False
+        duration = getattr(self._announce_interval, category)
+        return self._node.get_clock().now() - trigger_time < Duration(seconds=duration)
+
+    def set_timeout(self, category):
+        # 発話トリガー時に呼び、当該カテゴリの前回発話時刻を「今」に更新する
+        self._announce_timeout[category] = self._node.get_clock().now()
 
     def announce_emergency(self, message):
         if self._parameter.signage_stand_alone:

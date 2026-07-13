@@ -3,7 +3,7 @@
 
 import math
 import rclpy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from autoware_adapi_v1_msgs.msg import (
     RouteState,
     Route,
@@ -33,6 +33,8 @@ class AutowareInformation:
     motion_state: int = 0
     localization_init_state: int = 0
     active_schedule: str = ""
+    # UC-04: 停止種別判定に使用する velocity_factors (VelocityFactor のリスト)
+    velocity_factors: list = field(default_factory=list)
 
 
 class AutowareInterface:
@@ -110,7 +112,13 @@ class AutowareInterface:
             self.sub_active_schedule_callback,
             sub_qos,
         )
-        self._sub_active_schedule = node.create_subscription(
+        self._sub_velocity_factor = node.create_subscription(
+            VelocityFactorArray,
+            "/api/planning/velocity_factors",
+            self.sub_velocity_factor_callback,
+            sub_qos,
+        )
+        self._sub_heartbeat = node.create_subscription(
             Heartbeat,
             "/api/system/heartbeat",
             self.sub_heartbeat_callback,
@@ -198,6 +206,12 @@ class AutowareInterface:
             self.information.active_schedule = msg.data
         except Exception as e:
             self._node.get_logger().error("Unable to get the active schedule, ERROR: " + str(e))
+
+    def sub_velocity_factor_callback(self, msg):
+        try:
+            self.information.velocity_factors = msg.factors
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the velocity factors, ERROR: " + str(e))
 
     def sub_heartbeat_callback(self, msg):
         try:
