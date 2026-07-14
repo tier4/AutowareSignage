@@ -309,7 +309,9 @@ class RouteHandler:
 
     def arrived_goal(self):
         try:
-            # UC-05: 終点は従来の thank_you、通常停留所は到着案内(arrived)に分岐する
+            # UC-05: 音声は終点・通常停留所とも thank_you で共通 (announce_arrived)。
+            # 通常停留所のみ乗客サイネージに到着表示 (arrived) を出す。終点は _reach_final
+            # 経由で「終点です」表示になるため到着表示 (set_timeout) は行わない。
             is_final = not self.task_list.todo_list
             arrived_station = self._current_task_details.arrival_station
             self._announce_interface.announce_arrived()
@@ -526,6 +528,10 @@ class RouteHandler:
                 view_mode = "slowing"
             elif self._in_slow_stop_state:
                 view_mode = "slow_stop"
+            elif self._announce_interface.in_interval("arrived"):
+                # UC-05 (SYS-HMI-07): 到着直後 announce_interval.arrived 秒間は
+                # 「‹停留所名›に到着しました」を専用画面で表示する (stopping より優先)
+                view_mode = "arrived"
             elif self._is_stopping and self._current_task_details.departure_station != ["", ""]:
                 view_mode = "stopping"
             elif self._is_driving and self._current_task_details.arrival_station != ["", ""]:

@@ -55,6 +55,11 @@ Window {
         visible: viewController.view_mode === "out_of_service"
     }
 
+    ArrivedView {
+        id: arrivedView
+        visible: viewController.view_mode === "arrived"
+    }
+
     BusStopView {
         id: busStopView
         visible: viewController.view_mode === "stopping"
