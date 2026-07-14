@@ -455,8 +455,9 @@ class RouteHandler:
                 # UC-05: 停止後 announce_interval.arrived の間「‹停留所名›に到着しました」を表示
                 self._display_phrase = utils.handle_phrase("arrived", self._arrived_station[0])
             elif self._reach_final:
-                # display arrive to final station
-                self._display_phrase = utils.handle_phrase("final")
+                # 終点では「終点です」の文言表示は行わない (ユーザー方針 2026-07-14)。
+                # is_stopping ブランチに落として発車待ち文言を出さないよう、ここで空表示に固定する。
+                self._display_phrase = ""
             elif self._is_stopping:
                 # handle text and announce while bus is stopping
                 if remain_minute > 2:
