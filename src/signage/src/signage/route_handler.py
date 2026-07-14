@@ -15,27 +15,6 @@ from autoware_adapi_v1_msgs.msg import (
     LocalizationInitializationState,
 )
 
-# 停止種別判定に使う PlanningBehavior 文字列 (SYS-HMI-04/05/06)。車外(VVAS)と同一集合。
-STOP_ANNOUNCE_BEHAVIORS = [
-    "avoidance",
-    "crosswalk",
-    "goal-planner",
-    "intersection",
-    "lane-change",
-    "merge",
-    "no-drivable-lane",
-    "no-stopping-area",
-    "rear-check",
-    "route-obstacle",
-    "sidewalk",
-    "start-planner",
-    "stop-sign",
-    "surrounding-obstacle",
-    "traffic-signal",
-    "user-defined-attention-area",
-    "virtual-traffic-light",
-]
-
 
 class RouteHandler:
     def __init__(
@@ -58,7 +37,7 @@ class RouteHandler:
         self._schedule_details = utils.init_ScheduleDetails()
         self._display_details = utils.init_DisplayDetails()
         self._current_task_details = utils.init_CurrentTask()
-        self._task_list = utils.init_TaskList()
+        self.task_list = utils.init_TaskList()
         self._display_phrase = ""
         self._in_emergency_state = False
         self._emergency_trigger_time = self._node.get_clock().now()
@@ -81,7 +60,8 @@ class RouteHandler:
         self._announced_arrive_caution = False
         self._arrived_station = ["", ""]
         # UC-04: 停止1回につき停止案内は1回。再発進でリセットする。
-        self._stop_announce_executed = False
+        # 初期値 True (disarm) = 未発進では発話しない。最初の実発進で arm される。
+        self._stop_announce_executed = True
         self._trigger_external_signage = False
         self._processing_thread = False
 
@@ -226,8 +206,12 @@ class RouteHandler:
             self._node.get_logger().error("not able to play the announce, ERROR: {}".format(str(e)))
 
     def stop_reason_checker_callback(self):
-        # UC-04 (SYS-HMI-04/05/06): 停止種別に応じた車内アナウンスを提供する。
-        # 停止種別は /api/planning/velocity_factors の behavior から判定する。
+        # UC-04 (SYS-HMI-04/05/06): 走行中の予定外停止で車内に「停車します」と案内する。
+        # 停止種別 (障害物/横断歩道/一般) は車内では区別しないため停止理由は参照しない。
+        # e2e プランナでは停止理由 (velocity_factors の behavior) が出ない場合があるため、
+        # 停止理由に依存せず運行状態から一時停止を判定する:
+        #   AUTONOMOUS 走行中 (route 継続中) にゴール手前で停止 = 障害物/信号/横断歩道等の一時停止。
+        #   到着停止 (AUTONOMOUS 離脱 & ゴール近傍) と発進待ちは除外される。
         try:
             if not self._parameter.signage_stand_alone:
                 return
@@ -236,22 +220,22 @@ class RouteHandler:
             # MRM (緊急停止) 中は停止案内より緊急案内を優先するためスキップ
             if self._in_emergency_state:
                 return
+            # 発進前 (発進待ち) は disarm 状態。最初の STOPPED->MOVING (実発進) で
+            # announce_engage_when_starting が arm (False) する。engage 直後の
+            # 「AUTONOMOUS だが未発進で停止中」での誤発話を防ぐ。
             if self._stop_announce_executed:
                 return
 
-            matched_behaviors = [
-                factor.behavior
-                for factor in self._autoware.information.velocity_factors
-                if factor.behavior in STOP_ANNOUNCE_BEHAVIORS
-            ]
-
-            if (
-                matched_behaviors
-                and self._autoware.information.motion_state == MotionState.STOPPED
-            ):
+            info = self._autoware.information
+            is_temporary_stop = (
+                info.operation_mode == OperationModeState.AUTONOMOUS
+                and info.route_state == RouteState.SET
+                and info.motion_state == MotionState.STOPPED
+                and info.goal_distance > self._parameter.arriving_distance
+            )
+            if is_temporary_stop:
                 if self._announce_interface.in_interval("stop_reason"):
                     return
-                # 停止種別によらず「停車します」で共通案内する (UC-04, SYS-HMI-04/05/06)
                 self._announce_interface.send_announce("temporary_stop")
                 self._announce_interface.set_timeout("stop_reason")
                 self._stop_announce_executed = True
@@ -445,6 +429,19 @@ class RouteHandler:
 
     def calculate_time_callback(self):
         try:
+            # UC-05 (SYS-HMI-07): 接近10mの車内安全配慮は FMS スケジュールに依存しない
+            # (_is_driving と goal_distance だけで判定できる) ため、FMS タスク未取得でも
+            # 発話できるよう以降の FMS ゲートより前で評価する。
+            if (
+                self._is_driving
+                and 0
+                < self._autoware.information.goal_distance
+                < self._parameter.arriving_distance
+                and not self._announced_arrive_caution
+            ):
+                self._announce_interface.send_announce("arrive_caution")
+                self._announced_arrive_caution = True
+
             if self._current_task_details == utils.init_CurrentTask():
                 return
 
@@ -491,16 +488,6 @@ class RouteHandler:
                         self._announced_arrive = True
                 else:
                     self._display_phrase = ""
-
-                # UC-05: 接近10mで車内安全配慮アナウンス (到着予告とは独立、SYS-HMI-07)
-                if (
-                    0
-                    < self._autoware.information.goal_distance
-                    < self._parameter.arriving_distance
-                    and not self._announced_arrive_caution
-                ):
-                    self._announce_interface.send_announce("arrive_caution")
-                    self._announced_arrive_caution = True
             else:
                 self._display_phrase = ""
         except Exception as e:
