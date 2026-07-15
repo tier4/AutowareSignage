@@ -15,7 +15,7 @@ from autoware_adapi_v1_msgs.msg import MrmState
 from std_msgs.msg import String
 from level4_mode_manager_msgs.msg import Level4DrivingStatus
 
-# SYS-HMI-03: destination.id -> td5ファイル名prefix の紐付けを記載する外部ファイル。
+# SYS-HMI-03: destination.point_id -> td5ファイル名prefix の紐付けを記載する外部ファイル。
 # signage_settings.json と同様に /opt/autoware 下へ置き、リビルド不要で運用時に編集できる。
 # 存在しなければパッケージ同梱テンプレート (config/destination_mapping.yaml) から生成する。
 DESTINATION_MAPPING_PATH = "/opt/autoware/destination_mapping.yaml"
@@ -119,7 +119,7 @@ class ExternalSignage:
         node.declare_parameter("serial_port", "/dev/ttyS0")
         self._serial_port = node.get_parameter("serial_port").get_parameter_value().string_value
 
-        # SYS-HMI-03: 行先表示用の destination.id -> td5ファイル名prefix 対応を起動時にロードする
+        # SYS-HMI-03: 行先表示用の destination.point_id -> td5ファイル名prefix 対応を起動時にロードする
         self._destination_mapping = self._load_destination_mapping()
         self._last_schedule_raw = ""
 
@@ -235,15 +235,17 @@ class ExternalSignage:
         self.mode_status_pub_.publish(msg)
 
     def _load_destination_mapping(self):
-        # destination.id -> td5ファイル名prefix の紐付けを外部ファイル (/opt/autoware) から読む。
+        # destination.point_id -> td5ファイル名prefix の紐付けを外部ファイル (/opt/autoware) から読む。
         # 無ければパッケージ同梱テンプレートから生成する。壊れている場合は空マッピングで継続する
         # (フォールバックで null 表示)。運用時はこの外部ファイルを編集すればリビルド不要で反映される。
+        # point_id は整数だが YAML キーの引用有無で int/str が揺れるため、キーを str に正規化して保持する。
         try:
             if not os.path.isfile(DESTINATION_MAPPING_PATH):
                 self._seed_destination_mapping()
             with open(DESTINATION_MAPPING_PATH, "r") as f:
                 data = yaml.safe_load(f) or {}
-            mapping = data.get("destination_mapping", {}) or {}
+            raw_mapping = data.get("destination_mapping", {}) or {}
+            mapping = {str(k): v for k, v in raw_mapping.items()}
             self.node.get_logger().info(
                 "loaded destination_mapping from {}: {} entries".format(
                     DESTINATION_MAPPING_PATH, len(mapping)
@@ -473,14 +475,18 @@ class ExternalSignage:
         if task is None:
             # doing/todo の move タスクなし = スケジュール完了/未登録 -> 回送中
             return "kaiso", "schedule complete"
-        dest_id = (task.get("destination") or {}).get("id")
-        if not dest_id:
-            return "null", "no destination id"
-        prefix = self._destination_mapping.get(dest_id)
+        dest = task.get("destination") or {}
+        point_id = dest.get("point_id")
+        dest_name = dest.get("name")
+        if point_id is None:
+            return "null", "no destination point_id"
+        prefix = self._destination_mapping.get(str(point_id))
         if not prefix:
-            self.node.get_logger().warning("destination id not in mapping: " + str(dest_id))
-            return "null", "unmapped:" + str(dest_id)
-        return prefix, str(dest_id)
+            self.node.get_logger().warning(
+                "destination point_id not in mapping: {} ({})".format(point_id, dest_name)
+            )
+            return "null", "unmapped:{}".format(point_id)
+        return prefix, "point_id={} name={}".format(point_id, dest_name)
 
     def _display_state(self, state_key):
         # 指定キーの td5 が全ディスプレイに揃っていなければ null (空白) にフォールバックする。
