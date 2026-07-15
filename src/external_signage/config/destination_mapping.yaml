@@ -4,8 +4,12 @@
 # 同ファイルが無ければ本テンプレートが自動コピーされる。運用時の紐付け編集は
 # /opt/autoware/destination_mapping.yaml 側を直接編集する(リビルド不要で反映)。
 #
-# active_schedule (FMS) の move タスクの destination.point_id (整数) をキーに、表示する
-# td5 ファイルの prefix を引く。td5 ファイルは以下の命名規約で配置する:
+# active_schedule (FMS) の move タスクの destination.point_id (整数・マップ上のグローバル地点ID) を
+# キーに、表示する td5 ファイルの prefix を引く。
+#   ※ destination には point_id の他に stop_point_id(小さい連番・バス停順序の可能性) と
+#     name(例 "エフピコ　アリーナ　乗車口"・全角スペース含む) もあるが、キーは point_id を使う
+#     (stop_point_id は路線間で衝突しうるため不適)。
+# td5 ファイルは以下の命名規約で配置する:
 #
 #   resource/td5_file/destination/{prefix}_{width}x{height}.td5
 #     front / back = 128x16, side = 80x24 (両サイズを用意する)
