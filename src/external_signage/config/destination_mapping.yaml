@@ -1,23 +1,24 @@
-# SYS-HMI-03 車外サイネージ行先表示: destination.id と td5ファイル名prefix の対応表
+# SYS-HMI-03 車外サイネージ行先表示: destination.point_id と td5ファイル名prefix の対応表
 #
 # 【これはテンプレート】実行時は /opt/autoware/destination_mapping.yaml を読み込む。
 # 同ファイルが無ければ本テンプレートが自動コピーされる。運用時の紐付け編集は
 # /opt/autoware/destination_mapping.yaml 側を直接編集する(リビルド不要で反映)。
 #
-# active_schedule (FMS) の move タスクの destination.id をキーに、表示する td5 ファイルの
-# prefix を引く。td5 ファイルは以下の命名規約で配置する:
+# active_schedule (FMS) の move タスクの destination.point_id (整数) をキーに、表示する
+# td5 ファイルの prefix を引く。td5 ファイルは以下の命名規約で配置する:
 #
 #   resource/td5_file/destination/{prefix}_{width}x{height}.td5
 #     front / back = 128x16, side = 80x24 (両サイズを用意する)
 #
-# 例) destination.id "01JXXXX...shibuya" を prefix "shibuya" に対応させる場合、
-#   destination/shibuya_128x16.td5 と destination/shibuya_80x24.td5 を配置し、
-#   下記に "01JXXXX...shibuya": "shibuya" を追加する。
+# 例) point_id 2 (name "BusStop2") を prefix "busstop2" に対応させる場合、
+#   destination/busstop2_128x16.td5 と destination/busstop2_80x24.td5 を配置し、
+#   下記に "2": "busstop2" を追加する。
+#   ※キーは int でも str でも可 (ロード時に str へ正規化する)。可読性のため引用推奨。
 #
-# 未登録の destination.id、td5 未配置/ロード失敗の場合は空白 (null td5) を表示する。
+# 未登録の point_id、td5 未配置/ロード失敗の場合は空白 (null td5) を表示する。
 # 有効な行先が取れない状態 (スケジュール無し/未受信/未登録/doing・todo 全完了) は
 # 回送中 (kaiso td5) を表示する。行先表示モードでは走行中の自動運行中表示は行わない。
 #
 # 実 td5 ファイルはディスプレイベンダ提供ツールで事前作成する。
 destination_mapping: {}
-  # "01EXAMPLE_DESTINATION_ID": "example"
+  # "2": "busstop2"
