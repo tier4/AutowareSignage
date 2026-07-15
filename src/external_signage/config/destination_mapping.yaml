@@ -24,5 +24,13 @@
 # 回送中 (kaiso td5) を表示する。行先表示モードでは走行中の自動運行中表示は行わない。
 #
 # 実 td5 ファイルはディスプレイベンダ提供ツールで事前作成する。
-destination_mapping: {}
-  # "2": "busstop2"
+#
+# 【暫定 2026-07-15】行先td5がまだ用意できないため、既存の automatic/experiment/mrm td5 を
+# 行先表示の代用として流用する。prefix には destination/*.td5 の名前ではなく、既存 td5 の
+# 内部キー (auto/experiment/mrm) を指定する (該当キーは _load_display_data で既にロード済み。
+# destination/{prefix}_*.td5 のロード失敗警告が出るが無害でフォールバックしない)。
+#   ※ automatic_*.td5 の内部キーは "auto" (ファイル名 automatic とはキー名が異なる点に注意)。
+destination_mapping:
+  "2567": "auto"        # automatic td5 を流用
+  "2568": "experiment"  # experiment td5 を流用
+  "2569": "mrm"         # mrm td5 を流用
