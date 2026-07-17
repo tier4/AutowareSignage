@@ -494,13 +494,30 @@ class RouteHandler:
                     )
                 )
 
+            # 急操舵は横加速度・横ジャークの「いずれか」超過で判定する (SYS2-UC03-01)。
             turn_reasons = []
+            # 横加速度: metric をそのまま使用 (検討案 最大横加速度 >= 0.8)
             if info.lateral_acceleration_abs >= param.sudden_lateral_accel_threshold:
                 turn_reasons.append(
                     "lateral_accel_abs={:.3f} >= {:.3f}".format(
                         info.lateral_acceleration_abs, param.sudden_lateral_accel_threshold
                     )
                 )
+            # 横ジャーク: metric 未配信のため計算で近似する。横加速 a_y ≒ v^2*δ/L の
+            # 時間微分 (速度一定近似) より 横ジャーク ≒ v^2 * steering_rate / wheel_base。
+            # 左右どちらの向きでも転倒リスクとなるため絶対値で閾値判定する (検討案 最大横ジャーク >= 0.5)。
+            if info.wheel_base > 0.0:
+                lateral_jerk = info.velocity**2 * info.steering_rate / info.wheel_base
+                if abs(lateral_jerk) >= param.sudden_lateral_jerk_threshold:
+                    turn_reasons.append(
+                        "lateral_jerk={:.3f} (v={:.2f}, steering_rate={:.3f}, L={:.2f}) >= {:.3f}".format(
+                            lateral_jerk,
+                            info.velocity,
+                            info.steering_rate,
+                            info.wheel_base,
+                            param.sudden_lateral_jerk_threshold,
+                        )
+                    )
 
             is_sudden_decel = bool(decel_reasons)
             is_sudden_turn = bool(turn_reasons)

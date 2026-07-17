@@ -11,7 +11,9 @@ from autoware_adapi_v1_msgs.msg import (
     LocalizationInitializationState,
     VelocityFactorArray,
     Heartbeat,
+    VehicleKinematics,
 )
+from autoware_adapi_v1_msgs.srv import GetVehicleDimensions
 from std_msgs.msg import String
 import signage.signage_utils as utils
 from autoware_internal_debug_msgs.msg import Float64Stamped
@@ -49,6 +51,8 @@ class AutowareInformation:
     steering_angle_abs: float = 0.0
     steering_rate: float = 0.0
     steering_acceleration: float = 0.0
+    velocity: float = 0.0  # 縦速度 [m/s] (横ジャーク計算に使用)
+    wheel_base: float = 2.75  # ホイールベース [m] (起動時に dimensions サービスで上書き)
 
 
 class AutowareInterface:
@@ -125,6 +129,23 @@ class AutowareInterface:
             self.sub_control_metrics_callback,
             sub_qos,
         )
+        # 縦速度 (横ジャーク計算に使用)。QoS は ADAPI 仕様に合わせ BEST_EFFORT。
+        self._sub_kinematics = node.create_subscription(
+            VehicleKinematics,
+            "/api/vehicle/kinematics",
+            self.sub_kinematics_callback,
+            sub_qos,
+        )
+        # wheelbase は横ジャーク計算 (v^2 * steering_rate / wheel_base) に使う静的値。
+        # /api/vehicle/dimensions はトピックではなくサービスのため、起動時に1回だけ取得する。
+        # signage 起動時にサービスがまだ立ち上がっていないことがあるので、利用可能になるまで
+        # タイマーでリトライし、取得できるまでは param のフォールバック値を使う。
+        self.information.wheel_base = self._parameter.wheel_base
+        self._dimensions_client = node.create_client(
+            GetVehicleDimensions, "/api/vehicle/dimensions"
+        )
+        self._dimensions_future = None
+        self._dimensions_timer = node.create_timer(2.0, self.fetch_vehicle_dimensions)
         if not self._parameter.debug_mode:
             self._autoware_connection_time = self._node.get_clock().now()
             self._node.create_timer(1, self.reset_timer)
@@ -211,3 +232,51 @@ class AutowareInterface:
                     continue
         except Exception as e:
             self._node.get_logger().error("Unable to get the control metrics, ERROR: " + str(e))
+
+    def sub_kinematics_callback(self, msg):
+        # 縦速度 [m/s] を保持する (横ジャーク計算 v^2 * steering_rate / wheel_base に使用)
+        try:
+            self.information.velocity = msg.twist.twist.twist.linear.x
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the vehicle velocity, ERROR: " + str(e))
+
+    def fetch_vehicle_dimensions(self):
+        # /api/vehicle/dimensions サービスから wheelbase を1回だけ取得する。
+        # サービス未起動なら次のタイマーで再試行し、応答待ち中は多重リクエストしない。
+        try:
+            if self._dimensions_future is not None:
+                return
+            if not self._dimensions_client.service_is_ready():
+                self._node.get_logger().warn(
+                    "Waiting for /api/vehicle/dimensions service ...",
+                    throttle_duration_sec=10,
+                )
+                return
+            self._dimensions_future = self._dimensions_client.call_async(
+                GetVehicleDimensions.Request()
+            )
+            self._dimensions_future.add_done_callback(self.on_vehicle_dimensions_response)
+        except Exception as e:
+            self._node.get_logger().error(
+                "Unable to request vehicle dimensions, ERROR: " + str(e)
+            )
+
+    def on_vehicle_dimensions_response(self, future):
+        try:
+            wheel_base = future.result().dimensions.wheel_base
+            if wheel_base > 0.0:
+                self.information.wheel_base = wheel_base
+                self._node.get_logger().info(
+                    "Got wheelbase from /api/vehicle/dimensions: {:.3f} m".format(wheel_base)
+                )
+                # 取得できたのでリトライタイマーを停止する
+                self._dimensions_timer.cancel()
+            else:
+                # 不正値のときは param のフォールバック値のまま次回リトライする
+                self._node.get_logger().warn(
+                    "Invalid wheelbase from service ({}), keep fallback".format(wheel_base)
+                )
+                self._dimensions_future = None
+        except Exception as e:
+            self._node.get_logger().error("Unable to get vehicle dimensions, ERROR: " + str(e))
+            self._dimensions_future = None

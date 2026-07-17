@@ -17,7 +17,9 @@ signage:
     standing_mode_default: false # 立席運用モードの起動時デフォルト (ファイルが優先)
     sudden_decel_threshold: 0.8 # m/s^2 (acceleration <= -本値 で急減速)
     sudden_decel_jerk_threshold: 0.6 # m/s^3 (jerk <= -本値 で急減速。減速方向のみ判定=加速時は対象外)
-    sudden_lateral_accel_threshold: 0.8 # m/s^2 (lateral_acceleration_abs >= 本値)
+    sudden_lateral_accel_threshold: 0.8 # m/s^2 (lateral_acceleration_abs >= 本値 で急操舵)
+    sudden_lateral_jerk_threshold: 0.5 # m/s^3 (|横ジャーク| >= 本値 で急操舵。横ジャーク≒v^2*steering_rate/wheel_base)
+    wheel_base: 2.75 # m (横ジャーク計算用フォールバック。/api/vehicle/dimensions 取得成功で上書き)
     announce:
       emergency: true
       restart_engage: true

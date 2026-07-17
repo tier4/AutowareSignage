@@ -26,7 +26,12 @@ class SignageParameter:
     standing_mode_default: bool = False
     sudden_decel_threshold: float = 0.8
     sudden_decel_jerk_threshold: float = 0.6
+    # 急操舵は横加速度 (metric) と横ジャーク (計算) のいずれか超過で判定する (SYS2-UC03-01「いずれか」)
     sudden_lateral_accel_threshold: float = 0.8
+    sudden_lateral_jerk_threshold: float = 0.5
+    # 横ジャーク計算 (v^2 * steering_rate / wheel_base) 用のフォールバック値。
+    # 起動時に /api/vehicle/dimensions サービスから取得でき次第そちらで上書きされる。
+    wheel_base: float = 2.75
 
 
 @dataclass
@@ -79,6 +84,8 @@ class ParameterInterface:
         node.declare_parameter("sudden_decel_threshold", 0.8)
         node.declare_parameter("sudden_decel_jerk_threshold", 0.6)
         node.declare_parameter("sudden_lateral_accel_threshold", 0.8)
+        node.declare_parameter("sudden_lateral_jerk_threshold", 0.5)
+        node.declare_parameter("wheel_base", 2.75)
 
         self.parameter.debug_mode = (
             node.get_parameter("debug_mode").get_parameter_value().bool_value
@@ -139,6 +146,12 @@ class ParameterInterface:
         )
         self.parameter.sudden_lateral_accel_threshold = (
             node.get_parameter("sudden_lateral_accel_threshold").get_parameter_value().double_value
+        )
+        self.parameter.sudden_lateral_jerk_threshold = (
+            node.get_parameter("sudden_lateral_jerk_threshold").get_parameter_value().double_value
+        )
+        self.parameter.wheel_base = (
+            node.get_parameter("wheel_base").get_parameter_value().double_value
         )
 
         node.declare_parameter("announce.emergency", True)
