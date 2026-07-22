@@ -13,7 +13,6 @@
   <depend>command_view_manager_msgs</depend>
   <depend>diagnostic_updater</depend>
   <depend>external_signage</depend>
-  <depend>python-pulsectl-pip</depend>
   <depend>rclpy</depend>
   <depend>signage_fms_client</depend>
   <depend>std_srvs</depend>
