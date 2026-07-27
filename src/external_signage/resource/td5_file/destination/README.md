@@ -32,3 +32,10 @@ active_schedule (FMS) の move タスク `destination.point_id` (整数) と pre
 - 有効な行先が取れない状態（スケジュール無し/未受信/未登録/全完了）は回送中
   `resource/td5_file/kaiso_{width}x{height}.td5` を表示する（未配置時は `null` へフォールバック）。
 - 行先表示モードでは走行中の自動運行中（`auto`）表示は行わない。
+
+## 【暫定 2026-07-27】テスト用 td5（128x16 のみ）
+
+行先表示テスト用に `miraikan` / `shinagawa` / `teleport`（行先）と `kaiso`（回送, `td5_file/kaiso_128x16.td5`）
+を用意している。ただし **128x16（front/back）のみで 80x24（side）版は未用意**。
+このため side は空白（`null`）表示となる（`_display_state` は「td5 を持つディスプレイだけ表示」する）。
+side 用の `*_80x24.td5` を配置すれば、コード変更なしで side にも自動表示される。
