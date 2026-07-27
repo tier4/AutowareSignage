@@ -25,12 +25,11 @@
 #
 # 実 td5 ファイルはディスプレイベンダ提供ツールで事前作成する。
 #
-# 【暫定 2026-07-15】行先td5がまだ用意できないため、既存の automatic/experiment/mrm td5 を
-# 行先表示の代用として流用する。prefix には destination/*.td5 の名前ではなく、既存 td5 の
-# 内部キー (auto/experiment/mrm) を指定する (該当キーは _load_display_data で既にロード済み。
-# destination/{prefix}_*.td5 のロード失敗警告が出るが無害でフォールバックしない)。
-#   ※ automatic_*.td5 の内部キーは "auto" (ファイル名 automatic とはキー名が異なる点に注意)。
+# 【暫定 2026-07-27】行先td5のテスト用として miraikan/shinagawa/teleport (+回送 kaiso) を用意した。
+# ただし 128x16 (front/back) のみで 80x24 (side) 版は未用意のため、side は空白(null)表示となる
+# (_display_state を「td5を持つディスプレイだけ表示」に改修済み。side用td5を配置すれば自動で出る)。
+# point_id は現状の仮値 (2567/2568/2569) にテスト用行先を割り当てている。
 destination_mapping:
-  "2567": "auto"        # automatic td5 を流用
-  "2568": "experiment"  # experiment td5 を流用
-  "2569": "mrm"         # mrm td5 を流用
+  "2567": "miraikan"   # destination/miraikan_128x16.td5
+  "2568": "shinagawa"  # destination/shinagawa_128x16.td5
+  "2569": "teleport"   # destination/teleport_128x16.td5

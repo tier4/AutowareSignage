@@ -489,14 +489,22 @@ class ExternalSignage:
         return prefix, "point_id={} name={}".format(point_id, dest_name)
 
     def _display_state(self, state_key):
-        # 指定キーの td5 が全ディスプレイに揃っていなければ null (空白) にフォールバックする。
-        if not all(state_key in self.displays.get(d, {}) for d in self.displays):
-            if state_key != "null":
-                self.node.get_logger().warning(
-                    "td5 not available for '{}', falling back to null".format(state_key)
-                )
-            state_key = "null"
-        self.display_signage(state_key)
+        # 指定キーの td5 を持つディスプレイにはそれを、持たないディスプレイには null (空白) を表示する。
+        # 例) 行先td5が 128x16 (front/back) のみで side (80x24) 未用意の場合、front/back は行先を、
+        #     side は空白を表示する。全サイズが揃えば自動で全ディスプレイに出る。
+        keys = {}
+        for d in self.displays:
+            if state_key in self.displays.get(d, {}):
+                keys[d] = state_key
+            else:
+                keys[d] = "null"
+                if state_key != "null":
+                    self.node.get_logger().warning(
+                        "td5 not available for '{}' on display '{}', showing null".format(
+                            state_key, d
+                        )
+                    )
+        self._display_signage_per_display(keys)
 
     def _restore_existing_display(self):
         # 行先表示モードOFF時に、既存ロジック(実験/空港MRM/自動運転/停止)へ復帰する。
@@ -510,15 +518,21 @@ class ExternalSignage:
             self.display_signage("null")
 
     def display_signage(self, display_file):
+        # 全ディスプレイに同一キーを表示する (既存呼び出し用の薄いラッパ)。
+        self._display_signage_per_display({d: display_file for d in self.displays})
+
+    def _display_signage_per_display(self, keys):
+        # ディスプレイごとに表示する td5 キーを指定して送信する。
+        # keys: {display_key: data_key} (data_key は各ディスプレイの displays[display_key] に存在すること)
         if not self._external_signage_available:
             return
 
         # 前回の状態と同じの場合更新をスキップする
         previous_state = self.current_state
-        self.current_state = display_file
-        if previous_state == display_file:
+        self.current_state = keys
+        if previous_state == keys:
             return
 
         for display_key in self.displays:
-            self.send_data(display_key, display_file)
+            self.send_data(display_key, keys[display_key])
             time.sleep(1)

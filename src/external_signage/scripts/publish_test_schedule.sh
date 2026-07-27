@@ -22,7 +22,9 @@
 #                  unmapped は 999999 (未登録想定)。
 #
 # 期待結果はノードログ "destination display -> <key> (<detail>)" で確認する。
-# td5 未配置の場合は key 解決後に "td5 not available ... falling back to null" となり空白表示。
+# td5 が一部サイズのみの場合 (現状: 行先/回送 td5 は 128x16 のみ) は、そのサイズを持つ
+# front/back に表示され、80x24 未用意の side は "td5 not available ... showing null" で空白表示。
+# 該当サイズの td5 が全く無い key は全ディスプレイ空白 (null) となる。
 set -euo pipefail
 
 TOPIC="/signage/active_schedule"
