@@ -524,7 +524,13 @@ class RouteHandler:
             ):
                 view_mode = "manual_driving"
             elif self._in_emergency_state:
-                view_mode = "emergency_stopped"
+                # comfortable stop (slowing/slow_stop) と揃えて、緊急停止も減速中と停止後で
+                # 表示を固定する。減速中 (emergency_slowing) は EmergencyStop、
+                # 停止後 (emergency_stopped) は EmergencyStopping を表示する。
+                if self._autoware.information.motion_state == MotionState.STOPPED:
+                    view_mode = "emergency_stopped"
+                else:
+                    view_mode = "emergency_slowing"
             elif self._in_slowing_state:
                 view_mode = "slowing"
             elif self._in_slow_stop_state:

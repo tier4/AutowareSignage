@@ -6,35 +6,14 @@ Rectangle {
     width: viewController.monitor_width
     height: viewController.monitor_height
 
-    property int counter: 0
-
-    Timer {
-        interval: 10000
-        running: true
-        repeat: true
-        onTriggered: {
-            emergencyStopView.counter = emergencyStopView.counter + 1
-        }
-    }
-
+    // comfortable stop (slowing/slow_stop) と揃えて、減速中と停止後で表示を固定する。
+    // 減速中 (emergency_slowing) は EmergencyStop、停止後 (emergency_stopped) は
+    // EmergencyStopping を表示する (10 秒ごとの切り替えは廃止)。
     EmergencyStop {
-        visible: emergencyStopView.counter % 2 === 0
+        visible: viewController.view_mode === "emergency_slowing"
     }
 
     EmergencyStopping {
-        visible: emergencyStopView.counter % 2 === 1
+        visible: viewController.view_mode === "emergency_stopped"
     }
-
-    states: [
-        State {
-            name: "init"
-            when: viewController.view_mode === "emergency_stopped"
-            StateChangeScript {
-                name: "init value"
-                script: {
-                    emergencyStopView.counter = 0
-                }
-            }
-        }
-    ]
 }

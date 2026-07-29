@@ -17,7 +17,7 @@ Window {
 
     EmergencyStopView {
         id: emergencyStopView
-        visible: viewController.view_mode === "emergency_stopped"
+        visible: viewController.view_mode === "emergency_slowing" || viewController.view_mode === "emergency_stopped"
     }
 
     CvmDisplayView {
