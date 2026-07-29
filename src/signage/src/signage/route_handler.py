@@ -76,6 +76,10 @@ class RouteHandler:
         self._node.create_timer(0.2, self.stop_reason_checker_callback)
 
     def emergency_checker_callback(self):
+        # MRM の状態更新と緊急アナウンスを、責務ごとにヘルパーへ分割して実行する。
+        #   - _update_comfortable_stop_state: comfortable stop の減速中/停止後判定
+        #   - _update_emergency_state:        緊急停止中かどうかの判定 (_in_emergency_state)
+        #   - _announce_emergency:            緊急アナウンスの発話
         if (
             self._parameter.ignore_emergency
             or self._autoware.information.operation_mode == OperationModeState.STOP
@@ -87,18 +91,25 @@ class RouteHandler:
             return
 
         current_time = self._node.get_clock().now()
-        in_emergency = self._autoware.information.mrm_behavior == 12
-        in_comfortable_stop = self._autoware.information.mrm_behavior not in [
-            1,
-            12,
-        ]
+        mrm_behavior = self._autoware.information.mrm_behavior
+        in_emergency = mrm_behavior == 12
+        # comfortable stop = MRM 挙動が緊急(12)でも通常(1)でもないもの
+        in_comfortable_stop = mrm_behavior not in [1, 12]
 
+        self._update_comfortable_stop_state(in_comfortable_stop, current_time)
+        # 発話は初回/繰り返し判定に更新前の _in_emergency_state を使うため、
+        # 状態更新 (_update_emergency_state) より先に呼ぶ。
+        self._announce_emergency(in_emergency, current_time)
+        self._update_emergency_state(in_emergency, current_time)
+
+    def _update_comfortable_stop_state(self, in_comfortable_stop, current_time):
+        # comfortable stop 中は motion_state から減速中(slowing)/停止後(slow_stop)を判定する。
+        # comfortable stop を抜けたら freeze 期間(emergency_ignore_period)経過後に解除する。
         if in_comfortable_stop:
-            self._in_slowing_state = self._autoware.information.motion_state == MotionState.MOVING
-            self._in_slow_stop_state = (
-                self._autoware.information.motion_state == MotionState.STOPPED
-            )
-            self._emergency_trigger_time = self._node.get_clock().now()
+            motion_state = self._autoware.information.motion_state
+            self._in_slowing_state = motion_state == MotionState.MOVING
+            self._in_slow_stop_state = motion_state == MotionState.STOPPED
+            self._emergency_trigger_time = current_time
         elif (
             utils.check_timeout(
                 current_time, self._emergency_trigger_time, self._parameter.emergency_ignore_period
@@ -108,35 +119,37 @@ class RouteHandler:
             self._in_slowing_state = False
             self._in_slow_stop_state = False
 
+    def _update_emergency_state(self, in_emergency, current_time):
+        # 緊急停止中かどうか(_in_emergency_state)を判定する。
+        # 緊急に入ったら即 True。抜けたら freeze 期間(emergency_ignore_period)経過後に False。
+        if in_emergency:
+            self._in_emergency_state = True
+        elif (
+            utils.check_timeout(
+                current_time, self._emergency_trigger_time, self._parameter.emergency_ignore_period
+            )
+            or not self._parameter.freeze_emergency
+        ):
+            self._in_emergency_state = False
+
+    def _announce_emergency(self, in_emergency, current_time):
+        # 緊急停止中の車内アナウンスを発話する。
+        # 初回は "emergency"、以降は emergency_repeat_period ごとに "in_emergency" を繰り返す。
+        # 初回/繰り返しの判定には更新前の _in_emergency_state を使う (False = 緊急突入の初回tick)。
         if not in_emergency:
-            if (
-                self._in_emergency_state
-                and utils.check_timeout(
-                    current_time,
-                    self._emergency_trigger_time,
-                    self._parameter.emergency_ignore_period,
-                )
-                or not self._parameter.freeze_emergency
-            ):
-                # only change back to false state after the emergency is on for a specific time
-                self._in_emergency_state = in_emergency
             return
 
-        # Emergency is trigger, check whether is already trigger before
         audio = ""
         if not self._in_emergency_state:
             audio = "emergency"
-        elif self._in_emergency_state and utils.check_timeout(
-            current_time,
-            self._emergency_trigger_time,
-            self._parameter.emergency_repeat_period,
+        elif utils.check_timeout(
+            current_time, self._emergency_trigger_time, self._parameter.emergency_repeat_period
         ):
             audio = "in_emergency"
 
         if audio:
             self._announce_interface.announce_emergency(audio)
-            self._emergency_trigger_time = self._node.get_clock().now()
-            self._in_emergency_state = in_emergency
+            self._emergency_trigger_time = current_time
 
     def door_status_callback(self):
         door_status = self._autoware.information.door_status
