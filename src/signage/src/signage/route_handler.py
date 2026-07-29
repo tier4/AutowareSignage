@@ -47,6 +47,7 @@ class RouteHandler:
         parameter_interface,
         ros_service_interface,
         cvm_interface,
+        standing_mode_interface,
     ):
         self._node = node
         self._viewController = viewController
@@ -55,6 +56,7 @@ class RouteHandler:
         self._parameter = parameter_interface.parameter
         self._service_interface = ros_service_interface
         self._cvm = cvm_interface
+        self._standing_mode = standing_mode_interface
         self._schedule_details = utils.init_ScheduleDetails()
         self._display_details = utils.init_DisplayDetails()
         self._current_task_details = utils.init_CurrentTask()
@@ -85,6 +87,12 @@ class RouteHandler:
         self._trigger_external_signage = False
         self._processing_thread = False
 
+        # 立席運行 転倒防止アナウンスの状態 (UC-02/UC-03)
+        # 発車警告と急減速・急操舵警告はそれぞれ独立したクールダウンを持つ
+        # 再発話抑止・警告表示時間は announce_controller の announce_interval で管理する
+        # (VVAS と同方式)。ここでは表示に使う直近の急制動種別のみ保持する。
+        self._sudden_warning_type = ""
+
         self.process_station_list_from_fms()
 
         self._node.create_timer(0.2, self.route_checker_callback)
@@ -94,6 +102,7 @@ class RouteHandler:
         self._node.create_timer(0.2, self.door_status_callback)
         self._node.create_timer(0.2, self.announce_engage_when_starting)
         self._node.create_timer(0.2, self.stop_reason_checker_callback)
+        self._node.create_timer(0.2, self.sudden_motion_checker_callback)
 
     def emergency_checker_callback(self):
         if (
@@ -385,7 +394,13 @@ class RouteHandler:
                     and self._parameter.signage_stand_alone
                     and self._autoware.information.autoware_control
                 ):
-                    self._announce_interface.send_announce("engage")
+                    # UC-02: バス停発車 (STOP->AUTONOMOUS) のタイミング。
+                    # 立席モードON時は standing_depart (発進します+転倒防止の注意) のみ再生し、
+                    # engage との「発進します」二重発話を避ける。
+                    # 立席モードOFF、またはクールダウン等で standing_depart を再生しなかった
+                    # 場合は通常の engage (発進します) を再生する。
+                    if not self.trigger_depart_warning():
+                        self._announce_interface.send_announce("engage")
                     self._service_interface.trigger_external_signage(True)
                     self._trigger_external_signage = True
                     self._announce_engage = True
@@ -506,6 +521,111 @@ class RouteHandler:
         except Exception as e:
             self._node.get_logger().error("Error in getting calculate the time: " + str(e))
 
+    def trigger_depart_warning(self):
+        # standing_depart を再生したら True を返す (発進アナウンスを兼ねるため呼び出し側で利用)
+        # 立席運用モードOFF時は提供しない (SYS2-UC02-02)
+        if not self._standing_mode.is_standing_mode:
+            return False
+        # SYS2-UC02-05: インターバル(5s)中の再発車はスキップ (キューに積まない)
+        # スキップ分はログに残さず、実際に発話するときのみ記録する (UC-03 と方針統一)
+        if self._announce_interface.in_interval("standing_depart"):
+            return False
+        self._announce_interface.set_timeout("standing_depart")
+        # 提供結果 (played/queued/failed 等) は send_announce 側で記録される
+        self._announce_interface.send_announce("standing_depart")
+        return True
+
+    def trigger_sudden_warning(self, warning_type, reasons):
+        # SYS2-UC03-06: インターバル(10s)中の同種イベントはスキップ (キューに積まない)
+        # スキップ分はログに残さず、実際に発話するときのみ記録する
+        if self._announce_interface.in_interval("standing_sudden"):
+            return
+        self._announce_interface.set_timeout("standing_sudden")
+        self._sudden_warning_type = warning_type
+        # 閾値チューニング用: どの値がどの閾値を超えて発話したかを記録する
+        # (提供結果 played/queued/failed 等は send_announce 側で別途記録される)
+        self._node.get_logger().info(
+            "UC-03: sudden motion triggered [{}: {}]".format(
+                warning_type, ", ".join(reasons)
+            )
+        )
+        self._announce_interface.send_announce("standing_" + warning_type)
+
+    def sudden_motion_checker_callback(self):
+        # UC-03: 急減速・急操舵の事後検知。立席運用モードON・走行中・MRM非作動のときのみ評価する。
+        try:
+            if not self._standing_mode.is_standing_mode:
+                return
+            if not self._is_driving:
+                return
+            # MRMが最優先。MRM(緊急停止/快適減速)作動中は本警告を出さず、
+            # 直前にトリガー済みで再生中の立席アナウンスがあれば停止する (SYS2-UC03-01)
+            if self._in_emergency_state or self._in_slowing_state or self._in_slow_stop_state:
+                self._announce_interface.stop_standing_announce()
+                return
+
+            info = self._autoware.information
+            param = self._parameter
+
+            # 閾値を超えた項目を記録する (どの値が閾値以上だったかをログに残す)
+            decel_reasons = []
+            if info.longitudinal_acceleration <= -param.sudden_decel_threshold:
+                decel_reasons.append(
+                    "accel={:.3f} <= -{:.3f}".format(
+                        info.longitudinal_acceleration, param.sudden_decel_threshold
+                    )
+                )
+            # jerk は減速方向 (負値) のみを対象とする。加速方向 (正のjerk) は
+            # 発進・加速時の挙動で転倒リスクが低いため対象外とし、jerk <= -閾値 で判定する。
+            if info.longitudinal_jerk <= -param.sudden_decel_jerk_threshold:
+                decel_reasons.append(
+                    "jerk={:.3f} <= -{:.3f}".format(
+                        info.longitudinal_jerk, param.sudden_decel_jerk_threshold
+                    )
+                )
+
+            # 急操舵は横加速度・横ジャークの「いずれか」超過で判定する (SYS2-UC03-01)。
+            turn_reasons = []
+            # 横加速度: metric をそのまま使用 (検討案 最大横加速度 >= 0.8)
+            if info.lateral_acceleration_abs >= param.sudden_lateral_accel_threshold:
+                turn_reasons.append(
+                    "lateral_accel_abs={:.3f} >= {:.3f}".format(
+                        info.lateral_acceleration_abs, param.sudden_lateral_accel_threshold
+                    )
+                )
+            # 横ジャーク: metric 未配信のため計算で近似する。横加速 a_y ≒ v^2*δ/L の
+            # 時間微分 (速度一定近似) より 横ジャーク ≒ v^2 * steering_rate / wheel_base。
+            # 左右どちらの向きでも転倒リスクとなるため絶対値で閾値判定する (検討案 最大横ジャーク >= 0.5)。
+            if info.wheel_base > 0.0:
+                lateral_jerk = info.velocity**2 * info.steering_rate / info.wheel_base
+                if abs(lateral_jerk) >= param.sudden_lateral_jerk_threshold:
+                    turn_reasons.append(
+                        "lateral_jerk={:.3f} (v={:.2f}, steering_rate={:.3f}, L={:.2f}) >= {:.3f}".format(
+                            lateral_jerk,
+                            info.velocity,
+                            info.steering_rate,
+                            info.wheel_base,
+                            param.sudden_lateral_jerk_threshold,
+                        )
+                    )
+
+            is_sudden_decel = bool(decel_reasons)
+            is_sudden_turn = bool(turn_reasons)
+
+            if not is_sudden_decel and not is_sudden_turn:
+                return
+
+            if is_sudden_decel and is_sudden_turn:
+                warning_type = "sudden_stop_turn"
+            elif is_sudden_decel:
+                warning_type = "sudden_stop"
+            else:
+                warning_type = "sudden_turn"
+
+            self.trigger_sudden_warning(warning_type, decel_reasons + turn_reasons)
+        except Exception as e:
+            self._node.get_logger().error("Error in sudden motion checker: " + str(e))
+
     def view_mode_callback(self):
         try:
             self._viewController.clock_string = datetime.now().strftime("%H:%M")
@@ -539,6 +659,13 @@ class RouteHandler:
                 view_mode = "slowing"
             elif self._in_slow_stop_state:
                 view_mode = "slow_stop"
+            elif self._announce_interface.in_interval("standing_sudden"):
+                # UC-03: 急減速・急操舵警告 (MRMの直下・発車警告より上位)
+                # 表示時間＝再発話抑止インターバル (announce_interval.standing_sudden) で連動
+                view_mode = "standing_sudden_warning"
+            elif self._announce_interface.in_interval("standing_depart"):
+                # UC-02: 発車時警告 (表示時間＝announce_interval.standing_depart)
+                view_mode = "standing_depart_warning"
             elif self._is_stopping and self._current_task_details.departure_station != ["", ""]:
                 view_mode = "stopping"
             elif self._is_driving and self._current_task_details.arrival_station != ["", ""]:
@@ -550,6 +677,13 @@ class RouteHandler:
             else:
                 view_mode = "out_of_service"
                 self._announced_depart = False
+
+            if view_mode == "standing_sudden_warning":
+                self._viewController.standing_warning_type = self._sudden_warning_type
+            elif view_mode == "standing_depart_warning":
+                self._viewController.standing_warning_type = "depart"
+            else:
+                self._viewController.standing_warning_type = ""
 
             self._cvm.set_current_view_mode(view_mode)
             self._viewController.cvm_display_mode_id = (
