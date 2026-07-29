@@ -6,11 +6,13 @@ from setuptools import setup
 
 
 def package_files(directory):
-    paths = []
-    for path, directories, filenames in os.walk(directory):
-        for filename in filenames:
-            paths.append(os.path.join(path, filename))
-    return paths
+    # 指定ディレクトリ直下のファイルのみを返す (サブディレクトリは別 data_files エントリで扱う)。
+    # data_files はインストール先を1階層にまとめるため、サブディレクトリ構造は保持されない。
+    return [
+        os.path.join(directory, filename)
+        for filename in os.listdir(directory)
+        if os.path.isfile(os.path.join(directory, filename))
+    ]
 
 
 package_name = "external_signage"
@@ -22,6 +24,11 @@ setup(
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name + "/resource/td5_file", package_files("resource/td5_file")),
+        (
+            "share/" + package_name + "/resource/td5_file/destination",
+            package_files("resource/td5_file/destination"),
+        ),
+        ("share/" + package_name + "/config", package_files("config")),
         ("share/" + package_name, ["package.xml"]),
         ("share/" + package_name + "/launch", ["launch/external_signage.launch.xml"]),
     ],
