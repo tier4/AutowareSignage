@@ -17,7 +17,7 @@ Window {
 
     EmergencyStopView {
         id: emergencyStopView
-        visible: viewController.view_mode === "emergency_stopped"
+        visible: viewController.view_mode === "emergency_slowing" || viewController.view_mode === "emergency_stopped"
     }
 
     CvmDisplayView {
@@ -59,6 +59,11 @@ Window {
     OutOfService {
         id: outOfService
         visible: viewController.view_mode === "out_of_service"
+    }
+
+    ArrivedView {
+        id: arrivedView
+        visible: viewController.view_mode === "arrived"
     }
 
     BusStopView {

@@ -32,6 +32,7 @@ RELEASE_DISPLAY_MODES = {"idle_display"}
 # マニフェストの supported_display_mode_ids に含まれる候補のみ採用し、
 # 含まれていない場合は DEFAULT_REPORTED_DISPLAY_MODE にフォールバックする。
 VIEW_MODE_TO_CVM = {
+    "emergency_slowing": "mrm_emergency_display",
     "emergency_stopped": "mrm_emergency_display",
     "disconnected": "disconnected_display",
     "manual_driving": "manual_driving_display",

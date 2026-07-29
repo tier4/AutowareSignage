@@ -15,27 +15,6 @@ from autoware_adapi_v1_msgs.msg import (
     LocalizationInitializationState,
 )
 
-# 停止種別判定に使う PlanningBehavior 文字列 (SYS-HMI-04/05/06)。車外(VVAS)と同一集合。
-STOP_ANNOUNCE_BEHAVIORS = [
-    "avoidance",
-    "crosswalk",
-    "goal-planner",
-    "intersection",
-    "lane-change",
-    "merge",
-    "no-drivable-lane",
-    "no-stopping-area",
-    "rear-check",
-    "route-obstacle",
-    "sidewalk",
-    "start-planner",
-    "stop-sign",
-    "surrounding-obstacle",
-    "traffic-signal",
-    "user-defined-attention-area",
-    "virtual-traffic-light",
-]
-
 
 class RouteHandler:
     def __init__(
@@ -60,7 +39,7 @@ class RouteHandler:
         self._schedule_details = utils.init_ScheduleDetails()
         self._display_details = utils.init_DisplayDetails()
         self._current_task_details = utils.init_CurrentTask()
-        self._task_list = utils.init_TaskList()
+        self.task_list = utils.init_TaskList()
         self._display_phrase = ""
         self._in_emergency_state = False
         self._emergency_trigger_time = self._node.get_clock().now()
@@ -83,7 +62,8 @@ class RouteHandler:
         self._announced_arrive_caution = False
         self._arrived_station = ["", ""]
         # UC-04: 停止1回につき停止案内は1回。再発進でリセットする。
-        self._stop_announce_executed = False
+        # 初期値 True (disarm) = 未発進では発話しない。最初の実発進で arm される。
+        self._stop_announce_executed = True
         self._trigger_external_signage = False
         self._processing_thread = False
 
@@ -105,6 +85,10 @@ class RouteHandler:
         self._node.create_timer(0.2, self.sudden_motion_checker_callback)
 
     def emergency_checker_callback(self):
+        # MRM の状態更新と緊急アナウンスを、責務ごとにヘルパーへ分割して実行する。
+        #   - _update_comfortable_stop_state: comfortable stop の減速中/停止後判定
+        #   - _update_emergency_state:        緊急停止中かどうかの判定 (_in_emergency_state)
+        #   - _announce_emergency:            緊急アナウンスの発話
         if (
             self._parameter.ignore_emergency
             or self._autoware.information.operation_mode == OperationModeState.STOP
@@ -116,18 +100,25 @@ class RouteHandler:
             return
 
         current_time = self._node.get_clock().now()
-        in_emergency = self._autoware.information.mrm_behavior == 12
-        in_comfortable_stop = self._autoware.information.mrm_behavior not in [
-            1,
-            12,
-        ]
+        mrm_behavior = self._autoware.information.mrm_behavior
+        in_emergency = mrm_behavior == 12
+        # comfortable stop = MRM 挙動が緊急(12)でも通常(1)でもないもの
+        in_comfortable_stop = mrm_behavior not in [1, 12]
 
+        self._update_comfortable_stop_state(in_comfortable_stop, current_time)
+        # 発話は初回/繰り返し判定に更新前の _in_emergency_state を使うため、
+        # 状態更新 (_update_emergency_state) より先に呼ぶ。
+        self._announce_emergency(in_emergency, current_time)
+        self._update_emergency_state(in_emergency, current_time)
+
+    def _update_comfortable_stop_state(self, in_comfortable_stop, current_time):
+        # comfortable stop 中は motion_state から減速中(slowing)/停止後(slow_stop)を判定する。
+        # comfortable stop を抜けたら freeze 期間(emergency_ignore_period)経過後に解除する。
         if in_comfortable_stop:
-            self._in_slowing_state = self._autoware.information.motion_state == MotionState.MOVING
-            self._in_slow_stop_state = (
-                self._autoware.information.motion_state == MotionState.STOPPED
-            )
-            self._emergency_trigger_time = self._node.get_clock().now()
+            motion_state = self._autoware.information.motion_state
+            self._in_slowing_state = motion_state == MotionState.MOVING
+            self._in_slow_stop_state = motion_state == MotionState.STOPPED
+            self._emergency_trigger_time = current_time
         elif (
             utils.check_timeout(
                 current_time, self._emergency_trigger_time, self._parameter.emergency_ignore_period
@@ -137,35 +128,37 @@ class RouteHandler:
             self._in_slowing_state = False
             self._in_slow_stop_state = False
 
+    def _update_emergency_state(self, in_emergency, current_time):
+        # 緊急停止中かどうか(_in_emergency_state)を判定する。
+        # 緊急に入ったら即 True。抜けたら freeze 期間(emergency_ignore_period)経過後に False。
+        if in_emergency:
+            self._in_emergency_state = True
+        elif (
+            utils.check_timeout(
+                current_time, self._emergency_trigger_time, self._parameter.emergency_ignore_period
+            )
+            or not self._parameter.freeze_emergency
+        ):
+            self._in_emergency_state = False
+
+    def _announce_emergency(self, in_emergency, current_time):
+        # 緊急停止中の車内アナウンスを発話する。
+        # 初回は "emergency"、以降は emergency_repeat_period ごとに "in_emergency" を繰り返す。
+        # 初回/繰り返しの判定には更新前の _in_emergency_state を使う (False = 緊急突入の初回tick)。
         if not in_emergency:
-            if (
-                self._in_emergency_state
-                and utils.check_timeout(
-                    current_time,
-                    self._emergency_trigger_time,
-                    self._parameter.emergency_ignore_period,
-                )
-                or not self._parameter.freeze_emergency
-            ):
-                # only change back to false state after the emergency is on for a specific time
-                self._in_emergency_state = in_emergency
             return
 
-        # Emergency is trigger, check whether is already trigger before
         audio = ""
         if not self._in_emergency_state:
             audio = "emergency"
-        elif self._in_emergency_state and utils.check_timeout(
-            current_time,
-            self._emergency_trigger_time,
-            self._parameter.emergency_repeat_period,
+        elif utils.check_timeout(
+            current_time, self._emergency_trigger_time, self._parameter.emergency_repeat_period
         ):
             audio = "in_emergency"
 
         if audio:
             self._announce_interface.announce_emergency(audio)
-            self._emergency_trigger_time = self._node.get_clock().now()
-            self._in_emergency_state = in_emergency
+            self._emergency_trigger_time = current_time
 
     def door_status_callback(self):
         door_status = self._autoware.information.door_status
@@ -235,8 +228,12 @@ class RouteHandler:
             self._node.get_logger().error("not able to play the announce, ERROR: {}".format(str(e)))
 
     def stop_reason_checker_callback(self):
-        # UC-04 (SYS-HMI-04/05/06): 停止種別に応じた車内アナウンスを提供する。
-        # 停止種別は /api/planning/velocity_factors の behavior から判定する。
+        # UC-04 (SYS-HMI-04/05/06): 走行中の予定外停止で車内に「停車します」と案内する。
+        # 停止種別 (障害物/横断歩道/一般) は車内では区別しないため停止理由は参照しない。
+        # e2e プランナでは停止理由 (velocity_factors の behavior) が出ない場合があるため、
+        # 停止理由に依存せず運行状態から一時停止を判定する:
+        #   AUTONOMOUS 走行中 (route 継続中) にゴール手前で停止 = 障害物/信号/横断歩道等の一時停止。
+        #   到着停止 (AUTONOMOUS 離脱 & ゴール近傍) と発進待ちは除外される。
         try:
             if not self._parameter.signage_stand_alone:
                 return
@@ -245,22 +242,22 @@ class RouteHandler:
             # MRM (緊急停止) 中は停止案内より緊急案内を優先するためスキップ
             if self._in_emergency_state:
                 return
+            # 発進前 (発進待ち) は disarm 状態。最初の STOPPED->MOVING (実発進) で
+            # announce_engage_when_starting が arm (False) する。engage 直後の
+            # 「AUTONOMOUS だが未発進で停止中」での誤発話を防ぐ。
             if self._stop_announce_executed:
                 return
 
-            matched_behaviors = [
-                factor.behavior
-                for factor in self._autoware.information.velocity_factors
-                if factor.behavior in STOP_ANNOUNCE_BEHAVIORS
-            ]
-
-            if (
-                matched_behaviors
-                and self._autoware.information.motion_state == MotionState.STOPPED
-            ):
+            info = self._autoware.information
+            is_temporary_stop = (
+                info.operation_mode == OperationModeState.AUTONOMOUS
+                and info.route_state == RouteState.SET
+                and info.motion_state == MotionState.STOPPED
+                and info.goal_distance > self._parameter.arriving_distance
+            )
+            if is_temporary_stop:
                 if self._announce_interface.in_interval("stop_reason"):
                     return
-                # 停止種別によらず「停車します」で共通案内する (UC-04, SYS-HMI-04/05/06)
                 self._announce_interface.send_announce("temporary_stop")
                 self._announce_interface.set_timeout("stop_reason")
                 self._stop_announce_executed = True
@@ -334,7 +331,9 @@ class RouteHandler:
 
     def arrived_goal(self):
         try:
-            # UC-05: 終点は従来の thank_you、通常停留所は到着案内(arrived)に分岐する
+            # UC-05: 音声は終点・通常停留所とも thank_you で共通 (announce_arrived)。
+            # 通常停留所のみ乗客サイネージに到着表示 (arrived) を出す。終点は _reach_final
+            # 経由で「終点です」表示になるため到着表示 (set_timeout) は行わない。
             is_final = not self.task_list.todo_list
             arrived_station = self._current_task_details.arrival_station
             self._announce_interface.announce_arrived()
@@ -460,6 +459,19 @@ class RouteHandler:
 
     def calculate_time_callback(self):
         try:
+            # UC-05 (SYS-HMI-07): 接近10mの車内安全配慮は FMS スケジュールに依存しない
+            # (_is_driving と goal_distance だけで判定できる) ため、FMS タスク未取得でも
+            # 発話できるよう以降の FMS ゲートより前で評価する。
+            if (
+                self._is_driving
+                and 0
+                < self._autoware.information.goal_distance
+                < self._parameter.arriving_distance
+                and not self._announced_arrive_caution
+            ):
+                self._announce_interface.send_announce("arrive_caution")
+                self._announced_arrive_caution = True
+
             if self._current_task_details == utils.init_CurrentTask():
                 return
 
@@ -471,8 +483,9 @@ class RouteHandler:
                 # UC-05: 停止後 announce_interval.arrived の間「‹停留所名›に到着しました」を表示
                 self._display_phrase = utils.handle_phrase("arrived", self._arrived_station[0])
             elif self._reach_final:
-                # display arrive to final station
-                self._display_phrase = utils.handle_phrase("final")
+                # 終点では「終点です」の文言表示は行わない (ユーザー方針 2026-07-14)。
+                # is_stopping ブランチに落として発車待ち文言を出さないよう、ここで空表示に固定する。
+                self._display_phrase = ""
             elif self._is_stopping:
                 # handle text and announce while bus is stopping
                 if remain_minute > 2:
@@ -506,16 +519,6 @@ class RouteHandler:
                         self._announced_arrive = True
                 else:
                     self._display_phrase = ""
-
-                # UC-05: 接近10mで車内安全配慮アナウンス (到着予告とは独立、SYS-HMI-07)
-                if (
-                    0
-                    < self._autoware.information.goal_distance
-                    < self._parameter.arriving_distance
-                    and not self._announced_arrive_caution
-                ):
-                    self._announce_interface.send_announce("arrive_caution")
-                    self._announced_arrive_caution = True
             else:
                 self._display_phrase = ""
         except Exception as e:
@@ -654,7 +657,13 @@ class RouteHandler:
             ):
                 view_mode = "manual_driving"
             elif self._in_emergency_state:
-                view_mode = "emergency_stopped"
+                # comfortable stop (slowing/slow_stop) と揃えて、緊急停止も減速中と停止後で
+                # 表示を固定する。減速中 (emergency_slowing) は EmergencyStop、
+                # 停止後 (emergency_stopped) は EmergencyStopping を表示する。
+                if self._autoware.information.motion_state == MotionState.STOPPED:
+                    view_mode = "emergency_stopped"
+                else:
+                    view_mode = "emergency_slowing"
             elif self._in_slowing_state:
                 view_mode = "slowing"
             elif self._in_slow_stop_state:
@@ -666,6 +675,10 @@ class RouteHandler:
             elif self._announce_interface.in_interval("standing_depart"):
                 # UC-02: 発車時警告 (表示時間＝announce_interval.standing_depart)
                 view_mode = "standing_depart_warning"
+            elif self._announce_interface.in_interval("arrived"):
+                # UC-05 (SYS-HMI-07): 到着直後 announce_interval.arrived 秒間は
+                # 「‹停留所名›に到着しました」を専用画面で表示する (stopping より優先)
+                view_mode = "arrived"
             elif self._is_stopping and self._current_task_details.departure_station != ["", ""]:
                 view_mode = "stopping"
             elif self._is_driving and self._current_task_details.arrival_station != ["", ""]:

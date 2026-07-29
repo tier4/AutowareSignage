@@ -11,10 +11,8 @@ from autoware_adapi_v1_msgs.msg import (
     OperationModeState,
     MotionState,
     LocalizationInitializationState,
-    VelocityFactorArray,
     VehicleKinematics,
     Heartbeat,
-    VehicleKinematics,
 )
 from autoware_adapi_v1_msgs.srv import GetVehicleDimensions
 from std_msgs.msg import String
@@ -134,12 +132,6 @@ class AutowareInterface:
             self.sub_active_schedule_callback,
             sub_qos,
         )
-        self._sub_velocity_factor = node.create_subscription(
-            VelocityFactorArray,
-            "/api/planning/velocity_factors",
-            self.sub_velocity_factor_callback,
-            sub_qos,
-        )
         self._sub_heartbeat = node.create_subscription(
             Heartbeat,
             "/api/system/heartbeat",
@@ -150,13 +142,6 @@ class AutowareInterface:
             MetricArray,
             "/control/control_evaluator/metrics",
             self.sub_control_metrics_callback,
-            sub_qos,
-        )
-        # 縦速度 (横ジャーク計算に使用)。QoS は ADAPI 仕様に合わせ BEST_EFFORT。
-        self._sub_kinematics = node.create_subscription(
-            VehicleKinematics,
-            "/api/vehicle/kinematics",
-            self.sub_kinematics_callback,
             sub_qos,
         )
         # wheelbase は横ジャーク計算 (v^2 * steering_rate / wheel_base) に使う静的値。
@@ -222,6 +207,12 @@ class AutowareInterface:
             self._node.get_logger().error("Unable to get the route goal, ERROR: " + str(e))
 
     def sub_kinematics_callback(self, msg):
+        # 縦速度 [m/s] を保持する (横ジャーク計算 v^2 * steering_rate / wheel_base に使用)
+        try:
+            self.information.velocity = msg.twist.twist.twist.linear.x
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the vehicle velocity, ERROR: " + str(e))
+        # ゴールまでの直線距離を算出する (UC-05 到着判定用)
         try:
             if self._goal_position is None:
                 return
@@ -252,12 +243,6 @@ class AutowareInterface:
         except Exception as e:
             self._node.get_logger().error("Unable to get the active schedule, ERROR: " + str(e))
 
-    def sub_velocity_factor_callback(self, msg):
-        try:
-            self.information.velocity_factors = msg.factors
-        except Exception as e:
-            self._node.get_logger().error("Unable to get the velocity factors, ERROR: " + str(e))
-
     def sub_heartbeat_callback(self, msg):
         try:
             self._autoware_connection_time = self._node.get_clock().now()
@@ -277,13 +262,6 @@ class AutowareInterface:
                     continue
         except Exception as e:
             self._node.get_logger().error("Unable to get the control metrics, ERROR: " + str(e))
-
-    def sub_kinematics_callback(self, msg):
-        # 縦速度 [m/s] を保持する (横ジャーク計算 v^2 * steering_rate / wheel_base に使用)
-        try:
-            self.information.velocity = msg.twist.twist.twist.linear.x
-        except Exception as e:
-            self._node.get_logger().error("Unable to get the vehicle velocity, ERROR: " + str(e))
 
     def fetch_vehicle_dimensions(self):
         # /api/vehicle/dimensions サービスから wheelbase を1回だけ取得する。
