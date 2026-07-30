@@ -40,6 +40,12 @@ Window {
         visible: viewController.view_mode === "slowing"
     }
 
+    StandingWarningView {
+        id: standingWarningView
+        visible: viewController.view_mode === "standing_sudden_warning"
+              || viewController.view_mode === "standing_depart_warning"
+    }
+
     ManualDriving {
         id: manualDriving
         visible: viewController.view_mode === "manual_driving"
