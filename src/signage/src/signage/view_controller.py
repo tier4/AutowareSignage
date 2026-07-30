@@ -11,6 +11,7 @@ from PyQt5.QtCore import QObject
 class ViewControllerProperty(QObject):
     _view_mode_changed_signal = pyqtSignal(str)
     _cvm_display_mode_id_changed_signal = pyqtSignal(str)
+    _standing_warning_type_changed_signal = pyqtSignal(str)
     _route_name_signal = pyqtSignal(list)
     _get_departure_station_name_signal = pyqtSignal(list)
     _get_arrival_station_name_signal = pyqtSignal(list)
@@ -27,6 +28,7 @@ class ViewControllerProperty(QObject):
         self._node = node
         self._view_mode = ""
         self._cvm_display_mode_id = ""
+        self._standing_warning_type = ""
         self._route_name = ["", ""]
         self._departure_station_name = ["", ""]
         self._arrival_station_name = ["", ""]
@@ -62,6 +64,18 @@ class ViewControllerProperty(QObject):
             return
         self._cvm_display_mode_id = cvm_display_mode_id
         self._cvm_display_mode_id_changed_signal.emit(cvm_display_mode_id)
+
+    # 立席警告の種別 (depart / sudden_stop / sudden_turn / sudden_stop_turn) をQMLへ反映
+    @pyqtProperty(str, notify=_standing_warning_type_changed_signal)
+    def standing_warning_type(self):
+        return self._standing_warning_type
+
+    @standing_warning_type.setter
+    def standing_warning_type(self, standing_warning_type):
+        if self._standing_warning_type == standing_warning_type:
+            return
+        self._standing_warning_type = standing_warning_type
+        self._standing_warning_type_changed_signal.emit(standing_warning_type)
 
     # QMLへroute_nameを反映させる
     @pyqtProperty(list, notify=_route_name_signal)

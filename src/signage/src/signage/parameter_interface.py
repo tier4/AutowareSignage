@@ -24,6 +24,15 @@ class SignageParameter:
     monitor_width: int = 1920
     monitor_height: int = 540
     cvm_device_id: str = "in_vehicle_signage"
+    standing_mode_default: bool = False
+    sudden_decel_threshold: float = 0.8
+    sudden_decel_jerk_threshold: float = 0.6
+    # 急操舵は横加速度 (metric) と横ジャーク (計算) のいずれか超過で判定する (SYS2-UC03-01「いずれか」)
+    sudden_lateral_accel_threshold: float = 0.8
+    sudden_lateral_jerk_threshold: float = 0.5
+    # 横ジャーク計算 (v^2 * steering_rate / wheel_base) 用のフォールバック値。
+    # 起動時に /api/vehicle/dimensions サービスから取得でき次第そちらで上書きされる。
+    wheel_base: float = 2.75
 
 
 @dataclass
@@ -40,6 +49,8 @@ class AnnounceParameter:
     going_to_arrive: bool = True
     arrive_caution: bool = True
     temporary_stop: bool = True
+    standing_depart: bool = True
+    standing_sudden: bool = True
 
 
 @dataclass
@@ -47,6 +58,9 @@ class AnnounceIntervalParameter:
     # 発話後にその期間だけ再発話を抑止する (秒)。VVAS の announce_interval と同方式。
     stop_reason: float = 20.0  # UC-04 停止案内 (SYS-HMI-04/05/06)
     arrived: float = 5.0  # UC-05 到着表示の表示秒数 (SYS-HMI-07)
+    # standing_sudden は急減速/急操舵/複合の3種で共有する (VVAS の turn_signal と同様)。
+    standing_depart: float = 5.0  # UC-02 発車警告 (SYS2-UC02-01)
+    standing_sudden: float = 10.0  # UC-03 急減速・急操舵警告 (SYS2-UC03-06)
 
 
 class ParameterInterface:
@@ -72,6 +86,12 @@ class ParameterInterface:
         node.declare_parameter("monitor_width", 1920)
         node.declare_parameter("monitor_height", 540)
         node.declare_parameter("cvm_device_id", "in_vehicle_signage")
+        node.declare_parameter("standing_mode_default", False)
+        node.declare_parameter("sudden_decel_threshold", 0.8)
+        node.declare_parameter("sudden_decel_jerk_threshold", 0.6)
+        node.declare_parameter("sudden_lateral_accel_threshold", 0.8)
+        node.declare_parameter("sudden_lateral_jerk_threshold", 0.5)
+        node.declare_parameter("wheel_base", 2.75)
 
         self.parameter.debug_mode = (
             node.get_parameter("debug_mode").get_parameter_value().bool_value
@@ -124,6 +144,24 @@ class ParameterInterface:
         self.parameter.cvm_device_id = (
             node.get_parameter("cvm_device_id").get_parameter_value().string_value
         )
+        self.parameter.standing_mode_default = (
+            node.get_parameter("standing_mode_default").get_parameter_value().bool_value
+        )
+        self.parameter.sudden_decel_threshold = (
+            node.get_parameter("sudden_decel_threshold").get_parameter_value().double_value
+        )
+        self.parameter.sudden_decel_jerk_threshold = (
+            node.get_parameter("sudden_decel_jerk_threshold").get_parameter_value().double_value
+        )
+        self.parameter.sudden_lateral_accel_threshold = (
+            node.get_parameter("sudden_lateral_accel_threshold").get_parameter_value().double_value
+        )
+        self.parameter.sudden_lateral_jerk_threshold = (
+            node.get_parameter("sudden_lateral_jerk_threshold").get_parameter_value().double_value
+        )
+        self.parameter.wheel_base = (
+            node.get_parameter("wheel_base").get_parameter_value().double_value
+        )
 
         node.declare_parameter("announce.emergency", True)
         node.declare_parameter("announce.restart_engage", True)
@@ -136,6 +174,8 @@ class ParameterInterface:
         node.declare_parameter("announce.going_to_arrive", True)
         node.declare_parameter("announce.arrive_caution", True)
         node.declare_parameter("announce.temporary_stop", True)
+        node.declare_parameter("announce.standing_depart", True)
+        node.declare_parameter("announce.standing_sudden", True)
 
         announce_prefix = node.get_parameters_by_prefix("announce")
 
@@ -148,6 +188,8 @@ class ParameterInterface:
 
         node.declare_parameter("announce_interval.stop_reason", 20.0)
         node.declare_parameter("announce_interval.arrived", 5.0)
+        node.declare_parameter("announce_interval.standing_depart", 5.0)
+        node.declare_parameter("announce_interval.standing_sudden", 10.0)
 
         announce_interval_prefix = node.get_parameters_by_prefix("announce_interval")
 
