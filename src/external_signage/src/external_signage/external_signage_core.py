@@ -5,6 +5,7 @@ import serial
 import json
 import os
 import uuid
+import yaml
 import rclpy
 from std_srvs.srv import SetBool
 from std_msgs.msg import Bool
@@ -13,6 +14,11 @@ import external_signage.packet_tools as packet_tools
 from autoware_adapi_v1_msgs.msg import MrmState
 from std_msgs.msg import String
 from level4_mode_manager_msgs.msg import Level4DrivingStatus
+
+# SYS-HMI-03: destination.point_id -> td5ファイル名prefix の紐付けを記載する外部ファイル。
+# signage_settings.json と同様に /opt/autoware 下へ置き、リビルド不要で運用時に編集できる。
+# 存在しなければパッケージ同梱テンプレート (config/destination_mapping.yaml) から生成する。
+DESTINATION_MAPPING_PATH = "/opt/autoware/destination_mapping.yaml"
 
 
 @dataclass
@@ -113,6 +119,10 @@ class ExternalSignage:
         node.declare_parameter("serial_port", "/dev/ttyS0")
         self._serial_port = node.get_parameter("serial_port").get_parameter_value().string_value
 
+        # SYS-HMI-03: 行先表示用の destination.point_id -> td5ファイル名prefix 対応を起動時にロードする
+        self._destination_mapping = self._load_destination_mapping()
+        self._last_schedule_raw = ""
+
         try:
             self.bus = serial.Serial(
                 self._serial_port,
@@ -176,6 +186,20 @@ class ExternalSignage:
             api_qos,
         )
 
+        # SYS-HMI-03: 行先表示モードの切替サービスと、行先決定に用いる active_schedule 購読
+        # active_schedule の publisher (signage_fms_client) は RELIABLE + VOLATILE (depth10) のため
+        # durability を VOLATILE で合わせる (api_qos の TRANSIENT_LOCAL だと不整合で受信できない)。
+        schedule_qos = rclpy.qos.QoSProfile(
+            history=rclpy.qos.QoSHistoryPolicy.KEEP_LAST,
+            depth=10,
+            reliability=rclpy.qos.QoSReliabilityPolicy.RELIABLE,
+            durability=rclpy.qos.QoSDurabilityPolicy.VOLATILE,
+        )
+        node.create_service(SetBool, "/signage/destination_mode", self.set_destination_mode)
+        self._sub_active_schedule = node.create_subscription(
+            String, "/signage/active_schedule", self.sub_active_schedule, schedule_qos
+        )
+
         # read settings.If not, creatte settings.
         self._settings_file = "/home/" + os.environ.get("USER") + "/settings.json"
         if os.path.exists(self._settings_file):
@@ -183,11 +207,16 @@ class ExternalSignage:
                 self._settings = json.load(f)
         else:
             self._settings = {"in_experiment": True, "airport": False}
-            with open(self._settings_file, "w") as f:
-                json.dump(self._settings, f, indent=4)
+        # SYS-HMI-03: 行先表示モード (in_experiment/airport と排他) の既定値を補完し永続化する
+        self._settings.setdefault("destination_mode", False)
+        self._save_settings()
 
         # initial display
-        if self._settings.get("in_experiment", True):
+        if self._settings.get("destination_mode"):
+            # 行先表示モード: active_schedule 受信までは null (空白) を表示
+            self.pub_mode_status(False)
+            self._render_destination()
+        elif self._settings.get("in_experiment", True):
             self.pub_mode_status(True)
             self.display_signage("experiment")
         else:
@@ -205,25 +234,81 @@ class ExternalSignage:
         msg.data = status
         self.mode_status_pub_.publish(msg)
 
+    def _load_destination_mapping(self):
+        # destination.point_id -> td5ファイル名prefix の紐付けを外部ファイル (/opt/autoware) から読む。
+        # 無ければパッケージ同梱テンプレートから生成する。壊れている場合は空マッピングで継続する
+        # (フォールバックで null 表示)。運用時はこの外部ファイルを編集すればリビルド不要で反映される。
+        # point_id は整数だが YAML キーの引用有無で int/str が揺れるため、キーを str に正規化して保持する。
+        try:
+            if not os.path.isfile(DESTINATION_MAPPING_PATH):
+                self._seed_destination_mapping()
+            with open(DESTINATION_MAPPING_PATH, "r") as f:
+                data = yaml.safe_load(f) or {}
+            raw_mapping = data.get("destination_mapping", {}) or {}
+            mapping = {str(k): v for k, v in raw_mapping.items()}
+            self.node.get_logger().info(
+                "loaded destination_mapping from {}: {} entries".format(
+                    DESTINATION_MAPPING_PATH, len(mapping)
+                )
+            )
+            return mapping
+        except Exception as e:
+            self.node.get_logger().warning(
+                "destination_mapping load failed ({}), use empty mapping: {}".format(
+                    DESTINATION_MAPPING_PATH, str(e)
+                )
+            )
+            return {}
+
+    def _seed_destination_mapping(self):
+        # 初回のみ: パッケージ同梱テンプレートを /opt/autoware へコピーして初期化する。
+        template = (
+            get_package_share_directory("external_signage") + "/config/destination_mapping.yaml"
+        )
+        os.makedirs(os.path.dirname(DESTINATION_MAPPING_PATH), exist_ok=True)
+        with open(template, "r") as src, open(DESTINATION_MAPPING_PATH, "w") as dst:
+            dst.write(src.read())
+        self.node.get_logger().info(
+            "seeded destination_mapping template to {}".format(DESTINATION_MAPPING_PATH)
+        )
+
+    def _load_td5(self, path, display):
+        return packet_tools.TD5Data(
+            path, display.address1, display.address2, display.height, display.width
+        )
+
     def _load_display_data(self, display, package_path):
         auto_path = package_path + f"automatic_{display.width}x{display.height}.td5"
         experiment_path = package_path + f"experiment_{display.width}x{display.height}.td5"
         mrm_path = package_path + f"mrm_{display.width}x{display.height}.td5"
         null_path = package_path + f"null_{display.width}x{display.height}.td5"
-        return {
-            "auto": packet_tools.TD5Data(
-                auto_path, display.address1, display.address2, display.height, display.width
-            ),
-            "experiment": packet_tools.TD5Data(
-                experiment_path, display.address1, display.address2, display.height, display.width
-            ),
-            "mrm": packet_tools.TD5Data(
-                mrm_path, display.address1, display.address2, display.height, display.width
-            ),
-            "null": packet_tools.TD5Data(
-                null_path, display.address1, display.address2, display.height, display.width
-            ),
+        data = {
+            "auto": self._load_td5(auto_path, display),
+            "experiment": self._load_td5(experiment_path, display),
+            "mrm": self._load_td5(mrm_path, display),
+            "null": self._load_td5(null_path, display),
         }
+
+        # SYS-HMI-03: 行先td5(mappingのprefix)と回送中(kaiso)td5を一括ロードしキャッシュする。
+        # 未配置/ロード失敗のファイルはスキップし、表示時に null へフォールバックする。
+        suffix = f"_{display.width}x{display.height}.td5"
+        for dest_id, prefix in self._destination_mapping.items():
+            path = package_path + "destination/" + f"{prefix}{suffix}"
+            try:
+                data[prefix] = self._load_td5(path, display)
+            except Exception as e:
+                self.node.get_logger().warning(
+                    "destination td5 load failed ({} -> {}, {}x{}): {}".format(
+                        dest_id, prefix, display.width, display.height, str(e)
+                    )
+                )
+        try:
+            data["kaiso"] = self._load_td5(package_path + f"kaiso{suffix}", display)
+        except Exception as e:
+            self.node.get_logger().warning(
+                "kaiso td5 load failed ({}x{}): {}".format(display.width, display.height, str(e))
+            )
+        return data
 
     def send_data(self, display_key, data_key):
         display = self.displays[display_key]
@@ -237,6 +322,10 @@ class ExternalSignage:
     def trigger_external_signage(self, request, response):
         try:
             self.autoware_status["driving"] = request.data
+            # SYS-HMI-03: 行先表示モード中は既存表示を出さない (状態のみ更新)
+            if self._settings.get("destination_mode"):
+                response.success = True
+                return response
             if self._settings["in_experiment"]:
                 return response
             elif self._settings["airport"]:
@@ -261,6 +350,9 @@ class ExternalSignage:
     def sub_mrm_callback(self, msg):
         try:
             self.autoware_status["mrm"] = msg.state in [2, 3, 4]
+            # SYS-HMI-03: 行先表示モード中は既存表示(mrm含む)を出さない (状態のみ更新)
+            if self._settings.get("destination_mode"):
+                return
             if self._settings["in_experiment"]:
                 return
             if self._settings["airport"] and self.autoware_status["mrm"]:
@@ -277,37 +369,42 @@ class ExternalSignage:
     def sub_is_driving_level(self, msg):
         try:
             self.node.get_logger().info(str(msg.is_level4_driving))
+            # SYS-HMI-03: 行先表示モード中は状態更新のみ行い既存表示は出さない
+            skip_display = self._settings.get("destination_mode")
             if msg.is_level4_driving:  # True is L4, False is L2.
                 self.pub_mode_status(True)
                 self._settings["in_experiment"] = False
-                if self.autoware_status["driving"]:
-                    self.display_signage("auto")
-                else:
-                    self.display_signage("null")
+                if not skip_display:
+                    if self.autoware_status["driving"]:
+                        self.display_signage("auto")
+                    else:
+                        self.display_signage("null")
             else:
                 self.pub_mode_status(False)
                 self._settings["in_experiment"] = True
-                self.display_signage("experiment")
+                if not skip_display:
+                    self.display_signage("experiment")
 
-            with open(self._settings_file, "w") as f:
-                json.dump(self._settings, f, indent=4)
+            self._save_settings()
         except Exception as e:
             self.node.get_logger().error(str(e))
 
     # l4かどうかのサービスを受け取り走行モードを変更する
     def change_mode(self, request, response):
         try:
+            skip_display = self._settings.get("destination_mode")
             if request.data:  # True is L2, False is L4.
                 self.pub_mode_status(True)
                 self._settings["in_experiment"] = True
-                self.display_signage("experiment")
+                if not skip_display:
+                    self.display_signage("experiment")
             else:
                 self.pub_mode_status(False)
                 self._settings["in_experiment"] = False
-                self.display_signage("null")
+                if not skip_display:
+                    self.display_signage("null")
 
-            with open(self._settings_file, "w") as f:
-                json.dump(self._settings, f, indent=4)
+            self._save_settings()
             response.success = True
         except Exception as e:
             self.node.get_logger().error(str(e))
@@ -323,16 +420,119 @@ class ExternalSignage:
         except Exception as e:
             self.node.get_logger().error(str(e))
 
+    def _save_settings(self):
+        with open(self._settings_file, "w") as f:
+            json.dump(self._settings, f, indent=4)
+
+    # SYS-HMI-03: 行先表示モードの切替 (in_experiment/airport と排他)
+    def set_destination_mode(self, request, response):
+        try:
+            self._settings["destination_mode"] = request.data
+            self._save_settings()
+            if request.data:
+                # 行先表示モードON: 最新スケジュールから行先td5を描画する
+                self._render_destination()
+            else:
+                # OFF: 現在の autoware_status / settings に従い既存表示へ復帰する
+                self._restore_existing_display()
+            response.success = True
+        except Exception as e:
+            self.node.get_logger().error(str(e))
+            response.success = False
+        return response
+
+    def sub_active_schedule(self, msg):
+        # active_schedule は常に保持し、行先表示モード時のみ描画に反映する
+        self._last_schedule_raw = msg.data
+        if not self._settings.get("destination_mode"):
+            return
+        self._render_destination()
+
+    def _render_destination(self):
+        # 最新の active_schedule から表示すべき td5 状態を決定して描画する。
+        try:
+            data = json.loads(self._last_schedule_raw) if self._last_schedule_raw else None
+        except Exception as e:
+            self.node.get_logger().warning("active_schedule JSON parse failed: " + str(e))
+            self._display_state("null")
+            return
+        state_key, detail = self._resolve_destination(data)
+        self.node.get_logger().info("destination display -> {} ({})".format(state_key, detail))
+        self._display_state(state_key)
+
+    def _resolve_destination(self, data):
+        # 行先決定ロジック: doing[0] -> todo[0] -> 有効な行先なし。
+        # 戻り値 (state_key, detail)。state_key は displays のデータキー (prefix / "kaiso" / "null")。
+        # 有効な行先が取れない状態 (スケジュール無し/未登録/全完了) は回送中 (kaiso) とする (SYS-HMI-08)。
+        # 行先表示モードでは走行中の自動運行中(auto)表示は行わない。
+        if not data:
+            # スケジュール無し/未受信 -> 回送中
+            return "kaiso", "no schedule"
+        tasks = data.get("tasks", [])
+        doing = [t for t in tasks if t.get("task_type") == "move" and t.get("status") == "doing"]
+        todo = [t for t in tasks if t.get("task_type") == "move" and t.get("status") == "todo"]
+        task = doing[0] if doing else (todo[0] if todo else None)
+        if task is None:
+            # doing/todo の move タスクなし = スケジュール完了/未登録 -> 回送中
+            return "kaiso", "schedule complete"
+        dest = task.get("destination") or {}
+        point_id = dest.get("point_id")
+        dest_name = dest.get("name")
+        if point_id is None:
+            return "null", "no destination point_id"
+        prefix = self._destination_mapping.get(str(point_id))
+        if not prefix:
+            self.node.get_logger().warning(
+                "destination point_id not in mapping: {} ({})".format(point_id, dest_name)
+            )
+            return "null", "unmapped:{}".format(point_id)
+        return prefix, "point_id={} name={}".format(point_id, dest_name)
+
+    def _display_state(self, state_key):
+        # 指定キーの td5 を持つディスプレイにはそれを、持たないディスプレイには null (空白) を表示する。
+        # 例) 行先td5が 128x16 (front/back) のみで side (80x24) 未用意の場合、front/back は行先を、
+        #     side は空白を表示する。全サイズが揃えば自動で全ディスプレイに出る。
+        keys = {}
+        for d in self.displays:
+            if state_key in self.displays.get(d, {}):
+                keys[d] = state_key
+            else:
+                keys[d] = "null"
+                if state_key != "null":
+                    self.node.get_logger().warning(
+                        "td5 not available for '{}' on display '{}', showing null".format(
+                            state_key, d
+                        )
+                    )
+        self._display_signage_per_display(keys)
+
+    def _restore_existing_display(self):
+        # 行先表示モードOFF時に、既存ロジック(実験/空港MRM/自動運転/停止)へ復帰する。
+        if self._settings.get("in_experiment", True):
+            self.display_signage("experiment")
+        elif self._settings.get("airport") and self.autoware_status["mrm"]:
+            self.display_signage("mrm")
+        elif self.autoware_status["driving"]:
+            self.display_signage("auto")
+        else:
+            self.display_signage("null")
+
     def display_signage(self, display_file):
+        # 全ディスプレイに同一キーを表示する (既存呼び出し用の薄いラッパ)。
+        self._display_signage_per_display({d: display_file for d in self.displays})
+
+    def _display_signage_per_display(self, keys):
+        # ディスプレイごとに表示する td5 キーを指定して送信する。
+        # keys: {display_key: data_key} (data_key は各ディスプレイの displays[display_key] に存在すること)
         if not self._external_signage_available:
             return
 
         # 前回の状態と同じの場合更新をスキップする
         previous_state = self.current_state
-        self.current_state = display_file
-        if previous_state == display_file:
+        self.current_state = keys
+        if previous_state == keys:
             return
 
         for display_key in self.displays:
-            self.send_data(display_key, display_file)
+            self.send_data(display_key, keys[display_key])
             time.sleep(1)

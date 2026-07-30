@@ -1,0 +1,35 @@
+# SYS-HMI-03 車外サイネージ行先表示: destination.point_id と td5ファイル名prefix の対応表
+#
+# 【これはテンプレート】実行時は /opt/autoware/destination_mapping.yaml を読み込む。
+# 同ファイルが無ければ本テンプレートが自動コピーされる。運用時の紐付け編集は
+# /opt/autoware/destination_mapping.yaml 側を直接編集する(リビルド不要で反映)。
+#
+# active_schedule (FMS) の move タスクの destination.point_id (整数・マップ上のグローバル地点ID) を
+# キーに、表示する td5 ファイルの prefix を引く。
+#   ※ destination には point_id の他に stop_point_id(小さい連番・バス停順序の可能性) と
+#     name(例 "エフピコ　アリーナ　乗車口"・全角スペース含む) もあるが、キーは point_id を使う
+#     (stop_point_id は路線間で衝突しうるため不適)。
+# td5 ファイルは以下の命名規約で配置する:
+#
+#   resource/td5_file/destination/{prefix}_{width}x{height}.td5
+#     front / back = 128x16, side = 80x24 (両サイズを用意する)
+#
+# 例) point_id 2 (name "BusStop2") を prefix "busstop2" に対応させる場合、
+#   destination/busstop2_128x16.td5 と destination/busstop2_80x24.td5 を配置し、
+#   下記に "2": "busstop2" を追加する。
+#   ※キーは int でも str でも可 (ロード時に str へ正規化する)。可読性のため引用推奨。
+#
+# 未登録の point_id、td5 未配置/ロード失敗の場合は空白 (null td5) を表示する。
+# 有効な行先が取れない状態 (スケジュール無し/未受信/未登録/doing・todo 全完了) は
+# 回送中 (kaiso td5) を表示する。行先表示モードでは走行中の自動運行中表示は行わない。
+#
+# 実 td5 ファイルはディスプレイベンダ提供ツールで事前作成する。
+#
+# 【暫定 2026-07-27】行先td5のテスト用として miraikan/shinagawa/teleport (+回送 kaiso) を用意した。
+# ただし 128x16 (front/back) のみで 80x24 (side) 版は未用意のため、side は空白(null)表示となる
+# (_display_state を「td5を持つディスプレイだけ表示」に改修済み。side用td5を配置すれば自動で出る)。
+# point_id は現状の仮値 (2567/2568/2569) にテスト用行先を割り当てている。
+destination_mapping:
+  "2567": "miraikan"   # destination/miraikan_128x16.td5
+  "2568": "shinagawa"  # destination/shinagawa_128x16.td5
+  "2569": "teleport"   # destination/teleport_128x16.td5
