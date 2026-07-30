@@ -48,7 +48,7 @@ class AnnounceParameter:
     going_to_depart: bool = True
     going_to_arrive: bool = True
     arrive_caution: bool = True
-    temporary_stop: bool = True
+    temporary_stop: bool = False
     standing_depart: bool = True
     standing_sudden: bool = True
 
@@ -173,7 +173,7 @@ class ParameterInterface:
         node.declare_parameter("announce.going_to_depart", True)
         node.declare_parameter("announce.going_to_arrive", True)
         node.declare_parameter("announce.arrive_caution", True)
-        node.declare_parameter("announce.temporary_stop", True)
+        node.declare_parameter("announce.temporary_stop", False)
         node.declare_parameter("announce.standing_depart", True)
         node.declare_parameter("announce.standing_sudden", True)
 

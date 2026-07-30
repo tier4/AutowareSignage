@@ -32,7 +32,7 @@ signage:
       going_to_depart: true
       going_to_arrive: false # 到着予告(もうすぐ到着)はPhase1方針でデフォルト除外(次バス停案内・停車時安全配慮と重複するため)
       arrive_caution: true # UC-05 接近10mの車内安全配慮アナウンス (SYS-HMI-07)
-      temporary_stop: true # UC-04 停止案内(障害物/横断歩道/一般 共通「停車します」) SYS-HMI-04/05/06
+      temporary_stop: false # UC-04 停止案内(障害物/横断歩道/一般 共通「停車します」) SYS-HMI-04/05/06。走行中の停止発話は不要との判断でデフォルトOFF (2026-07-30)
       standing_depart: true # UC-02 発車警告 SYS2-UC02-01
       standing_sudden: true # UC-03 急減速・急操舵警告 SYS2-UC03-06
     announce_interval: # 発話後にその期間だけ再発話を抑止する秒数 (表示時間も連動)
