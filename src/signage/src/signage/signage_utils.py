@@ -168,12 +168,12 @@ def get_remain_minute(depart_time, current_time):
     return (depart_time - current_time) / 60
 
 
-def handle_phrase(phrase_type, remain_minute=0):
+def handle_phrase(phrase_type, value=0):
     return {
-        "final": "終点です。\nご乗車ありがとうございました",
-        "remain_minute": "このバスはあと{}分程で出発します".format(str(remain_minute)),
+        "remain_minute": "このバスはあと{}分程で出発します".format(str(value)),
         "departing": "間もなく発車時刻です",
         "arriving": "間もなく到着します",
+        "arrived": "{}に到着しました".format(value),
     }.get(phrase_type, "")
 
 

@@ -18,6 +18,7 @@ class SignageParameter:
     goal_distance: float = 1.0
     check_fms_time: float = 5.0
     accept_start: float = 5.0
+    arriving_distance: float = 10.0  # UC-05 到着接近の車内安全配慮しきい値 (m)
     emergency_ignore_period: float = 5.0
     emergency_repeat_period: float = 180.0
     monitor_width: int = 1920
@@ -37,12 +38,22 @@ class AnnounceParameter:
     in_emergency: bool = True
     going_to_depart: bool = True
     going_to_arrive: bool = True
+    arrive_caution: bool = True
+    temporary_stop: bool = True
+
+
+@dataclass
+class AnnounceIntervalParameter:
+    # 発話後にその期間だけ再発話を抑止する (秒)。VVAS の announce_interval と同方式。
+    stop_reason: float = 20.0  # UC-04 停止案内 (SYS-HMI-04/05/06)
+    arrived: float = 5.0  # UC-05 到着表示の表示秒数 (SYS-HMI-07)
 
 
 class ParameterInterface:
     def __init__(self, node):
         self.parameter = SignageParameter()
         self.announce_settings = AnnounceParameter()
+        self.announce_interval = AnnounceIntervalParameter()
 
         node.declare_parameter("debug_mode", False)
         node.declare_parameter("use_external_signage", False)
@@ -52,6 +63,7 @@ class ParameterInterface:
         node.declare_parameter("freeze_emergency", True)
         node.declare_parameter("check_fms_time", 5.0)
         node.declare_parameter("accept_start", 5.0)
+        node.declare_parameter("arriving_distance", 10.0)
         node.declare_parameter("ignore_emergency_stoppped", False)
         node.declare_parameter("set_goal_by_distance", False)
         node.declare_parameter("goal_distance", 1.0)
@@ -84,6 +96,9 @@ class ParameterInterface:
         )
         self.parameter.accept_start = (
             node.get_parameter("accept_start").get_parameter_value().double_value
+        )
+        self.parameter.arriving_distance = (
+            node.get_parameter("arriving_distance").get_parameter_value().double_value
         )
         self.parameter.ignore_emergency = (
             node.get_parameter("ignore_emergency_stoppped").get_parameter_value().bool_value
@@ -119,6 +134,8 @@ class ParameterInterface:
         node.declare_parameter("announce.in_emergency", True)
         node.declare_parameter("announce.going_to_depart", True)
         node.declare_parameter("announce.going_to_arrive", True)
+        node.declare_parameter("announce.arrive_caution", True)
+        node.declare_parameter("announce.temporary_stop", True)
 
         announce_prefix = node.get_parameters_by_prefix("announce")
 
@@ -127,4 +144,16 @@ class ParameterInterface:
                 self.announce_settings,
                 key,
                 announce_prefix[key].get_parameter_value().bool_value,
+            )
+
+        node.declare_parameter("announce_interval.stop_reason", 20.0)
+        node.declare_parameter("announce_interval.arrived", 5.0)
+
+        announce_interval_prefix = node.get_parameters_by_prefix("announce_interval")
+
+        for key in announce_interval_prefix.keys():
+            setattr(
+                self.announce_interval,
+                key,
+                announce_interval_prefix[key].get_parameter_value().double_value,
             )
