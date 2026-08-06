@@ -10,6 +10,7 @@
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>signage_version</exec_depend>
 
+  <depend>autoware_adapi_v1_msgs</depend>
   <depend>command_view_manager_msgs</depend>
   <depend>diagnostic_updater</depend>
   <depend>external_signage</depend>

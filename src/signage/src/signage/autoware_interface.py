@@ -13,11 +13,12 @@ from autoware_adapi_v1_msgs.msg import (
     LocalizationInitializationState,
     VehicleKinematics,
     Heartbeat,
+    DoorStatus,
+    DoorStatusArray,
 )
 from autoware_adapi_v1_msgs.srv import GetVehicleDimensions
 from std_msgs.msg import String
 import signage.signage_utils as utils
-from tier4_external_api_msgs.msg import DoorStatus
 from tier4_metric_msgs.msg import MetricArray
 
 DISCONNECT_THRESHOLD = 2
@@ -97,8 +98,14 @@ class AutowareInterface:
             self.sub_mrm_callback,
             api_qos,
         )
+        # /api/external/get/door (tier4_external_api) は廃止されたため AD API の
+        # Vehicle Doors API (/api/vehicle/doors/status, DoorStatusArray) へ移行。
+        # AD API 側は RELIABLE + TRANSIENT_LOCAL で publish されるため api_qos を使う。
         self._sub_vehicle_door = node.create_subscription(
-            DoorStatus, "/api/external/get/door", self.sub_vehicle_door_callback, sub_qos
+            DoorStatusArray,
+            "/api/vehicle/doors/status",
+            self.sub_vehicle_door_callback,
+            api_qos,
         )
         # /autoware_api/utils/path_distance_calculator/distance が廃止予定のため、
         # ゴール姿勢 (/api/routing/route) と自車位置 (/api/vehicle/kinematics) から
@@ -159,15 +166,24 @@ class AutowareInterface:
             self._node.create_timer(1, self.reset_timer)
 
     def reset_timer(self):
+        # /api/system/heartbeat が DISCONNECT_THRESHOLD 秒以上途絶したら Autoware 切断とみなす。
+        # ログは事後診断のため、切断への遷移時と復帰時にそれぞれ1回だけ残す (継続中は再出力しない)。
         if utils.check_timeout(
             self._node.get_clock().now(), self._autoware_connection_time, DISCONNECT_THRESHOLD
         ):
             self.information.mrm_behavior = MrmState.NONE
-            self._node.get_logger().error(
-                "Autoware disconnected", throttle_duration_sec=DISCONNECT_THRESHOLD
-            )
+            if not self.is_disconnected:
+                self._node.get_logger().error(
+                    "Autoware disconnected: /api/system/heartbeat not received for {}s".format(
+                        DISCONNECT_THRESHOLD
+                    )
+                )
             self.is_disconnected = True
         else:
+            if self.is_disconnected:
+                self._node.get_logger().info(
+                    "Autoware reconnected: /api/system/heartbeat resumed"
+                )
             self.is_disconnected = False
 
     def sub_operation_mode_callback(self, msg):
@@ -190,8 +206,23 @@ class AutowareInterface:
             self._node.get_logger().error("Unable to get the mrm behavior, ERROR: " + str(e))
 
     def sub_vehicle_door_callback(self, msg):
+        # DoorStatusArray は複数ドアの状態リストを持つため、乗客への開閉警告用に
+        # 1つの代表状態へ集約する。開扉/閉扉アナウンスの契機となる遷移状態を優先し、
+        # いずれかのドアが OPENING/CLOSING ならその状態を採用、それ以外は先頭ドアの状態を使う。
+        # この集約 + route_handler 側の重複抑制 (_pre_door_announce_status) により、
+        # 複数ドアが同時に開閉中でも「開扉/閉扉」発話は1回に集約される。
+        # TODO(留意事項): 将来的にはどのドアが開閉中かを個別に発話したいが、
+        # ドア構成 (index の対応) が現状不明なため、今は代表状態への集約のみとする。
         try:
-            self.information.door_status = msg.status
+            statuses = [door.status for door in msg.doors]
+            if DoorStatus.OPENING in statuses:
+                self.information.door_status = DoorStatus.OPENING
+            elif DoorStatus.CLOSING in statuses:
+                self.information.door_status = DoorStatus.CLOSING
+            elif statuses:
+                self.information.door_status = statuses[0]
+            else:
+                self.information.door_status = DoorStatus.UNKNOWN
         except Exception as e:
             self._node.get_logger().error("Unable to get the vehicle door status, ERROR: " + str(e))
 
