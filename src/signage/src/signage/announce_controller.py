@@ -31,9 +31,9 @@ PRIORITY_DICT = {
     # 立席運行 転倒防止アナウンス (MRM=3 の下に配置)
     # 急減速・急操舵は priority 2。発車警告は engage(2) に続けて再生させるため
     # priority 1 とし、engage 再生中はキューに積んで後続で再生する。
-    "standing_sudden_stop": 2,
-    "standing_sudden_turn": 2,
-    "standing_sudden_stop_turn": 2,
+    # 急減速/急操舵/複合とも音声は「手すりにおつかまりください」で統一する
+    # (表示は standing_warning_type で事象別に出し分ける)。
+    "standing_sudden": 2,
     "standing_depart": 1,
     "going_to_depart": 1,
     "going_to_arrive": 1,
