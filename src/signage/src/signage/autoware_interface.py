@@ -38,7 +38,9 @@ CONTROL_METRIC_ATTR_MAP = {
 class AutowareInformation:
     autoware_control: bool = False
     operation_mode: int = 0
-    mrm_behavior: int = 0
+    # 起動時 (MRM メッセージ未受信) は MRM 非作動として扱う (NORMAL / NONE)
+    mrm_state: int = 1  # MrmState.NORMAL
+    mrm_behavior: int = 1  # MrmState.NONE
     route_state: int = 0
     door_status: int = 0
     goal_distance: float = 1000.0
@@ -162,6 +164,7 @@ class AutowareInterface:
         if utils.check_timeout(
             self._node.get_clock().now(), self._autoware_connection_time, DISCONNECT_THRESHOLD
         ):
+            self.information.mrm_state = MrmState.NORMAL
             self.information.mrm_behavior = MrmState.NONE
             self._node.get_logger().error(
                 "Autoware disconnected", throttle_duration_sec=DISCONNECT_THRESHOLD
@@ -185,6 +188,25 @@ class AutowareInterface:
 
     def sub_mrm_callback(self, msg):
         try:
+            # 値域逸脱 (SYS2-ERR-01): state / behavior が想定値域外の場合は
+            # MRM 発生有無を不明として扱い、MRM 状態を非作動へリセットする。
+            # (有効値域は pilot-auto のバージョン差を吸収するため config で可変)
+            if (
+                msg.state not in self._parameter.mrm_valid_states
+                or msg.behavior not in self._parameter.mrm_valid_behaviors
+            ):
+                # 値域外が継続する構成 (待機中に UNKNOWN を publish し続ける等) では
+                # トピックレートでログが流れるため throttle する。
+                self._node.get_logger().error(
+                    "MRM state out of range (state={}, behavior={}), reset MRM".format(
+                        msg.state, msg.behavior
+                    ),
+                    throttle_duration_sec=5,
+                )
+                self.information.mrm_state = MrmState.NORMAL
+                self.information.mrm_behavior = self._parameter.mrm_none_behavior
+                return
+            self.information.mrm_state = msg.state
             self.information.mrm_behavior = msg.behavior
         except Exception as e:
             self._node.get_logger().error("Unable to get the mrm behavior, ERROR: " + str(e))

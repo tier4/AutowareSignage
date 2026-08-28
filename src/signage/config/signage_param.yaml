@@ -21,6 +21,11 @@ signage:
     sudden_lateral_accel_threshold: 0.8 # m/s^2 (lateral_acceleration_abs >= 本値 で急操舵)
     sudden_lateral_jerk_threshold: 0.5 # m/s^3 (|横ジャーク| >= 本値 で急操舵。横ジャーク≒v^2*steering_rate/wheel_base)
     wheel_base: 2.75 # m (横ジャーク計算用フォールバック。/api/vehicle/dimensions 取得成功で上書き)
+    mrm: # /api/fail_safe/mrm_state の値域判定・緊急判定 (SYS2-ERR-01 値域逸脱)。pilot-auto のバージョンで behavior 値体系が変わるため可変にする
+      valid_states: [1, 2, 3, 4] # MrmState.state の有効値 (NORMAL/MRM_OPERATING/MRM_SUCCEEDED/MRM_FAILED)。逸脱時はMRMを不明扱いでリセット
+      valid_behaviors: [1, 2, 3, 4, 12] # MrmState.behavior の有効値。逸脱時はMRMを不明扱いでリセット。※実車の値体系に合わせて要調整
+      none_behavior: 1 # MRM 非作動 (NONE) を表す behavior 値
+      emergency_behaviors: [12] # 緊急停止と判定する behavior 値 (旧バージョンは 2)。実車の値体系に合わせて要調整
     announce:
       emergency: true
       restart_engage: true
