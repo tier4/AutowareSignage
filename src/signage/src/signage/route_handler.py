@@ -563,7 +563,9 @@ class RouteHandler:
                 warning_type, ", ".join(reasons)
             )
         )
-        self._announce_interface.send_announce("standing_" + warning_type)
+        # 音声は事象によらず「手すりにおつかまりください」で統一する
+        # (事象別の出し分けは表示側 standing_warning_type のみ)
+        self._announce_interface.send_announce("standing_sudden")
 
     def sudden_motion_checker_callback(self):
         # UC-03: 急減速・急操舵の事後検知。立席運用モードON・走行中・MRM非作動のときのみ評価する。
