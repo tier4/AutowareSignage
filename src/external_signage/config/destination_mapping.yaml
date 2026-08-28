@@ -25,11 +25,12 @@
 #
 # 実 td5 ファイルはディスプレイベンダ提供ツールで事前作成する。
 #
-# 【暫定 2026-07-27】行先td5のテスト用として miraikan/shinagawa/teleport (+回送 kaiso) を用意した。
-# ただし 128x16 (front/back) のみで 80x24 (side) 版は未用意のため、side は空白(null)表示となる
-# (_display_state を「td5を持つディスプレイだけ表示」に改修済み。side用td5を配置すれば自動で出る)。
-# point_id は現状の仮値 (2567/2568/2569) にテスト用行先を割り当てている。
+# 【2026-07-30】ベンチ登録スケジュール (area_map_id 1155 お台場エリア) の実 destination.point_id を
+# FMS active_schedule から採取して割当。schedule_id 8132ab57-... の move タスク2件:
+#   doing: point_id 91737  = 日本科学未来館 (miraikan)
+#   todo : point_id 118489 = 東京テレポート駅 (teleport)
+# shinagawa (品川) は当該スケジュールに含まれず実 point_id 未判明のため未登録
+# (品川を含むスケジュール登録後に active_schedule から採取して追記する)。
 destination_mapping:
-  "2567": "miraikan"   # destination/miraikan_128x16.td5
-  "2568": "shinagawa"  # destination/shinagawa_128x16.td5
-  "2569": "teleport"   # destination/teleport_128x16.td5
+  "91737": "miraikan"   # 日本科学未来館 / destination/miraikan_{128x16,80x24}.td5
+  "118489": "teleport"  # 東京テレポート駅 / destination/teleport_{128x16,80x24}.td5
