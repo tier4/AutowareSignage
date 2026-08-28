@@ -373,6 +373,14 @@ class RouteHandler:
                 return
 
             if self._current_task_details.depart_time <= 0:
+                # plan_start_time のパース失敗などで発車時刻が無効値のまま。
+                # 無言で発話・表示を止めると原因が追えないため警告を残す。
+                self._node.get_logger().warning(
+                    "Invalid depart_time ({}), skip the departure time handling".format(
+                        self._current_task_details.depart_time
+                    ),
+                    throttle_duration_sec=5,
+                )
                 return
 
             remain_minute = utils.get_remain_minute(
