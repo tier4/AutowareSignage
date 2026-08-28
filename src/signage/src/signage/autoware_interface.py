@@ -195,10 +195,13 @@ class AutowareInterface:
                 msg.state not in self._parameter.mrm_valid_states
                 or msg.behavior not in self._parameter.mrm_valid_behaviors
             ):
+                # 値域外が継続する構成 (待機中に UNKNOWN を publish し続ける等) では
+                # トピックレートでログが流れるため throttle する。
                 self._node.get_logger().error(
                     "MRM state out of range (state={}, behavior={}), reset MRM".format(
                         msg.state, msg.behavior
-                    )
+                    ),
+                    throttle_duration_sec=5,
                 )
                 self.information.mrm_state = MrmState.NORMAL
                 self.information.mrm_behavior = self._parameter.mrm_none_behavior

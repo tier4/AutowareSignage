@@ -186,6 +186,22 @@ class ParameterInterface:
         self.parameter.mrm_emergency_behaviors = list(
             node.get_parameter("mrm.emergency_behaviors").get_parameter_value().integer_array_value
         )
+        # 設定の自己整合チェック: 緊急/NONE の判定値が有効値域に無いと、その値は
+        # 「値域逸脱」としてリセットされ緊急停止表示が永久に出なくなる。設定ミスで
+        # 安全側の表示が落ちるのを避けるため、不足分は有効値へ補いログに残す。
+        missing_behaviors = [
+            behavior
+            for behavior in [self.parameter.mrm_none_behavior]
+            + self.parameter.mrm_emergency_behaviors
+            if behavior not in self.parameter.mrm_valid_behaviors
+        ]
+        if missing_behaviors:
+            node.get_logger().error(
+                "mrm.valid_behaviors {} does not contain {}, add them automatically".format(
+                    self.parameter.mrm_valid_behaviors, missing_behaviors
+                )
+            )
+            self.parameter.mrm_valid_behaviors += missing_behaviors
 
         node.declare_parameter("announce.emergency", True)
         node.declare_parameter("announce.restart_engage", True)
