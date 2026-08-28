@@ -48,7 +48,7 @@ def init_TaskList():
 
 
 def init_CurrentTask():
-    return CurrentTask(["", ""], ["", ""], 0)
+    return CurrentTask(["", ""], ["", ""], -1)
 
 
 def init_ScheduleDetails():
@@ -120,8 +120,8 @@ def process_current_task(task):
     try:
         date_time_obj = parser.parse(task["plan_start_time"])
         depart_time = datetime.timestamp(date_time_obj)
-    except:
-        depart_time = 0
+    except Exception:
+        depart_time = -1
 
     return CurrentTask(departure_station, arrival_station, depart_time)
 
