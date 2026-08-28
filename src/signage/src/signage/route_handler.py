@@ -7,12 +7,12 @@ import json
 from datetime import datetime
 
 import signage.signage_utils as utils
-from tier4_external_api_msgs.msg import DoorStatus
 from autoware_adapi_v1_msgs.msg import (
     RouteState,
     OperationModeState,
     MotionState,
     LocalizationInitializationState,
+    DoorStatus,
 )
 
 
