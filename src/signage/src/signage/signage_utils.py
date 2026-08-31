@@ -3,6 +3,7 @@
 # This Python file uses the following encoding: utf-8
 
 DEFAULT_ROUTE_NAME = ["行き先案内", "Route Information"]
+V2X_FIXED_ROUTE_NAME = ["行き先案内", ""]
 DEFAULT_DEPARTURE_NAME = "出発点; Start"
 DEFAULT_ARRIVAL_NAME = "終点; Last Stop"
 PREVIOUS_STATION_INDEX = -1  # TODO: check whether is -1 or 0
@@ -179,3 +180,113 @@ def handle_phrase(phrase_type, remain_minute=0):
 
 def check_timeout(current_time, trigger_time, duration):
     return current_time - trigger_time > Duration(seconds=duration)
+
+
+def to_japanese_station_name(name):
+    """V2X name is Japanese only; keep English slot empty for QML compatibility."""
+    if not name:
+        return ["", ""]
+    return [name, ""]
+
+
+def normalize_bus_stop_state(state_value):
+    """Map OR_* variants (20+) to base BusStopState values."""
+    if state_value >= 20:
+        return state_value - 20
+    return state_value
+
+
+def process_station_list_from_v2x(signage_infos):
+    """
+    Build display fields from BusStopStatus[] ordered by stop sequence.
+
+    Returns (previous_station, current_task, next_station_list, reach_final)
+    """
+    from tier4_v2x_msgs.msg import BusStopState
+
+    if not signage_infos:
+        return (["", ""], init_CurrentTask(), [["", ""]] * 5, False)
+
+    names = [to_japanese_station_name(info.name) for info in signage_infos]
+    states = [normalize_bus_stop_state(info.state.value) for info in signage_infos]
+
+    stopping_idx = None
+    approaching_idx = None
+    last_completed_idx = None
+    for i, state in enumerate(states):
+        if state == BusStopState.STOPPING and stopping_idx is None:
+            stopping_idx = i
+        if state == BusStopState.APPROACHING and approaching_idx is None:
+            approaching_idx = i
+        if state == BusStopState.STOP_COMPLETED:
+            last_completed_idx = i
+
+    if stopping_idx is not None:
+        dep_idx = stopping_idx
+        arr_idx = stopping_idx + 1
+    elif approaching_idx is not None:
+        dep_idx = approaching_idx - 1
+        arr_idx = approaching_idx
+    elif last_completed_idx is not None:
+        dep_idx = last_completed_idx
+        arr_idx = last_completed_idx + 1
+    else:
+        # Before departure: treat first stop as current
+        dep_idx = 0
+        arr_idx = 1 if len(names) > 1 else -1
+
+    previous_station = names[dep_idx - 1] if dep_idx > 0 else ["", ""]
+    departure_station = names[dep_idx] if dep_idx >= 0 else ["", ""]
+
+    reach_final = False
+    if arr_idx < 0 or arr_idx >= len(names):
+        arrival_station = ["", ""]
+        reach_final = dep_idx >= 0 and (
+            last_completed_idx == dep_idx or stopping_idx == dep_idx
+        )
+        station_list = []
+    else:
+        arrival_station = names[arr_idx]
+        station_list = list(names[arr_idx:])
+
+    auto_add_empty_list(station_list)
+    next_station_list = station_list[: NEXT_STATION_DISPLAY_AMOUNT - 1]
+
+    current_task = CurrentTask(departure_station, arrival_station, 0)
+    return previous_station, current_task, next_station_list, reach_final
+
+
+def get_v2x_bus_stop_states(signage_infos):
+    return {
+        info.stop_id: normalize_bus_stop_state(info.state.value) for info in signage_infos
+    }
+
+
+def get_v2x_approaching(signage_infos):
+    from tier4_v2x_msgs.msg import BusStopState
+
+    if not signage_infos:
+        return False
+    for info in signage_infos:
+        if normalize_bus_stop_state(info.state.value) == BusStopState.APPROACHING:
+            return True
+    return False
+
+
+def detect_will_stop_to_approaching(signage_infos, prev_states):
+    """
+    Detect WILL_STOP/OR_WILL_STOP -> APPROACHING/OR_APPROACHING.
+    OR_* is normalized to base values before comparison.
+
+    Returns (became_approaching, current_states)
+    """
+    from tier4_v2x_msgs.msg import BusStopState
+
+    current_states = get_v2x_bus_stop_states(signage_infos)
+    became_approaching = False
+    for stop_id, state in current_states.items():
+        prev = prev_states.get(stop_id)
+        if prev == BusStopState.WILL_STOP and state == BusStopState.APPROACHING:
+            became_approaching = True
+            break
+    return became_approaching, current_states

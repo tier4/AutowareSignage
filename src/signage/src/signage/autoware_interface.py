@@ -3,21 +3,24 @@
 
 import rclpy
 from dataclasses import dataclass
+from typing import Optional
 from autoware_adapi_v1_msgs.msg import (
     RouteState,
     MrmState,
     OperationModeState,
     MotionState,
     LocalizationInitializationState,
-    VelocityFactorArray,
     Heartbeat,
 )
 from std_msgs.msg import String
 import signage.signage_utils as utils
 from autoware_internal_debug_msgs.msg import Float64Stamped
 from tier4_external_api_msgs.msg import DoorStatus
+from tier4_v2x_msgs.msg import BusStopSignageInfoArray
 
 DISCONNECT_THRESHOLD = 2
+SCHEDULE_SOURCE_FMS = "fms"
+SCHEDULE_SOURCE_V2X = "v2x"
 
 
 @dataclass
@@ -31,6 +34,8 @@ class AutowareInformation:
     motion_state: int = 0
     localization_init_state: int = 0
     active_schedule: str = ""
+    schedule_source: str = SCHEDULE_SOURCE_FMS
+    bus_stop_signage_info: Optional[BusStopSignageInfoArray] = None
 
 
 class AutowareInterface:
@@ -39,6 +44,8 @@ class AutowareInterface:
         self.information = AutowareInformation()
         self._parameter = parameter_interface.parameter
         self.is_disconnected = False
+
+        self.information.schedule_source = self._parameter.default_schedule_source
 
         sub_qos = rclpy.qos.QoSProfile(
             history=rclpy.qos.QoSHistoryPolicy.KEEP_LAST,
@@ -95,12 +102,24 @@ class AutowareInterface:
             self.sub_active_schedule_callback,
             sub_qos,
         )
-        self._sub_active_schedule = node.create_subscription(
+        self._sub_heartbeat = node.create_subscription(
             Heartbeat,
             "/api/system/heartbeat",
             self.sub_heartbeat_callback,
             sub_qos,
-        )  
+        )
+        self._sub_schedule_source = node.create_subscription(
+            String,
+            self._parameter.schedule_source_topic,
+            self.sub_schedule_source_callback,
+            sub_qos,
+        )
+        self._sub_bus_stop_signage_info = node.create_subscription(
+            BusStopSignageInfoArray,
+            self._parameter.bus_stop_signage_info_topic,
+            self.sub_bus_stop_signage_info_callback,
+            sub_qos,
+        )
         if not self._parameter.debug_mode:
             self._autoware_connection_time = self._node.get_clock().now()
             self._node.create_timer(1, self.reset_timer)
@@ -173,3 +192,35 @@ class AutowareInterface:
             self._autoware_connection_time = self._node.get_clock().now()
         except Exception as e:
             self._node.get_logger().error("Unable to get the heartbeat, ERROR: " + str(e))
+
+    def sub_schedule_source_callback(self, msg):
+        try:
+            source = msg.data.strip().lower()
+            if source not in (SCHEDULE_SOURCE_FMS, SCHEDULE_SOURCE_V2X):
+                self._node.get_logger().warning(
+                    "Unknown schedule source '{}', expected '{}' or '{}'".format(
+                        msg.data, SCHEDULE_SOURCE_FMS, SCHEDULE_SOURCE_V2X
+                    ),
+                    throttle_duration_sec=5,
+                )
+                return
+            if self.information.schedule_source != source:
+                self._node.get_logger().info(
+                    "Schedule source switched to '{}'".format(source)
+                )
+            self.information.schedule_source = source
+        except Exception as e:
+            self._node.get_logger().error(
+                "Unable to get the schedule source, ERROR: " + str(e)
+            )
+
+    def sub_bus_stop_signage_info_callback(self, msg):
+        try:
+            self.information.bus_stop_signage_info = msg
+        except Exception as e:
+            self._node.get_logger().error(
+                "Unable to get the bus stop signage info, ERROR: " + str(e)
+            )
+
+    def is_v2x_schedule_source(self):
+        return self.information.schedule_source == SCHEDULE_SOURCE_V2X

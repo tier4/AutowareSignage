@@ -13,6 +13,10 @@ signage:
     accept_start: 5.0 # second
     monitor_width: 1920
     monitor_height: 540
+    # fms | v2x — overridden by schedule_source_topic content when published
+    default_schedule_source: fms
+    schedule_source_topic: /signage/schedule_source
+    bus_stop_signage_info_topic: /v2x/bus_stop/signage_info
     announce:
       emergency: true
       restart_engage: true
