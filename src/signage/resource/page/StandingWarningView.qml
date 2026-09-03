@@ -46,7 +46,7 @@ Rectangle {
         Text {
             width: parent.width
             color: "#000000"
-            text: qsTr("発車します。手すり・つり革にしっかりとおつかまりください")
+            text: qsTr("発車します。\n手すり・つり革にしっかりとおつかまりください")
             horizontalAlignment: Text.AlignHCenter
             font.pointSize: 40 * viewController.size_ratio
             font.bold: true
