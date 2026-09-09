@@ -11,6 +11,7 @@ from std_srvs.srv import SetBool
 from std_msgs.msg import Bool
 from ament_index_python.packages import get_package_share_directory
 import external_signage.packet_tools as packet_tools
+import external_signage.display_mode as display_mode
 from autoware_adapi_v1_msgs.msg import MrmState
 from std_msgs.msg import String
 from level4_mode_manager_msgs.msg import Level4DrivingStatus
@@ -195,7 +196,11 @@ class ExternalSignage:
             reliability=rclpy.qos.QoSReliabilityPolicy.RELIABLE,
             durability=rclpy.qos.QoSDurabilityPolicy.VOLATILE,
         )
-        node.create_service(SetBool, "/signage/destination_mode", self.set_destination_mode)
+        # 表示モード (OFF / 自動運転状態表示 / 行先表示) の切替。
+        # SetBool 2 本だが、状態の出処は settings["display_mode"] 1 本に集約している。
+        # MOT のモード選択はどれを選んでも 1 コールで済む (下の各ハンドラのコメント参照)。
+        node.create_service(SetBool, "/signage/display/enable", self.set_display_enable)
+        node.create_service(SetBool, "/signage/display/destination", self.set_display_destination)
         self._sub_active_schedule = node.create_subscription(
             String, "/signage/active_schedule", self.sub_active_schedule, schedule_qos
         )
@@ -207,12 +212,17 @@ class ExternalSignage:
                 self._settings = json.load(f)
         else:
             self._settings = {"in_experiment": True, "airport": False}
-        # SYS-HMI-03: 行先表示モード (in_experiment/airport と排他) の既定値を補完し永続化する
-        self._settings.setdefault("destination_mode", False)
+        # 表示モード (in_experiment/airport と排他) を display_mode 1 キーへ正規化し永続化する。
+        # 旧 destination_mode しか持たない設定ファイルはここで引き継がれる。
+        display_mode.migrate(self._settings)
         self._save_settings()
 
         # initial display
-        if self._settings.get("destination_mode"):
+        if self._is_display_off():
+            # OFF: 全ディスプレイを空白にして固定する (再起動しても OFF のまま)
+            self.pub_mode_status(False)
+            self.display_signage("null")
+        elif self._is_destination_mode():
             # 行先表示モード: active_schedule 受信までは null (空白) を表示
             self.pub_mode_status(False)
             self._render_destination()
@@ -222,6 +232,20 @@ class ExternalSignage:
         else:
             self.pub_mode_status(False)
         self.timer = node.create_timer(1, self.pub_setting)
+
+    def _display_mode(self):
+        return display_mode.from_settings(self._settings)
+
+    def _is_display_off(self):
+        return self._display_mode() == display_mode.OFF
+
+    def _is_destination_mode(self):
+        return self._display_mode() == display_mode.DESTINATION
+
+    def _skip_autonomous_display(self):
+        # 自動運転状態表示 (experiment/auto/mrm/null) を出さないモードかどうか。
+        # OFF は空白固定、行先表示は行先td5 が描画を占有するため、どちらも出さない。
+        return self._display_mode() != display_mode.AUTONOMOUS
 
     def pub_setting(self):
         setting = json.dumps(self._settings)
@@ -322,8 +346,8 @@ class ExternalSignage:
     def trigger_external_signage(self, request, response):
         try:
             self.autoware_status["driving"] = request.data
-            # SYS-HMI-03: 行先表示モード中は既存表示を出さない (状態のみ更新)
-            if self._settings.get("destination_mode"):
+            # OFF / 行先表示モード中は既存表示を出さない (状態のみ更新)
+            if self._skip_autonomous_display():
                 response.success = True
                 return response
             if self._settings["in_experiment"]:
@@ -350,8 +374,8 @@ class ExternalSignage:
     def sub_mrm_callback(self, msg):
         try:
             self.autoware_status["mrm"] = msg.state in [2, 3, 4]
-            # SYS-HMI-03: 行先表示モード中は既存表示(mrm含む)を出さない (状態のみ更新)
-            if self._settings.get("destination_mode"):
+            # OFF / 行先表示モード中は既存表示(mrm含む)を出さない (状態のみ更新)
+            if self._skip_autonomous_display():
                 return
             if self._settings["in_experiment"]:
                 return
@@ -369,8 +393,8 @@ class ExternalSignage:
     def sub_is_driving_level(self, msg):
         try:
             self.node.get_logger().info(str(msg.is_level4_driving))
-            # SYS-HMI-03: 行先表示モード中は状態更新のみ行い既存表示は出さない
-            skip_display = self._settings.get("destination_mode")
+            # OFF / 行先表示モード中は状態更新のみ行い既存表示は出さない
+            skip_display = self._skip_autonomous_display()
             if msg.is_level4_driving:  # True is L4, False is L2.
                 self.pub_mode_status(True)
                 self._settings["in_experiment"] = False
@@ -392,7 +416,7 @@ class ExternalSignage:
     # l4かどうかのサービスを受け取り走行モードを変更する
     def change_mode(self, request, response):
         try:
-            skip_display = self._settings.get("destination_mode")
+            skip_display = self._skip_autonomous_display()
             if request.data:  # True is L2, False is L4.
                 self.pub_mode_status(True)
                 self._settings["in_experiment"] = True
@@ -424,27 +448,56 @@ class ExternalSignage:
         with open(self._settings_file, "w") as f:
             json.dump(self._settings, f, indent=4)
 
-    # SYS-HMI-03: 行先表示モードの切替 (in_experiment/airport と排他)
-    def set_destination_mode(self, request, response):
+    def set_display_enable(self, request, response):
+        # 表示の ON/OFF。
+        #   data=false -> OFF (全ディスプレイを空白にして固定する)
+        #   data=true  -> OFF を解除し自動運転状態表示へ戻す (既に表示中なら現状維持)
+        # MOT の「OFF」選択はこの 1 コールで完結する。
         try:
-            self._settings["destination_mode"] = request.data
-            self._save_settings()
             if request.data:
-                # 行先表示モードON: 最新スケジュールから行先td5を描画する
-                self._render_destination()
+                if self._is_display_off():
+                    self._apply_display_mode(display_mode.AUTONOMOUS)
             else:
-                # OFF: 現在の autoware_status / settings に従い既存表示へ復帰する
-                self._restore_existing_display()
+                self._apply_display_mode(display_mode.OFF)
             response.success = True
         except Exception as e:
             self.node.get_logger().error(str(e))
             response.success = False
         return response
 
+    def set_display_destination(self, request, response):
+        # 表示内容の切替 (in_experiment/airport と排他)。
+        #   data=true  -> 行先表示
+        #   data=false -> 自動運転状態表示
+        # OFF からでも 1 コールで目的のモードへ入る (MOT のモード選択は常に 1 コール)。
+        try:
+            self._apply_display_mode(
+                display_mode.DESTINATION if request.data else display_mode.AUTONOMOUS
+            )
+            response.success = True
+        except Exception as e:
+            self.node.get_logger().error(str(e))
+            response.success = False
+        return response
+
+    def _apply_display_mode(self, mode):
+        # 表示モードを永続化し、そのモードの描画を即座に反映する。
+        self._settings[display_mode.SETTINGS_KEY] = mode
+        self._save_settings()
+        self.node.get_logger().info("display_mode -> {}".format(mode))
+        if mode == display_mode.OFF:
+            self.display_signage("null")
+        elif mode == display_mode.DESTINATION:
+            # 最新スケジュールから行先td5を描画する
+            self._render_destination()
+        else:
+            # 現在の autoware_status / settings に従い既存表示へ復帰する
+            self._restore_existing_display()
+
     def sub_active_schedule(self, msg):
         # active_schedule は常に保持し、行先表示モード時のみ描画に反映する
         self._last_schedule_raw = msg.data
-        if not self._settings.get("destination_mode"):
+        if not self._is_destination_mode():
             return
         self._render_destination()
 
@@ -507,7 +560,7 @@ class ExternalSignage:
         self._display_signage_per_display(keys)
 
     def _restore_existing_display(self):
-        # 行先表示モードOFF時に、既存ロジック(実験/空港MRM/自動運転/停止)へ復帰する。
+        # 自動運転状態表示へ入るとき、既存ロジック(実験/空港MRM/自動運転/停止)へ復帰する。
         if self._settings.get("in_experiment", True):
             self.display_signage("experiment")
         elif self._settings.get("airport") and self.autoware_status["mrm"]:
