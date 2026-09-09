@@ -18,8 +18,13 @@
 #   ./publish_test_schedule.sh real                # web.auto agent の実スケジュールを publish
 #   ./publish_test_schedule.sh show                # 実スケジュールを整形表示 (publish しない)
 #
-# POINT_ID 省略時: doing/todo/done は 2567 (実FMS照合時の destination.point_id)、
-#                  unmapped は 999999 (未登録想定)。
+# POINT_ID 省略時は destination_mapping.yaml に登録済みの実 point_id を使う:
+#   doing -> 91737  (日本科学未来館 / miraikan)
+#   todo  -> 118489 (東京テレポート駅 / teleport)
+#   done  -> doing/todo の move タスクが無くなるため回送中 (kaiso)。point_id は表示に影響しない
+#   unmapped -> 999999 (未登録想定)
+# ※ destination_mapping.yaml を更新したら、下の *_POINT_ID も併せて更新すること。
+#    未登録の point_id のままだと doing/todo が空白 (null) 表示になり、テストの意図と食い違う。
 #
 # 期待結果はノードログ "destination display -> <key> (<detail>)" で確認する。
 # td5 が一部サイズのみの場合 (現状: 行先/回送 td5 は 128x16 のみ) は、そのサイズを持つ
@@ -28,14 +33,18 @@
 set -euo pipefail
 
 TOPIC="/signage/active_schedule"
-MOVE_POINT_ID=2567
+# ベンチ登録スケジュール (area_map_id 1155 お台場エリア) の move タスク2件の実 point_id。
+# doing/todo で別の行先を出すことで、_resolve_destination の doing[0] -> todo[0] フォールバックが
+# どちらの経路で解決したかをノードログの行先名で見分けられる。
+DOING_POINT_ID=91737
+TODO_POINT_ID=118489
 UNMAPPED_POINT_ID=999999
 
 AGENT_URL="http://${AUTOWARE_IP:-localhost}:${AUTOWARE_PORT:-4711}/v1/services/order"
 FMS_ACTIVE_SCHEDULE_URL="https://${FMS_URL:-fms.dev.web.auto}/v1/projects/{project_id}/environments/{environment_id}/vehicles/{vehicle_id}/active_schedule"
 
 usage() {
-  sed -n '2,29p' "$0" >&2
+  sed -n '2,32p' "$0" >&2
   exit 1
 }
 
@@ -68,8 +77,15 @@ fetch_real() {
 cmd="$1"; shift || true
 
 case "${cmd}" in
-  doing|todo|done)
-    publish "$(move_schedule "${cmd}" "${1:-${MOVE_POINT_ID}}")"
+  doing)
+    publish "$(move_schedule doing "${1:-${DOING_POINT_ID}}")"
+    ;;
+  todo)
+    publish "$(move_schedule todo "${1:-${TODO_POINT_ID}}")"
+    ;;
+  done)
+    # 全タスク完了 -> doing/todo の move タスクなし = 回送中 (kaiso)。point_id は表示に影響しない
+    publish "$(move_schedule "done" "${1:-${DOING_POINT_ID}}")"
     ;;
   none)
     # 空スケジュール -> _resolve_destination は "kaiso" (no schedule)

@@ -7,12 +7,12 @@ import json
 from datetime import datetime
 
 import signage.signage_utils as utils
-from tier4_external_api_msgs.msg import DoorStatus
 from autoware_adapi_v1_msgs.msg import (
     RouteState,
     OperationModeState,
     MotionState,
     LocalizationInitializationState,
+    DoorStatus,
 )
 
 
@@ -101,9 +101,14 @@ class RouteHandler:
 
         current_time = self._node.get_clock().now()
         mrm_behavior = self._autoware.information.mrm_behavior
-        in_emergency = mrm_behavior == 12
-        # comfortable stop = MRM 挙動が緊急(12)でも通常(1)でもないもの
-        in_comfortable_stop = mrm_behavior not in [1, 12]
+        # 緊急/通常(NONE)の判定値は pilot-auto のバージョン差を吸収するため config 化 (SYS2-ERR-01)。
+        # 値域逸脱は sub_mrm_callback で NONE にリセット済みのため、ここでは有効値のみ扱う。
+        in_emergency = mrm_behavior in self._parameter.mrm_emergency_behaviors
+        # comfortable stop = 緊急でも通常(NONE)でもない有効な MRM 挙動
+        in_comfortable_stop = (
+            mrm_behavior != self._parameter.mrm_none_behavior
+            and mrm_behavior not in self._parameter.mrm_emergency_behaviors
+        )
 
         self._update_comfortable_stop_state(in_comfortable_stop, current_time)
         # 発話は初回/繰り返し判定に更新前の _in_emergency_state を使うため、
@@ -475,6 +480,17 @@ class RouteHandler:
             if self._current_task_details == utils.init_CurrentTask():
                 return
 
+            if self._current_task_details.depart_time <= 0:
+                # plan_start_time のパース失敗などで発車時刻が無効値のまま。
+                # 無言で発話・表示を止めると原因が追えないため警告を残す。
+                self._node.get_logger().warning(
+                    "Invalid depart_time ({}), skip the departure time handling".format(
+                        self._current_task_details.depart_time
+                    ),
+                    throttle_duration_sec=5,
+                )
+                return
+
             remain_minute = utils.get_remain_minute(
                 self._current_task_details.depart_time, self._node.get_clock().now().to_msg().sec
             )
@@ -552,7 +568,9 @@ class RouteHandler:
                 warning_type, ", ".join(reasons)
             )
         )
-        self._announce_interface.send_announce("standing_" + warning_type)
+        # 音声は事象によらず「手すりにおつかまりください」で統一する
+        # (事象別の出し分けは表示側 standing_warning_type のみ)
+        self._announce_interface.send_announce("standing_sudden")
 
     def sudden_motion_checker_callback(self):
         # UC-03: 急減速・急操舵の事後検知。立席運用モードON・走行中・MRM非作動のときのみ評価する。
