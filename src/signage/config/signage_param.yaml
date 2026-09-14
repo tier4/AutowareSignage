@@ -10,7 +10,7 @@ signage:
     check_fms_time: 2.0 # second
     emergency_ignore_period: 5.0 # second
     emergency_repeat_period: 180.0 # second
-    accept_start: 5.0 # second
+    accept_start: 10.0 # second
     arriving_distance: 10.0 # m (UC-05 到着接近の車内安全配慮しきい値 SYS-HMI-07)
     monitor_width: 1920
     monitor_height: 540
