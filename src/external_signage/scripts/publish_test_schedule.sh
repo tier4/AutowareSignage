@@ -6,7 +6,7 @@
 # 前提:
 #   - ROS 2 環境と対象ワークスペースを source 済み
 #   - external_signage ノードが起動済み (signage.launch.xml use_external_signage:=true)
-#   - 行先表示モードが ON (./destination_mode.sh on)  ※OFF だと描画に反映されない
+#   - 表示モードが 行先表示 (./display_mode.sh destination)  ※他モードだと描画に反映されない
 #
 # 使い方:
 #   ./publish_test_schedule.sh doing [POINT_ID]    # 走行中(doing): 登録済み point_id -> 行先td5
