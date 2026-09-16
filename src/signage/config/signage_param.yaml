@@ -10,7 +10,7 @@ signage:
     check_fms_time: 2.0 # second
     emergency_ignore_period: 5.0 # second
     emergency_repeat_period: 180.0 # second
-    accept_start: 5.0 # second
+    accept_start: 10.0 # second
     monitor_width: 1920
     monitor_height: 540
     cvm_device_id: in_vehicle_signage
