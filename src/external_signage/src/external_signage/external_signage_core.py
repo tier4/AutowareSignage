@@ -14,7 +14,7 @@ import external_signage.packet_tools as packet_tools
 import external_signage.display_mode as display_mode
 from autoware_adapi_v1_msgs.msg import MrmState
 from std_msgs.msg import String
-from level4_mode_manager_msgs.msg import Level4DrivingStatus
+from tier4_external_api_msgs.msg import DrivingStatus
 
 # SYS-HMI-03: destination.point_id -> td5ファイル名prefix の紐付けを記載する外部ファイル。
 # signage_settings.json と同様に /opt/autoware 下へ置き、リビルド不要で運用時に編集できる。
@@ -180,10 +180,13 @@ class ExternalSignage:
             api_qos,
         )
 
-        self._sub_is_driving_level = node.create_subscription(
-            Level4DrivingStatus,
-            "/level4_mode_manager/is_level4_driving",
-            self.sub_is_driving_level,
+        # Lv2/Lv4 判定は Monitoring API (tier4_monitoring) の走行状態から行う。
+        # publisher は QoS(1).transient_local (RELIABLE) なので api_qos で受信できる。
+        self._last_driving_mode = None
+        self._sub_driving_status = node.create_subscription(
+            DrivingStatus,
+            "/api/external/get/monitoring/driving/status",
+            self.sub_driving_status,
             api_qos,
         )
 
@@ -389,13 +392,22 @@ class ExternalSignage:
         except Exception as e:
             self._node.get_logger().error("Unable to get the mrm, ERROR: " + str(e))
 
-    # l4かどうかのtopicを受け取り走行モードを変更する
-    def sub_is_driving_level(self, msg):
+    # Monitoring API の走行状態を受け取り走行モード (Lv2/Lv4) を変更する
+    def sub_driving_status(self, msg):
         try:
-            self.node.get_logger().info(str(msg.is_level4_driving))
+            # mode は停車のたびに STOP になる (UNKNOWN は過渡状態)。旧 level4_mode_manager の
+            # is_level4_driving と同じく直前のレベルを保持したいので、LEVEL2/LEVEL4 のときだけ切り替える。
+            if msg.mode not in (DrivingStatus.LEVEL2, DrivingStatus.LEVEL4):
+                return
+            # availability の変化でも publish されるため、レベルが変わったときだけ処理する
+            if msg.mode == self._last_driving_mode:
+                return
+            self._last_driving_mode = msg.mode
+            is_level4 = msg.mode == DrivingStatus.LEVEL4
+            self.node.get_logger().info("driving level -> {}".format("L4" if is_level4 else "L2"))
             # OFF / 行先表示モード中は状態更新のみ行い既存表示は出さない
             skip_display = self._skip_autonomous_display()
-            if msg.is_level4_driving:  # True is L4, False is L2.
+            if is_level4:
                 self.pub_mode_status(True)
                 self._settings["in_experiment"] = False
                 if not skip_display:
