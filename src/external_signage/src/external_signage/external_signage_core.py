@@ -274,7 +274,7 @@ class ExternalSignage:
         try:
             # operation modeが変わったときにautowareが起動したと判断する
             self.is_autoware_launch = True
-            self.node.get_logger().info(str(msg.data))
+            self.node.get_logger().info("operation mode: {}".format(msg.mode))
         except Exception as e:
             self.node.get_logger().error("Unable to get the operation mode, ERROR: " + str(e))
 
