@@ -56,8 +56,11 @@ class RouteHandler:
         self._announced_arrive = False
         self._trigger_external_signage = False
         self._processing_thread = False
-        self._prev_schedule_source = None
+        self._prev_bus_stop_control = None
         self._prev_v2x_bus_stop_states = {}
+        self._v2x_became_approaching = False
+        self._v2x_is_approaching = False
+        self._v2x_show_arriving = False
 
         self.update_station_list()
 
@@ -197,7 +200,7 @@ class RouteHandler:
             self._node.get_logger().error("not able to play the announce, ERROR: {}".format(str(e)))
 
     def update_station_list(self, force_update=False):
-        if self._autoware.is_v2x_schedule_source():
+        if self._autoware.is_bus_stop_control():
             self.process_station_list_from_v2x()
         else:
             self.process_station_list_from_fms(force_update=force_update)
@@ -325,11 +328,14 @@ class RouteHandler:
 
     def route_checker_callback(self):
         try:
-            current_source = self._autoware.information.schedule_source
-            if self._prev_schedule_source != current_source:
-                self._prev_schedule_source = current_source
+            bus_stop_control = self._autoware.is_bus_stop_control()
+            if self._prev_bus_stop_control != bus_stop_control:
+                self._prev_bus_stop_control = bus_stop_control
                 self._fms_check_time = 0
                 self._prev_v2x_bus_stop_states = {}
+                self._v2x_became_approaching = False
+                self._v2x_is_approaching = False
+                self._v2x_show_arriving = False
                 self.update_station_list(force_update=True)
 
             if self._autoware.information.operation_mode == OperationModeState.AUTONOMOUS:
@@ -368,8 +374,9 @@ class RouteHandler:
                 self._service_interface.trigger_external_signage(False)
                 self._trigger_external_signage = False
 
-            if self._autoware.is_v2x_schedule_source():
+            if self._autoware.is_bus_stop_control():
                 self.process_station_list_from_v2x()
+                self._update_v2x_signage_state()
             else:
                 if self._prev_route_state != RouteState.SET:
                     if self._autoware.information.route_state == RouteState.SET:
@@ -402,10 +409,7 @@ class RouteHandler:
                 return
 
             if self._is_stopping and self._previous_driving_status:
-                if self._autoware.is_v2x_schedule_source():
-                    # Station list is updated by V2X topic; keep only original announce behavior
-                    self._announce_interface.announce_arrived()
-                else:
+                if not self._autoware.is_bus_stop_control():
                     self.arrived_goal()
                 self._previous_driving_status = False
 
@@ -447,18 +451,19 @@ class RouteHandler:
                         self._announced_depart = True
             elif self._is_driving:
                 # handle text and announce while bus is running
-                if self._autoware.is_v2x_schedule_source():
-                    became_approaching, is_approaching = self._update_v2x_arriving_by_state()
-                    if became_approaching and not self._announced_arrive:
+                if self._autoware.is_bus_stop_control():
+                    if self._v2x_became_approaching and not self._announced_arrive:
                         self._announce_interface.announce_going_to_depart_and_arrive(
                             "going_to_arrive"
                         )
                         self._announced_arrive = True
-                    if is_approaching:
+                    self._v2x_became_approaching = False
+                    if self._v2x_show_arriving:
                         self._display_phrase = utils.handle_phrase("arriving")
                     else:
                         self._display_phrase = ""
-                        self._announced_arrive = False
+                        if not self._v2x_is_approaching:
+                            self._announced_arrive = False
                 elif (
                     self._autoware.information.goal_distance < 100
                     and self._autoware.information.goal_distance > 0
@@ -477,22 +482,26 @@ class RouteHandler:
         except Exception as e:
             self._node.get_logger().error("Error in getting calculate the time: " + str(e))
 
-    def _update_v2x_arriving_by_state(self):
-        """
-        V2X arriving: WILL_STOP/OR_WILL_STOP -> APPROACHING/OR_APPROACHING.
-        Returns (became_approaching, is_approaching)
-        """
+    def _update_v2x_signage_state(self):
+        """Track state/will_stop and play will_stop.wav on a stop-request transition."""
         msg = self._autoware.information.bus_stop_signage_info
         if msg is None:
-            return False, False
+            return
 
-        became_approaching, self._prev_v2x_bus_stop_states = (
-            utils.detect_will_stop_to_approaching(
-                msg.signage_infos, self._prev_v2x_bus_stop_states
-            )
-        )
-        is_approaching = utils.get_v2x_approaching(msg.signage_infos)
-        return became_approaching, is_approaching
+        (
+            play_will_stop,
+            became_approaching,
+            self._v2x_is_approaching,
+            self._v2x_show_arriving,
+            became_stopping,
+            self._prev_v2x_bus_stop_states,
+        ) = utils.detect_v2x_signage_changes(msg.signage_infos, self._prev_v2x_bus_stop_states)
+        if became_approaching:
+            self._v2x_became_approaching = True
+        if play_will_stop:
+            self._announce_interface.send_announce("will_stop")
+        if became_stopping:
+            self._announce_interface.announce_arrived()
 
     def view_mode_callback(self):
         try:

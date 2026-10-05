@@ -80,9 +80,10 @@ def build_bus_stop_status(item):
     return status
 
 
-def build_message(signage_infos_data, bus_stops_data, stamp):
+def build_message(signage_infos_data, bus_stops_data, stamp, is_bus_stop_control=True):
     msg = BusStopSignageInfoArray()
     msg.stamp = stamp
+    msg.is_bus_stop_control = is_bus_stop_control
     msg.signage_infos = [build_bus_stop_status(item) for item in signage_infos_data]
     msg.bus_stops = [build_bus_stop_status(item) for item in bus_stops_data]
     return msg
@@ -95,11 +96,12 @@ def get_publish_frames():
 
 
 class BusStopSignageInfoPublisher(Node):
-    def __init__(self, topic, rate, once):
+    def __init__(self, topic, rate, once, is_bus_stop_control):
         super().__init__("bus_stop_signage_info_publisher")
         self._frames = get_publish_frames()
         self._frame_index = 0
         self._once = once
+        self._is_bus_stop_control = is_bus_stop_control
 
         qos = rclpy.qos.QoSProfile(
             history=rclpy.qos.QoSHistoryPolicy.KEEP_LAST,
@@ -122,7 +124,9 @@ class BusStopSignageInfoPublisher(Node):
 
     def _publish(self):
         frame = self._frames[self._frame_index]
-        msg = build_message(frame, BUS_STOPS, self.get_clock().now().to_msg())
+        msg = build_message(
+            frame, BUS_STOPS, self.get_clock().now().to_msg(), self._is_bus_stop_control
+        )
         self._publisher.publish(msg)
         names = [item["name"] for item in frame]
         self.get_logger().info(
@@ -157,6 +161,11 @@ def parse_args(argv):
         action="store_true",
         help="Publish once and exit",
     )
+    parser.add_argument(
+        "--no-bus-stop-control",
+        action="store_true",
+        help="Publish is_bus_stop_control=false (signage stays on FMS)",
+    )
     return parser.parse_args(argv)
 
 
@@ -164,7 +173,9 @@ def main(argv=None):
     args = parse_args(argv or sys.argv[1:])
     rclpy.init(args=argv)
 
-    node = BusStopSignageInfoPublisher(args.topic, args.rate, args.once)
+    node = BusStopSignageInfoPublisher(
+        args.topic, args.rate, args.once, not args.no_bus_stop_control
+    )
     if args.once:
         rclpy.shutdown()
         return

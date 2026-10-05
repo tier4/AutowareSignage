@@ -13,10 +13,9 @@ signage:
     accept_start: 5.0 # second
     monitor_width: 1920
     monitor_height: 540
-    # fms | v2x — overridden by schedule_source_topic content when published
-    default_schedule_source: fms
-    schedule_source_topic: /signage/schedule_source
+    # is_bus_stop_control が true のメッセージが届いている間だけバス停表示にする
     bus_stop_signage_info_topic: /v2x/bus_stop/signage_info
+    bus_stop_control_timeout: 3.0 # second
     announce:
       emergency: true
       restart_engage: true
@@ -27,3 +26,4 @@ signage:
       in_emergency: true
       going_to_depart: true
       going_to_arrive: true
+      will_stop: true

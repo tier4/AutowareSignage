@@ -21,9 +21,8 @@ class SignageParameter:
     emergency_repeat_period: float = 180.0
     monitor_width: int = 1920
     monitor_height: int = 540
-    default_schedule_source: str = "fms"
-    schedule_source_topic: str = "/signage/schedule_source"
     bus_stop_signage_info_topic: str = "/v2x/bus_stop/signage_info"
+    bus_stop_control_timeout: float = 3.0
 
 
 @dataclass
@@ -38,6 +37,7 @@ class AnnounceParameter:
     in_emergency: bool = True
     going_to_depart: bool = True
     going_to_arrive: bool = True
+    will_stop: bool = True
 
 
 class ParameterInterface:
@@ -59,11 +59,8 @@ class ParameterInterface:
         node.declare_parameter("emergency_repeat_period", 180.0)
         node.declare_parameter("monitor_width", 1920)
         node.declare_parameter("monitor_height", 540)
-        node.declare_parameter("default_schedule_source", "fms")
-        node.declare_parameter("schedule_source_topic", "/signage/schedule_source")
-        node.declare_parameter(
-            "bus_stop_signage_info_topic", "/v2x/bus_stop/signage_info"
-        )
+        node.declare_parameter("bus_stop_signage_info_topic", "/v2x/bus_stop/signage_info")
+        node.declare_parameter("bus_stop_control_timeout", 3.0)
 
         self.parameter.debug_mode = (
             node.get_parameter("debug_mode").get_parameter_value().bool_value
@@ -107,20 +104,11 @@ class ParameterInterface:
         self.parameter.monitor_height = (
             node.get_parameter("monitor_height").get_parameter_value().integer_value
         )
-        self.parameter.default_schedule_source = (
-            node.get_parameter("default_schedule_source")
-            .get_parameter_value()
-            .string_value
-        )
-        self.parameter.schedule_source_topic = (
-            node.get_parameter("schedule_source_topic")
-            .get_parameter_value()
-            .string_value
-        )
         self.parameter.bus_stop_signage_info_topic = (
-            node.get_parameter("bus_stop_signage_info_topic")
-            .get_parameter_value()
-            .string_value
+            node.get_parameter("bus_stop_signage_info_topic").get_parameter_value().string_value
+        )
+        self.parameter.bus_stop_control_timeout = (
+            node.get_parameter("bus_stop_control_timeout").get_parameter_value().double_value
         )
 
         node.declare_parameter("announce.emergency", True)
@@ -132,6 +120,7 @@ class ParameterInterface:
         node.declare_parameter("announce.in_emergency", True)
         node.declare_parameter("announce.going_to_depart", True)
         node.declare_parameter("announce.going_to_arrive", True)
+        node.declare_parameter("announce.will_stop", True)
 
         announce_prefix = node.get_parameters_by_prefix("announce")
 

@@ -19,8 +19,6 @@ from tier4_external_api_msgs.msg import DoorStatus
 from tier4_v2x_msgs.msg import BusStopSignageInfoArray
 
 DISCONNECT_THRESHOLD = 2
-SCHEDULE_SOURCE_FMS = "fms"
-SCHEDULE_SOURCE_V2X = "v2x"
 
 
 @dataclass
@@ -34,7 +32,6 @@ class AutowareInformation:
     motion_state: int = 0
     localization_init_state: int = 0
     active_schedule: str = ""
-    schedule_source: str = SCHEDULE_SOURCE_FMS
     bus_stop_signage_info: Optional[BusStopSignageInfoArray] = None
 
 
@@ -44,8 +41,7 @@ class AutowareInterface:
         self.information = AutowareInformation()
         self._parameter = parameter_interface.parameter
         self.is_disconnected = False
-
-        self.information.schedule_source = self._parameter.default_schedule_source
+        self._bus_stop_signage_info_time = None
 
         sub_qos = rclpy.qos.QoSProfile(
             history=rclpy.qos.QoSHistoryPolicy.KEEP_LAST,
@@ -106,12 +102,6 @@ class AutowareInterface:
             Heartbeat,
             "/api/system/heartbeat",
             self.sub_heartbeat_callback,
-            sub_qos,
-        )
-        self._sub_schedule_source = node.create_subscription(
-            String,
-            self._parameter.schedule_source_topic,
-            self.sub_schedule_source_callback,
             sub_qos,
         )
         self._sub_bus_stop_signage_info = node.create_subscription(
@@ -193,34 +183,29 @@ class AutowareInterface:
         except Exception as e:
             self._node.get_logger().error("Unable to get the heartbeat, ERROR: " + str(e))
 
-    def sub_schedule_source_callback(self, msg):
-        try:
-            source = msg.data.strip().lower()
-            if source not in (SCHEDULE_SOURCE_FMS, SCHEDULE_SOURCE_V2X):
-                self._node.get_logger().warning(
-                    "Unknown schedule source '{}', expected '{}' or '{}'".format(
-                        msg.data, SCHEDULE_SOURCE_FMS, SCHEDULE_SOURCE_V2X
-                    ),
-                    throttle_duration_sec=5,
-                )
-                return
-            if self.information.schedule_source != source:
-                self._node.get_logger().info(
-                    "Schedule source switched to '{}'".format(source)
-                )
-            self.information.schedule_source = source
-        except Exception as e:
-            self._node.get_logger().error(
-                "Unable to get the schedule source, ERROR: " + str(e)
-            )
-
     def sub_bus_stop_signage_info_callback(self, msg):
         try:
+            was_bus_stop_control = self.is_bus_stop_control()
             self.information.bus_stop_signage_info = msg
+            self._bus_stop_signage_info_time = self._node.get_clock().now()
+            if was_bus_stop_control != bool(msg.is_bus_stop_control):
+                self._node.get_logger().info(
+                    "Bus stop control is {}".format(
+                        "enabled" if msg.is_bus_stop_control else "disabled"
+                    )
+                )
         except Exception as e:
             self._node.get_logger().error(
                 "Unable to get the bus stop signage info, ERROR: " + str(e)
             )
 
-    def is_v2x_schedule_source(self):
-        return self.information.schedule_source == SCHEDULE_SOURCE_V2X
+    def is_bus_stop_control(self):
+        """True while /v2x/bus_stop/signage_info says bus-stop mode and is still fresh."""
+        msg = self.information.bus_stop_signage_info
+        if msg is None or not msg.is_bus_stop_control or self._bus_stop_signage_info_time is None:
+            return False
+        return not utils.check_timeout(
+            self._node.get_clock().now(),
+            self._bus_stop_signage_info_time,
+            self._parameter.bus_stop_control_timeout,
+        )

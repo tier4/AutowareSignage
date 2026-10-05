@@ -196,97 +196,131 @@ def normalize_bus_stop_state(state_value):
     return state_value
 
 
+def _is_planned_bus_stop_state(state):
+    """停車予定 (WILL_STOP) or 通過予定 (WILL_PASS), including OR_* after normalize."""
+    from tier4_v2x_msgs.msg import BusStopState
+
+    return state in (BusStopState.WILL_STOP, BusStopState.WILL_PASS)
+
+
+def _is_signage_target_state(state):
+    """States that keep the stop on the signage until the bus departs."""
+    from tier4_v2x_msgs.msg import BusStopState
+
+    return state in (
+        BusStopState.WILL_PASS,
+        BusStopState.WILL_STOP,
+        BusStopState.APPROACHING,
+        BusStopState.STOPPING,
+        BusStopState.PASSING,
+    )
+
+
+def find_next_bus_stop_index(signage_infos):
+    """First stop from the front that is still ahead of departure."""
+    for index, info in enumerate(signage_infos):
+        if _is_signage_target_state(normalize_bus_stop_state(info.state.value)):
+            return index
+    return None
+
+
 def process_station_list_from_v2x(signage_infos):
     """
-    Build display fields from BusStopStatus[] ordered by stop sequence.
+    Next stop is the first 停車予定/通過予定/バス停直前/停車中/通過中.
+    The display moves on after STOP_COMPLETED or PASS_COMPLETED.
+    The stop immediately before it is the previous stop.
 
     Returns (previous_station, current_task, next_station_list, reach_final)
     """
-    from tier4_v2x_msgs.msg import BusStopState
-
     if not signage_infos:
         return (["", ""], init_CurrentTask(), [["", ""]] * 5, False)
 
     names = [to_japanese_station_name(info.name) for info in signage_infos]
-    states = [normalize_bus_stop_state(info.state.value) for info in signage_infos]
+    next_idx = find_next_bus_stop_index(signage_infos)
 
-    stopping_idx = None
-    approaching_idx = None
-    last_completed_idx = None
-    for i, state in enumerate(states):
-        if state == BusStopState.STOPPING and stopping_idx is None:
-            stopping_idx = i
-        if state == BusStopState.APPROACHING and approaching_idx is None:
-            approaching_idx = i
-        if state == BusStopState.STOP_COMPLETED:
-            last_completed_idx = i
-
-    if stopping_idx is not None:
-        dep_idx = stopping_idx
-        arr_idx = stopping_idx + 1
-    elif approaching_idx is not None:
-        dep_idx = approaching_idx - 1
-        arr_idx = approaching_idx
-    elif last_completed_idx is not None:
-        dep_idx = last_completed_idx
-        arr_idx = last_completed_idx + 1
-    else:
-        # Before departure: treat first stop as current
-        dep_idx = 0
-        arr_idx = 1 if len(names) > 1 else -1
-
-    previous_station = names[dep_idx - 1] if dep_idx > 0 else ["", ""]
-    departure_station = names[dep_idx] if dep_idx >= 0 else ["", ""]
-
-    reach_final = False
-    if arr_idx < 0 or arr_idx >= len(names):
-        arrival_station = ["", ""]
-        reach_final = dep_idx >= 0 and (
-            last_completed_idx == dep_idx or stopping_idx == dep_idx
-        )
+    if next_idx is None:
+        previous_station = names[-1]
+        current_task = CurrentTask(previous_station, ["", ""], 0)
         station_list = []
-    else:
-        arrival_station = names[arr_idx]
-        station_list = list(names[arr_idx:])
+        auto_add_empty_list(station_list)
+        return previous_station, current_task, station_list[: NEXT_STATION_DISPLAY_AMOUNT - 1], True
 
+    previous_station = names[next_idx - 1] if next_idx > 0 else ["", ""]
+    arrival_station = names[next_idx]
+    station_list = list(names[next_idx:])
     auto_add_empty_list(station_list)
     next_station_list = station_list[: NEXT_STATION_DISPLAY_AMOUNT - 1]
-
-    current_task = CurrentTask(departure_station, arrival_station, 0)
-    return previous_station, current_task, next_station_list, reach_final
-
-
-def get_v2x_bus_stop_states(signage_infos):
-    return {
-        info.stop_id: normalize_bus_stop_state(info.state.value) for info in signage_infos
-    }
+    current_task = CurrentTask(previous_station, arrival_station, 0)
+    return previous_station, current_task, next_station_list, False
 
 
-def get_v2x_approaching(signage_infos):
-    from tier4_v2x_msgs.msg import BusStopState
-
-    if not signage_infos:
-        return False
-    for info in signage_infos:
-        if normalize_bus_stop_state(info.state.value) == BusStopState.APPROACHING:
-            return True
-    return False
-
-
-def detect_will_stop_to_approaching(signage_infos, prev_states):
+def detect_v2x_signage_changes(signage_infos, prev_status):
     """
-    Detect WILL_STOP/OR_WILL_STOP -> APPROACHING/OR_APPROACHING.
-    OR_* is normalized to base values before comparison.
+    Compare signage_infos with the previous snapshot.
 
-    Returns (became_approaching, current_states)
+    prev_status: {stop_id: (normalized_state, will_stop)}
+    will_stop.wav plays when a stop changes 通過予定 -> 停車予定,
+    or its will_stop changes false -> true.
+    going_to_arrive plays when the displayed next stop changes to
+    バス停直前 (APPROACHING=3).
+    「間もなく到着します」 is shown only when that stop will actually stop.
+    A 通過予定 -> バス停直前 transition does not show it.
+    thank_you plays when that stop then changes to 停車 (STOPPING=4).
+    OR_* states are normalized before comparison.
+
+    Returns (
+        play_will_stop,
+        became_approaching,
+        is_approaching,
+        show_arriving,
+        became_stopping,
+        current_status,
+    )
     """
     from tier4_v2x_msgs.msg import BusStopState
 
-    current_states = get_v2x_bus_stop_states(signage_infos)
+    current_status = {}
+    play_will_stop = False
     became_approaching = False
-    for stop_id, state in current_states.items():
-        prev = prev_states.get(stop_id)
-        if prev == BusStopState.WILL_STOP and state == BusStopState.APPROACHING:
-            became_approaching = True
-            break
-    return became_approaching, current_states
+    is_approaching = False
+    show_arriving = False
+    became_stopping = False
+
+    for info in signage_infos:
+        state = normalize_bus_stop_state(info.state.value)
+        will_stop = bool(info.will_stop)
+        current_status[info.stop_id] = (state, will_stop)
+
+        prev = prev_status.get(info.stop_id) if prev_status else None
+        if prev is None:
+            continue
+        prev_state, prev_will_stop = prev
+        if prev_state == BusStopState.WILL_PASS and state == BusStopState.WILL_STOP:
+            play_will_stop = True
+        if not prev_will_stop and will_stop:
+            play_will_stop = True
+
+    next_idx = find_next_bus_stop_index(signage_infos)
+    if next_idx is not None:
+        info = signage_infos[next_idx]
+        state = normalize_bus_stop_state(info.state.value)
+        prev = prev_status.get(info.stop_id) if prev_status else None
+        prev_state = prev[0] if prev is not None else None
+        if state == BusStopState.APPROACHING:
+            is_approaching = True
+            # 通過予定のまま直前に入った停留所は will_stop が false のままなので表示しない
+            if bool(info.will_stop):
+                show_arriving = True
+            if _is_planned_bus_stop_state(prev_state):
+                became_approaching = True
+        elif state == BusStopState.STOPPING and prev_state not in (None, BusStopState.STOPPING):
+            became_stopping = True
+
+    return (
+        play_will_stop,
+        became_approaching,
+        is_approaching,
+        show_arriving,
+        became_stopping,
+        current_status,
+    )
