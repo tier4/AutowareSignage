@@ -10,7 +10,7 @@ from std_srvs.srv import SetBool
 from std_msgs.msg import Bool
 from ament_index_python.packages import get_package_share_directory
 import external_signage.packet_tools as packet_tools
-from autoware_adapi_v1_msgs.msg import MrmState
+from autoware_adapi_v1_msgs.msg import MrmState, OperationModeState
 from std_msgs.msg import String
 from level4_mode_manager_msgs.msg import Level4DrivingStatus
 
@@ -106,7 +106,6 @@ class ExternalSignage:
     def __init__(self, node):
         self.node = node
         self.protocol = Protocol()
-        self.current_state = ""
 
         package_path = get_package_share_directory("external_signage") + "/resource/td5_file/"
         node.declare_parameter("serial_port", "/dev/ttyS0")
@@ -136,9 +135,10 @@ class ExternalSignage:
             self.node.get_logger().error(str(e))
 
         self.autoware_status = {
-            "driving": True,
+            "driving": False,
             "mrm": False,
         }
+        self.is_autoware_launch = False
 
         # ros interface
         api_qos = rclpy.qos.QoSProfile(
@@ -159,7 +159,12 @@ class ExternalSignage:
             self.sub_mrm_callback,
             api_qos,
         )
-
+        self._sub_operation_mode = node.create_subscription(
+            OperationModeState,
+            "/api/operation_mode/state",
+            self.sub_operation_mode_callback,
+            api_qos,
+        )
         self._sub_is_driving_level = node.create_subscription(
             Level4DrivingStatus,
             "/level4_mode_manager/is_level4_driving",
@@ -177,12 +182,10 @@ class ExternalSignage:
             with open(self._settings_file, "w") as f:
                 json.dump(self._settings, f, indent=4)
 
-        # initial display
-        if self._settings.get("in_experiment", True):
-            self.pub_mode_status(True)
-            self.display_signage("experiment")
-        else:
-            self.pub_mode_status(False)
+        # initial display 何も表示しない
+        self.display_signage("null", True)
+
+        # 状態出力するタイマー
         self.timer = node.create_timer(1, self.pub_setting)
 
     def pub_setting(self):
@@ -224,11 +227,13 @@ class ExternalSignage:
         sender = DataSender(self.bus, self.parser, self.protocol, self.node.get_logger())
         sender.send(data, ack_query_ack, ack_data_chunk)
 
-    # Lv4のときは自動運転中かどうかで表示を変更する。Lv2のときは変更しない
+    # Lv4のときは自動運転中かどうかで表示を変更する。Lv2のときは「実験中」を固定で表示する
     def trigger_external_signage(self, request, response):
         try:
-            self.autoware_status["driving"] = request.data
+            # operation modeが変わったときにautowareが起動したと判断する
+            self.autoware_status ["driving"] = request.data
             if self._settings["in_experiment"]:
+                self.display_signage("experiment")
                 return response
             elif self._settings["airport"]:
                 if self.autoware_status["mrm"]:
@@ -262,7 +267,16 @@ class ExternalSignage:
                 else:
                     self.display_signage("null")
         except Exception as e:
-            self._node.get_logger().error("Unable to get the mrm, ERROR: " + str(e))
+            self.node.get_logger().error("Unable to get the mrm, ERROR: " + str(e))
+
+    # operation modeを受け取ったとき起動したと判断する
+    def sub_operation_mode_callback(self, msg):
+        try:
+            # operation modeが変わったときにautowareが起動したと判断する
+            self.is_autoware_launch = True
+            self.node.get_logger().info(str(msg.data))
+        except Exception as e:
+            self.node.get_logger().error("Unable to get the operation mode, ERROR: " + str(e))
 
     # l4かどうかのtopicを受け取り走行モードを変更する
     def sub_is_driving_level(self, msg):
@@ -321,14 +335,9 @@ class ExternalSignage:
         return response
 
 
-    def display_signage(self, display_file):
-        if not self._external_signage_available:
-            return
-
-        # 前回の状態と同じの場合更新をスキップする
-        previous_state = self.current_state
-        self.current_state = display_file
-        if previous_state == display_file:
+    def display_signage(self, display_file, force=False):
+        # 車外サイネージが準備中かautowareが起動してない場合は表示を変更しない。forceフラグがあるときはautowareの起動関係なく更新する
+        if not self._external_signage_available or (not self.is_autoware_launch and not force):
             return
 
         for display_key in self.displays:
