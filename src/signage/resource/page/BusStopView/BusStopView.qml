@@ -7,6 +7,7 @@ Rectangle {
     height: viewController.monitor_height
 
     property int counter: 0
+    readonly property int pageCount: viewController.show_time_remaining ? 3 : 2
 
     Timer {
         interval: 10000
@@ -18,15 +19,15 @@ Rectangle {
     }
 
     BusStopName {
-        visible: busStopView.counter % 3 === 0
+        visible: busStopView.counter % busStopView.pageCount === 0
     }
 
     BusRouteName {
-        visible: busStopView.counter % 3 === 1
+        visible: busStopView.counter % busStopView.pageCount === 1
     }
 
     TimeRemaining {
-        visible: busStopView.counter % 3 === 2
+        visible: viewController.show_time_remaining && busStopView.counter % busStopView.pageCount === 2
     }
 
     states: [

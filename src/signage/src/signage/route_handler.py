@@ -514,6 +514,7 @@ class RouteHandler:
             self._viewController.previous_station_name = self._display_details.previous_station
             self._viewController.next_station_list = self._display_details.next_station_list
             self._viewController.display_phrase = self._display_phrase
+            self._viewController.show_time_remaining = not self._autoware.is_bus_stop_control()
 
             if (
                 self._autoware.is_disconnected
