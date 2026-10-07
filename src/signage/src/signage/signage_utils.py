@@ -196,13 +196,6 @@ def normalize_bus_stop_state(state_value):
     return state_value
 
 
-def _is_planned_bus_stop_state(state):
-    """停車予定 (WILL_STOP) or 通過予定 (WILL_PASS), including OR_* after normalize."""
-    from tier4_v2x_msgs.msg import BusStopState
-
-    return state in (BusStopState.WILL_STOP, BusStopState.WILL_PASS)
-
-
 def _is_signage_target_state(state):
     """States that keep the stop on the signage until the bus departs."""
     from tier4_v2x_msgs.msg import BusStopState
@@ -269,10 +262,11 @@ def detect_v2x_signage_changes(signage_infos, prev_status):
     prev_status: {stop_id: (normalized_state, will_stop)}
     will_stop.wav plays when a stop changes 通過予定 -> 停車予定,
     or its will_stop changes false -> true.
-    going_to_arrive plays when the displayed next stop changes to
-    バス停直前 (APPROACHING=3).
-    「間もなく到着します」 is shown only when that stop will actually stop.
-    A 通過予定 -> バス停直前 transition does not show it.
+    going_to_arrive plays only when the displayed next stop changes from
+    停車予定 (WILL_STOP) to バス停直前 (APPROACHING) and will_stop is true.
+    「間もなく到着します」 is shown only while that stop will actually stop.
+    A 通過予定 stop does not play going_to_arrive or show the phrase,
+    including when it becomes バス停直前 with will_stop still false.
     thank_you plays when that stop then changes to 停車 (STOPPING=4).
     OR_* states are normalized before comparison.
 
@@ -316,11 +310,12 @@ def detect_v2x_signage_changes(signage_infos, prev_status):
         prev_state = prev[0] if prev is not None else None
         if state == BusStopState.APPROACHING:
             is_approaching = True
-            # 通過予定のまま直前に入った停留所は will_stop が false のままなので表示しない
+            # 通過予定（WILL_PASS、または will_stop が false）のまま直前に入った
+            # 停留所は「間もなく到着します」も going_to_arrive も出さない
             if bool(info.will_stop):
                 show_arriving = True
-            if _is_planned_bus_stop_state(prev_state):
-                became_approaching = True
+                if prev_state == BusStopState.WILL_STOP:
+                    became_approaching = True
         elif state == BusStopState.STOPPING and prev_state not in (None, BusStopState.STOPPING):
             became_stopping = True
 
