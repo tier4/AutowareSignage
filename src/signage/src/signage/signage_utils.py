@@ -228,7 +228,12 @@ def process_station_list_from_v2x(signage_infos):
     """
     Next stop is the first 停車予定/通過予定/バス停直前/停車中/通過中.
     The display moves on after STOP_COMPLETED or PASS_COMPLETED.
-    The stop immediately before it is the previous stop.
+
+    Marker roles match FMS:
+    - blue marker (departure) is the origin of the current leg,
+      the stop immediately before the next stop
+    - gray marker (previous) is the stop before that departure
+    - upcoming markers start at the next stop
 
     Returns (previous_station, current_task, next_station_list, reach_final)
     """
@@ -239,19 +244,22 @@ def process_station_list_from_v2x(signage_infos):
     next_idx = find_next_bus_stop_index(signage_infos)
 
     if next_idx is None:
-        previous_station = names[-1]
-        current_task = CurrentTask(previous_station, ["", ""], 0)
+        departure_index = len(names) - 1
+        arrival_station = ["", ""]
         station_list = []
-        auto_add_empty_list(station_list)
-        return previous_station, current_task, station_list[: NEXT_STATION_DISPLAY_AMOUNT - 1], True
+        reach_final = True
+    else:
+        departure_index = next_idx - 1
+        arrival_station = names[next_idx]
+        station_list = list(names[next_idx:])
+        reach_final = False
 
-    previous_station = names[next_idx - 1] if next_idx > 0 else ["", ""]
-    arrival_station = names[next_idx]
-    station_list = list(names[next_idx:])
+    departure_station = names[departure_index] if departure_index >= 0 else ["", ""]
+    previous_station = names[departure_index - 1] if departure_index >= 1 else ["", ""]
     auto_add_empty_list(station_list)
     next_station_list = station_list[: NEXT_STATION_DISPLAY_AMOUNT - 1]
-    current_task = CurrentTask(previous_station, arrival_station, 0)
-    return previous_station, current_task, next_station_list, False
+    current_task = CurrentTask(departure_station, arrival_station, 0)
+    return previous_station, current_task, next_station_list, reach_final
 
 
 def detect_v2x_signage_changes(signage_infos, prev_status):
