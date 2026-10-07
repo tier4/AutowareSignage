@@ -220,7 +220,11 @@ class ExternalSignage:
         display_mode.migrate(self._settings)
         self._save_settings()
 
-        # initial display
+        self._initial_display()
+        self.timer = node.create_timer(1, self.pub_setting)
+
+    def _initial_display(self):
+        # 起動時の表示。保存済みの表示モード/走行レベルから描画する。
         if self._is_display_off():
             # OFF: 全ディスプレイを空白にして固定する (再起動しても OFF のまま)
             self.pub_mode_status(False)
@@ -233,8 +237,12 @@ class ExternalSignage:
             self.pub_mode_status(True)
             self.display_signage("experiment")
         else:
+            # Lv4: LED は前回のフレームを保持するため明示的に空白にする。
+            # 走行状態トピックは停止中だと STOP しか届かず描画が起きない。
+            # autoware_status["driving"] の初期値 True は未確認なので auto は出さず、
+            # trigger_external_signage で走行が通知されるまで null とする。
             self.pub_mode_status(False)
-        self.timer = node.create_timer(1, self.pub_setting)
+            self.display_signage("null")
 
     def _display_mode(self):
         return display_mode.from_settings(self._settings)
@@ -390,19 +398,21 @@ class ExternalSignage:
                 else:
                     self.display_signage("null")
         except Exception as e:
-            self._node.get_logger().error("Unable to get the mrm, ERROR: " + str(e))
+            self.node.get_logger().error("Unable to get the mrm, ERROR: " + str(e))
 
     # Monitoring API の走行状態を受け取り走行モード (Lv2/Lv4) を変更する
     def sub_driving_status(self, msg):
         try:
-            # mode は停車のたびに STOP になる (UNKNOWN は過渡状態)。旧 level4_mode_manager の
-            # is_level4_driving と同じく直前のレベルを保持したいので、LEVEL2/LEVEL4 のときだけ切り替える。
+            # mode は operation mode が STOP なら STOP、手動運転など自動運転以外なら UNKNOWN になる。
+            # 旧 level4_mode_manager の is_level4_driving と同じく直前のレベルを保持したいので、
+            # LEVEL2/LEVEL4 のときだけ切り替える。
             if msg.mode not in (DrivingStatus.LEVEL2, DrivingStatus.LEVEL4):
                 return
-            # availability の変化でも publish されるため、レベルが変わったときだけ処理する
+            # publisher は状態変化時のみ publish するが、availability/route の変化でも届くため、
+            # レベルが変わったときだけ処理する。/signage/mode_change による手動切替も、
+            # 旧トピックと同様に次の実レベル変化までは保持される。
             if msg.mode == self._last_driving_mode:
                 return
-            self._last_driving_mode = msg.mode
             is_level4 = msg.mode == DrivingStatus.LEVEL4
             self.node.get_logger().info("driving level -> {}".format("L4" if is_level4 else "L2"))
             # OFF / 行先表示モード中は状態更新のみ行い既存表示は出さない
@@ -422,6 +432,8 @@ class ExternalSignage:
                     self.display_signage("experiment")
 
             self._save_settings()
+            # 描画・保存が完了してから記録する。途中で失敗した場合は同じレベルの次メッセージで再試行する
+            self._last_driving_mode = msg.mode
         except Exception as e:
             self.node.get_logger().error(str(e))
 
