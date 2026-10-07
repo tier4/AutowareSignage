@@ -2,7 +2,7 @@ repositories:
   src/tier4_autoware_msgs:
     type: git
     url: https://github.com/tier4/tier4_autoware_msgs.git
-    version: tier4/universe
+    version: experiment/komae_2026
   src/auto_msgs:
     type: git
     url: https://github.com/tier4/autoware_auto_msgs.git
