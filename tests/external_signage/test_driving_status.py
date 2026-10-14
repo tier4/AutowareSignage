@@ -32,6 +32,8 @@ except ImportError:
     _stub_module("tier4_external_api_msgs.msg", DrivingStatus=DrivingStatus)
 
 for _name, _attrs in (
+    ("serial", {}),
+    ("yaml", {}),
     ("ament_index_python", {}),
     ("ament_index_python.packages", {"get_package_share_directory": MagicMock()}),
     ("std_srvs", {}),
@@ -62,7 +64,8 @@ def signage():
     s = ExternalSignage.__new__(ExternalSignage)
     s.node = MagicMock()
     s._settings = {"in_experiment": True, "airport": False, "display_mode": display_mode.AUTONOMOUS}
-    s.autoware_status = {"driving": False, "mrm": False}
+    # 本番の初期値 (ExternalSignage.__init__) に合わせる
+    s.autoware_status = {"driving": True, "mrm": False}
     s._last_driving_mode = None
     s.display_signage = MagicMock()
     s.pub_mode_status = MagicMock()
@@ -71,10 +74,12 @@ def signage():
 
 
 class TestSubDrivingStatus:
-    def test_level4_switches_to_l4(self, signage):
+    @pytest.mark.parametrize("driving, expected", [(True, "auto"), (False, "null")])
+    def test_level4_switches_to_l4(self, signage, driving, expected):
+        signage.autoware_status["driving"] = driving
         signage.sub_driving_status(_driving_status(DrivingStatus.LEVEL4))
         assert signage._settings["in_experiment"] is False
-        signage.display_signage.assert_called_once_with("null")
+        signage.display_signage.assert_called_once_with(expected)
         signage._save_settings.assert_called_once()
 
     def test_stop_and_unknown_keep_previous_level(self, signage):
@@ -128,16 +133,11 @@ class TestSubDrivingStatus:
 
 class TestInitialDisplay:
     def test_level4_blanks_display(self, signage):
-        # LED は前回フレームを保持するため、Lv4 起動時も明示的に null を描画する
+        # LED は前回フレームを保持するため、Lv4 起動時も明示的に null を描画する。
+        # driving の初期値 True は未確認なので auto は出さない
         signage._settings["in_experiment"] = False
         signage._initial_display()
         signage.pub_mode_status.assert_called_once_with(False)
-        signage.display_signage.assert_called_once_with("null")
-
-    def test_level4_does_not_show_auto_before_driving_is_confirmed(self, signage):
-        signage._settings["in_experiment"] = False
-        signage.autoware_status["driving"] = True
-        signage._initial_display()
         signage.display_signage.assert_called_once_with("null")
 
     def test_level2_shows_experiment(self, signage):

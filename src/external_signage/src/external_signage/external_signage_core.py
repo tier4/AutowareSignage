@@ -421,6 +421,9 @@ class ExternalSignage:
                 self.pub_mode_status(True)
                 self._settings["in_experiment"] = False
                 if not skip_display:
+                    # LEVEL4 は operation mode が AUTONOMOUS のときだけ届くため、_initial_display と
+                    # 異なり driving の初期値 True のまま auto を出してよい
+                    # (サイネージ単独の再起動では trigger_external_signage が再通知されない)
                     if self.autoware_status["driving"]:
                         self.display_signage("auto")
                     else:
