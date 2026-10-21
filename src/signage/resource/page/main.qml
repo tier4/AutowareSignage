@@ -10,6 +10,8 @@ import "CvmDisplayView"
 Window {
     id: window
     visible: true
+    // 表示前に全画面を指定する (表示直後の切り替えは環境によって無視されるため)
+    visibility: Window.FullScreen
     title: qsTr("案内板")
 
     width: viewController.monitor_width
@@ -84,9 +86,6 @@ Window {
             } else if (event.key === Qt.Key_Return) {
                 window.visibility = "FullScreen"
             }
-        }
-        Component.onCompleted: {
-            window.visibility = "FullScreen"
         }
     }
 }
