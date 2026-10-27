@@ -16,10 +16,21 @@ from autoware_adapi_v1_msgs.msg import MrmState
 from std_msgs.msg import String
 from tier4_external_api_msgs.msg import DrivingStatus
 
+# 車外サイネージの設定ファイルは車内サイネージ (signage_settings.json) と同じ signage 専用
+# ディレクトリに置く。/opt/autoware 直下は他アプリと共用で、所有者/権限が他の都合で決まり
+# サービスユーザーから書き込めないことがあるため、ecu_system_setup が専用ディレクトリを用意する。
+SETTINGS_DIR = "/opt/autoware/signage"
+
+# 表示モード等の永続設定。
+SETTINGS_PATH = os.path.join(SETTINGS_DIR, "external_signage_settings.json")
+# 旧配置 (ホームディレクトリ)。新しいファイルが無いときの移行元としてのみ読む。
+LEGACY_SETTINGS_PATH = os.path.expanduser("~/settings.json")
+
 # SYS-HMI-03: destination.point_id -> td5ファイル名prefix の紐付けを記載する外部ファイル。
-# signage_settings.json と同様に /opt/autoware 下へ置き、リビルド不要で運用時に編集できる。
-# 存在しなければパッケージ同梱テンプレート (config/destination_mapping.yaml) から生成する。
-DESTINATION_MAPPING_PATH = "/opt/autoware/destination_mapping.yaml"
+# リビルド不要で運用時に編集できる。存在しなければ旧配置のファイル、それも無ければ
+# パッケージ同梱テンプレート (config/destination_mapping.yaml) から生成する。
+DESTINATION_MAPPING_PATH = os.path.join(SETTINGS_DIR, "destination_mapping.yaml")
+LEGACY_DESTINATION_MAPPING_PATH = "/opt/autoware/destination_mapping.yaml"
 
 
 @dataclass
@@ -208,17 +219,18 @@ class ExternalSignage:
             String, "/signage/active_schedule", self.sub_active_schedule, schedule_qos
         )
 
-        # read settings.If not, creatte settings.
-        self._settings_file = "/home/" + os.environ.get("USER") + "/settings.json"
-        if os.path.exists(self._settings_file):
-            with open(self._settings_file, "r") as f:
-                self._settings = json.load(f)
-        else:
-            self._settings = {"in_experiment": True, "airport": False}
+        # 設定を読む。新しい配置に無ければ旧配置から引き継ぎ、どちらにも無ければ既定値で作る。
+        self._settings = self._load_settings()
         # 表示モード (in_experiment/airport と排他) を display_mode 1 キーへ正規化し永続化する。
         # 旧 destination_mode しか持たない設定ファイルはここで引き継がれる。
         display_mode.migrate(self._settings)
-        self._save_settings()
+        try:
+            self._save_settings()
+        except Exception as e:
+            # 保存先が用意されていなくても表示は継続する (変更時の保存で再試行される)。
+            self.node.get_logger().error(
+                "not able to save settings {}, ERROR: {}".format(SETTINGS_PATH, str(e))
+            )
 
         self._initial_display()
         self.timer = node.create_timer(1, self.pub_setting)
@@ -270,42 +282,53 @@ class ExternalSignage:
         self.mode_status_pub_.publish(msg)
 
     def _load_destination_mapping(self):
-        # destination.point_id -> td5ファイル名prefix の紐付けを外部ファイル (/opt/autoware) から読む。
-        # 無ければパッケージ同梱テンプレートから生成する。壊れている場合は空マッピングで継続する
-        # (フォールバックで null 表示)。運用時はこの外部ファイルを編集すればリビルド不要で反映される。
+        # destination.point_id -> td5ファイル名prefix の紐付けを外部ファイル (/opt/autoware/signage) から読む。
+        # 無ければ旧配置のファイルかパッケージ同梱テンプレートから生成する。壊れている場合は空マッピングで
+        # 継続する (フォールバックで null 表示)。運用時はこの外部ファイルを編集すればリビルド不要で反映される。
         # point_id は整数だが YAML キーの引用有無で int/str が揺れるため、キーを str に正規化して保持する。
+        path = DESTINATION_MAPPING_PATH
         try:
-            if not os.path.isfile(DESTINATION_MAPPING_PATH):
-                self._seed_destination_mapping()
-            with open(DESTINATION_MAPPING_PATH, "r") as f:
+            if not os.path.isfile(path):
+                path = self._seed_destination_mapping()
+            with open(path, "r") as f:
                 data = yaml.safe_load(f) or {}
             raw_mapping = data.get("destination_mapping", {}) or {}
             mapping = {str(k): v for k, v in raw_mapping.items()}
             self.node.get_logger().info(
-                "loaded destination_mapping from {}: {} entries".format(
-                    DESTINATION_MAPPING_PATH, len(mapping)
-                )
+                "loaded destination_mapping from {}: {} entries".format(path, len(mapping))
             )
             return mapping
         except Exception as e:
             self.node.get_logger().warning(
-                "destination_mapping load failed ({}), use empty mapping: {}".format(
-                    DESTINATION_MAPPING_PATH, str(e)
-                )
+                "destination_mapping load failed ({}), use empty mapping: {}".format(path, str(e))
             )
             return {}
 
     def _seed_destination_mapping(self):
-        # 初回のみ: パッケージ同梱テンプレートを /opt/autoware へコピーして初期化する。
-        template = (
-            get_package_share_directory("external_signage") + "/config/destination_mapping.yaml"
-        )
-        os.makedirs(os.path.dirname(DESTINATION_MAPPING_PATH), exist_ok=True)
-        with open(template, "r") as src, open(DESTINATION_MAPPING_PATH, "w") as dst:
-            dst.write(src.read())
+        # 初回のみ: 旧配置のファイル (運用で編集済みの可能性がある) を優先し、無ければパッケージ同梱
+        # テンプレートを新しい配置へコピーして初期化する。コピーに失敗した場合はコピー元を直接読む
+        # パスを返す (表示は継続し、次回起動で再試行する)。
+        if os.path.isfile(LEGACY_DESTINATION_MAPPING_PATH):
+            source = LEGACY_DESTINATION_MAPPING_PATH
+        else:
+            source = (
+                get_package_share_directory("external_signage") + "/config/destination_mapping.yaml"
+            )
+        try:
+            os.makedirs(os.path.dirname(DESTINATION_MAPPING_PATH), exist_ok=True)
+            with open(source, "r") as src, open(DESTINATION_MAPPING_PATH, "w") as dst:
+                dst.write(src.read())
+        except Exception as e:
+            self.node.get_logger().warning(
+                "not able to seed destination_mapping to {}, read {} instead: {}".format(
+                    DESTINATION_MAPPING_PATH, source, str(e)
+                )
+            )
+            return source
         self.node.get_logger().info(
-            "seeded destination_mapping template to {}".format(DESTINATION_MAPPING_PATH)
+            "seeded destination_mapping from {} to {}".format(source, DESTINATION_MAPPING_PATH)
         )
+        return DESTINATION_MAPPING_PATH
 
     def _load_td5(self, path, display):
         return packet_tools.TD5Data(
@@ -466,13 +489,27 @@ class ExternalSignage:
     def change_airport_mode(self, msg):
         try:
             self._settings["airport"] = msg.data
-            with open(self._settings_file, "w") as f:
-                json.dump(self._settings, f, indent=4)
+            self._save_settings()
         except Exception as e:
             self.node.get_logger().error(str(e))
 
+    def _load_settings(self):
+        for path in (SETTINGS_PATH, LEGACY_SETTINGS_PATH):
+            try:
+                if os.path.isfile(path):
+                    with open(path, "r") as f:
+                        settings = json.load(f)
+                    if isinstance(settings, dict):
+                        return settings
+            except Exception as e:
+                self.node.get_logger().error(
+                    "not able to load settings {}, ERROR: {}".format(path, str(e))
+                )
+        return {"in_experiment": True, "airport": False}
+
     def _save_settings(self):
-        with open(self._settings_file, "w") as f:
+        os.makedirs(SETTINGS_DIR, exist_ok=True)
+        with open(SETTINGS_PATH, "w") as f:
             json.dump(self._settings, f, indent=4)
 
     def set_display_enable(self, request, response):

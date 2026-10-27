@@ -21,9 +21,10 @@ busstop2_80x24.td5
 ## destination.point_id との紐付け
 
 active_schedule (FMS) の move タスク `destination.point_id` (整数) と prefix の対応は
-外部ファイル **`/opt/autoware/destination_mapping.yaml`** に記載する
+外部ファイル **`/opt/autoware/signage/destination_mapping.yaml`** に記載する
 （`signage_settings.json` と同じ場所。リビルド不要で編集反映）。同ファイルが無い場合は
-パッケージ同梱テンプレート `config/destination_mapping.yaml` が起動時に自動コピーされる。
+旧配置の `/opt/autoware/destination_mapping.yaml`、それも無ければパッケージ同梱テンプレート
+`config/destination_mapping.yaml` が起動時に自動コピーされる。
 
 ## 補足
 

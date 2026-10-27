@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """車外サイネージの表示モード (OFF / 自動運転状態表示 / 行先表示) の定義と正規化。
 
-表示モードは settings.json の "display_mode" キー 1 本で永続化する。
+表示モードは external_signage_settings.json の "display_mode" キー 1 本で永続化する。
 旧実装は destination_mode (bool) を持っていたが、OFF を足して 3 値になったため
 「出処は 1 キー」に揃えた (bool 2 つの組合せだと OFF かつ行先表示という
 矛盾した状態が表現できてしまう)。
