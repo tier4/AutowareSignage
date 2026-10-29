@@ -22,7 +22,7 @@ jobs:
           python-version: "3.10"
 
       - name: Install test dependencies
-        run: pip install pytest pytest-cov python-dateutil
+        run: pip install pytest pytest-cov python-dateutil pyyaml
 
       - name: Run tests with coverage
         run: pytest --cov=src/signage/src --cov=src/external_signage/src --cov-report=xml --cov-report=term -v

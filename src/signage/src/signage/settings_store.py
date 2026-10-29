@@ -5,10 +5,14 @@
 import json
 import os
 
-# signage の永続設定を集約する単一 JSON ファイル
-SETTINGS_PATH = "/opt/autoware/signage_settings.json"
+# signage の永続設定を集約する単一 JSON ファイル。
+# /opt/autoware 直下は他アプリと共用で所有者/権限が他の都合で決まり、サービスユーザーから
+# 書き込めないことがあるため、ecu_system_setup が用意する signage 専用ディレクトリに置く。
+SETTINGS_DIR = "/opt/autoware/signage"
+SETTINGS_PATH = os.path.join(SETTINGS_DIR, "signage_settings.json")
 
-# 旧: 設定項目ごとの個別ファイル。JSON へ統合したため移行にのみ使用する。
+# 旧配置。新しいファイルが無いときの移行元としてのみ読む (削除はしない)。
+LEGACY_SETTINGS_PATH = "/opt/autoware/signage_settings.json"
 LEGACY_VOLUME_PATH = "/opt/autoware/volume.txt"
 LEGACY_STANDING_MODE_PATH = "/opt/autoware/standing_mode.txt"
 
@@ -18,11 +22,12 @@ KEY_STANDING_MODE = "standing_mode"
 
 
 class SettingsStore:
-    """signage の永続設定を単一 JSON (/opt/autoware/signage_settings.json) で保持する。
+    """signage の永続設定を単一 JSON (/opt/autoware/signage/signage_settings.json) で保持する。
 
-    従来は設定項目ごとに個別ファイル (volume.txt / standing_mode.txt) へ保存していたが、
-    ファイルが増えて管理しづらくなるため 1 ファイルへ統合した。初回起動時に旧ファイルが
-    残っていれば読み込んで JSON へ移行し、移行できた旧ファイルは削除する。
+    従来は設定項目ごとに個別ファイル (volume.txt / standing_mode.txt) へ保存し、その後
+    /opt/autoware/signage_settings.json へ統合していた。新しいファイルに値が無い項目は
+    旧配置 (統合 JSON → 個別ファイルの順) から読み込んで移行する。旧ファイルは削除しない
+    (/opt/autoware 直下は書き込めないことがあり、旧バージョンへ戻した場合にも値を残すため)。
 
     複数のインターフェース (音量 / 立席モード) が同じファイルを読み書きするため、
     ファイルアクセスは本クラスに集約し、書き込み競合を避ける。
@@ -34,22 +39,36 @@ class SettingsStore:
         self._migrate_legacy_files()
 
     def _load(self):
+        data = self._load_json(SETTINGS_PATH)
+        if data:
+            self._node.get_logger().info("loaded settings from {}".format(SETTINGS_PATH))
+        return data
+
+    def _load_json(self, path):
         try:
-            if os.path.isfile(SETTINGS_PATH):
-                with open(SETTINGS_PATH, "r") as f:
+            if os.path.isfile(path):
+                with open(path, "r") as f:
                     data = json.load(f)
                     if isinstance(data, dict):
                         return data
+                    self._node.get_logger().error(
+                        "not able to load settings {}, ERROR: not a JSON object".format(path)
+                    )
         except Exception as e:
             self._node.get_logger().error(
-                "not able to load settings, ERROR: {}".format(str(e))
+                "not able to load settings {}, ERROR: {}".format(path, str(e))
             )
         return {}
 
     def _save(self):
         os.makedirs(os.path.dirname(SETTINGS_PATH), exist_ok=True)
-        with open(SETTINGS_PATH, "w") as f:
+        # 一時ファイルへ書いてから置き換える (書き込み途中の電源断で壊れたファイルを残さないため)。
+        tmp_path = SETTINGS_PATH + ".tmp"
+        with open(tmp_path, "w") as f:
             json.dump(self._data, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, SETTINGS_PATH)
 
     def get(self, key, default=None):
         return self._data.get(key, default)
@@ -71,29 +90,32 @@ class SettingsStore:
 
     def _migrate_legacy_files(self):
         migrated = False
-        if KEY_VOLUME not in self._data:
-            value = self._read_legacy_volume()
+        legacy_settings = self._load_json(LEGACY_SETTINGS_PATH)
+        for key, legacy_file_path, read_legacy_file in (
+            (KEY_VOLUME, LEGACY_VOLUME_PATH, self._read_legacy_volume),
+            (KEY_STANDING_MODE, LEGACY_STANDING_MODE_PATH, self._read_legacy_standing_mode),
+        ):
+            if key in self._data:
+                continue
+            source = LEGACY_SETTINGS_PATH
+            value = legacy_settings.get(key)
+            if value is None:
+                source = legacy_file_path
+                value = read_legacy_file()
             if value is not None:
-                self._data[KEY_VOLUME] = value
-                migrated = True
-        if KEY_STANDING_MODE not in self._data:
-            value = self._read_legacy_standing_mode()
-            if value is not None:
-                self._data[KEY_STANDING_MODE] = value
+                # どの旧配置から引き継いだかを後から追えるよう警告で残す。
+                self._node.get_logger().warning("migrated settings {} from {}".format(key, source))
+                self._data[key] = value
                 migrated = True
 
         if migrated:
             try:
                 self._save()
             except Exception as e:
-                # 移行値の保存に失敗した場合は旧ファイルを残し、次回起動で再試行する。
+                # 保存に失敗しても移行値はメモリ上で使い、次回起動で再試行する。
                 self._node.get_logger().error(
                     "not able to migrate legacy settings, ERROR: {}".format(str(e))
                 )
-                return
-
-        # 移行済み (= JSON 側に値がある) の旧ファイルは削除する。
-        self._remove_legacy_files()
 
     def _read_legacy_volume(self):
         try:
@@ -120,19 +142,3 @@ class SettingsStore:
                 "not able to read legacy standing mode, ERROR: {}".format(str(e))
             )
         return None
-
-    def _remove_legacy_files(self):
-        for path, key in (
-            (LEGACY_VOLUME_PATH, KEY_VOLUME),
-            (LEGACY_STANDING_MODE_PATH, KEY_STANDING_MODE),
-        ):
-            # 値が JSON へ取り込めている旧ファイルのみ削除する。
-            if key not in self._data:
-                continue
-            try:
-                if os.path.isfile(path):
-                    os.remove(path)
-            except Exception as e:
-                self._node.get_logger().warning(
-                    "not able to remove legacy file {}, ERROR: {}".format(path, str(e))
-                )

@@ -1,8 +1,9 @@
 # SYS-HMI-03 車外サイネージ行先表示: destination.point_id と td5ファイル名prefix の対応表
 #
-# 【これはテンプレート】実行時は /opt/autoware/destination_mapping.yaml を読み込む。
-# 同ファイルが無ければ本テンプレートが自動コピーされる。運用時の紐付け編集は
-# /opt/autoware/destination_mapping.yaml 側を直接編集する(リビルド不要で反映)。
+# 【これはテンプレート】実行時は /opt/autoware/signage/destination_mapping.yaml を読み込む。
+# 同ファイルが無ければ本テンプレートが自動コピーされる (旧配置 /opt/autoware/destination_mapping.yaml は
+# 仮 point_id のまま残っている車両があるため引き継がない)。運用時の紐付け編集は
+# /opt/autoware/signage/destination_mapping.yaml 側を直接編集する(リビルド不要で反映)。
 #
 # active_schedule (FMS) の move タスクの destination.point_id (整数・マップ上のグローバル地点ID) を
 # キーに、表示する td5 ファイルの prefix を引く。
@@ -20,7 +21,7 @@
 #   ※キーは int でも str でも可 (ロード時に str へ正規化する)。可読性のため引用推奨。
 #
 # 未登録の point_id、td5 未配置/ロード失敗の場合は空白 (null td5) を表示する。
-# 有効な行先が取れない状態 (スケジュール無し/未受信/未登録/doing・todo 全完了) は
+# 有効な行先が取れない状態 (スケジュール無し/未受信/doing・todo 全完了) は
 # 回送中 (kaiso td5) を表示する。行先表示モードでは走行中の自動運行中表示は行わない。
 #
 # 実 td5 ファイルはディスプレイベンダ提供ツールで事前作成する。
@@ -32,5 +33,5 @@
 # shinagawa (品川) は当該スケジュールに含まれず実 point_id 未判明のため未登録
 # (品川を含むスケジュール登録後に active_schedule から採取して追記する)。
 destination_mapping:
-  "91737": "miraikan"   # 日本科学未来館 / destination/miraikan_{128x16,80x24}.td5
-  "118489": "teleport"  # 東京テレポート駅 / destination/teleport_{128x16,80x24}.td5
+  "91737": "miraikan" # 日本科学未来館 / destination/miraikan_{128x16,80x24}.td5
+  "118489": "teleport" # 東京テレポート駅 / destination/teleport_{128x16,80x24}.td5
