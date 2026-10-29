@@ -13,7 +13,11 @@ from autoware_adapi_v1_msgs.msg import (
     MotionState,
     LocalizationInitializationState,
     DoorStatus,
+    MrmState,
 )
+
+# MRM 中とみなす MrmState.state (MRM_OPERATING / MRM_SUCCEEDED / MRM_FAILED)
+MRM_STATES = (MrmState.MRM_OPERATING, MrmState.MRM_SUCCEEDED, MrmState.MRM_FAILED)
 
 
 class RouteHandler:
@@ -100,15 +104,15 @@ class RouteHandler:
             return
 
         current_time = self._node.get_clock().now()
-        mrm_behavior = self._autoware.information.mrm_behavior
-        # 緊急/通常(NONE)の判定値は pilot-auto のバージョン差を吸収するため config 化 (SYS2-ERR-01)。
-        # 値域逸脱は sub_mrm_callback で NONE にリセット済みのため、ここでは有効値のみ扱う。
-        in_emergency = mrm_behavior in self._parameter.mrm_emergency_behaviors
-        # comfortable stop = 緊急でも通常(NONE)でもない有効な MRM 挙動
-        in_comfortable_stop = (
-            mrm_behavior != self._parameter.mrm_none_behavior
-            and mrm_behavior not in self._parameter.mrm_emergency_behaviors
+        # MRM 中かどうかは state で判定する (値域逸脱は sub_mrm_callback で NORMAL にリセット済み)。
+        # behavior は車両プラグインごとに独自値を取るため、MRM 中に emergency_behaviors に該当すれば
+        # 緊急停止、それ以外は comfortable stop (減速停止) として扱う。
+        in_mrm = self._autoware.information.mrm_state in MRM_STATES
+        in_emergency = (
+            in_mrm
+            and self._autoware.information.mrm_behavior in self._parameter.mrm_emergency_behaviors
         )
+        in_comfortable_stop = in_mrm and not in_emergency
 
         self._update_comfortable_stop_state(in_comfortable_stop, current_time)
         # 発話は初回/繰り返し判定に更新前の _in_emergency_state を使うため、
@@ -469,9 +473,7 @@ class RouteHandler:
             # 発話できるよう以降の FMS ゲートより前で評価する。
             if (
                 self._is_driving
-                and 0
-                < self._autoware.information.goal_distance
-                < self._parameter.arriving_distance
+                and 0 < self._autoware.information.goal_distance < self._parameter.arriving_distance
                 and not self._announced_arrive_caution
             ):
                 self._announce_interface.send_announce("arrive_caution")
@@ -564,9 +566,7 @@ class RouteHandler:
         # 閾値チューニング用: どの値がどの閾値を超えて発話したかを記録する
         # (提供結果 played/queued/failed 等は send_announce 側で別途記録される)
         self._node.get_logger().info(
-            "UC-03: sudden motion triggered [{}: {}]".format(
-                warning_type, ", ".join(reasons)
-            )
+            "UC-03: sudden motion triggered [{}: {}]".format(warning_type, ", ".join(reasons))
         )
         # 音声は事象によらず「手すりにおつかまりください」で統一する
         # (事象別の出し分けは表示側 standing_warning_type のみ)

@@ -34,11 +34,10 @@ class SignageParameter:
     # 起動時に /api/vehicle/dimensions サービスから取得でき次第そちらで上書きされる。
     wheel_base: float = 2.75
     # MRM (/api/fail_safe/mrm_state) の値域判定・緊急判定値 (SYS2-ERR-01 値域逸脱)。
-    # behavior の値体系は pilot-auto のバージョンで変わるため config で可変にする。
-    # state / behavior が有効値域外の場合は MRM 発生有無を不明として扱いリセットする。
+    # MRM 中かどうかは state で判定し、state が有効値域外の場合は MRM 発生有無を不明として扱いリセットする。
+    # behavior の値体系は pilot-auto のバージョン/車両プラグインで変わる (X2 は 11/12/20/21 等の独自値) ため
+    # 値域判定はせず、MRM 中に emergency_behaviors に該当すれば緊急停止、それ以外は減速停止として扱う。
     mrm_valid_states: list = field(default_factory=lambda: [1, 2, 3, 4])
-    mrm_valid_behaviors: list = field(default_factory=lambda: [1, 2, 3, 4, 12])
-    mrm_none_behavior: int = 1  # MRM 非作動 (NONE) を表す behavior 値
     mrm_emergency_behaviors: list = field(default_factory=lambda: [12])
 
 
@@ -100,8 +99,6 @@ class ParameterInterface:
         node.declare_parameter("sudden_lateral_jerk_threshold", 0.5)
         node.declare_parameter("wheel_base", 2.75)
         node.declare_parameter("mrm.valid_states", [1, 2, 3, 4])
-        node.declare_parameter("mrm.valid_behaviors", [1, 2, 3, 4, 12])
-        node.declare_parameter("mrm.none_behavior", 1)
         node.declare_parameter("mrm.emergency_behaviors", [12])
 
         self.parameter.debug_mode = (
@@ -177,31 +174,9 @@ class ParameterInterface:
         self.parameter.mrm_valid_states = list(
             node.get_parameter("mrm.valid_states").get_parameter_value().integer_array_value
         )
-        self.parameter.mrm_valid_behaviors = list(
-            node.get_parameter("mrm.valid_behaviors").get_parameter_value().integer_array_value
-        )
-        self.parameter.mrm_none_behavior = (
-            node.get_parameter("mrm.none_behavior").get_parameter_value().integer_value
-        )
         self.parameter.mrm_emergency_behaviors = list(
             node.get_parameter("mrm.emergency_behaviors").get_parameter_value().integer_array_value
         )
-        # 設定の自己整合チェック: 緊急/NONE の判定値が有効値域に無いと、その値は
-        # 「値域逸脱」としてリセットされ緊急停止表示が永久に出なくなる。設定ミスで
-        # 安全側の表示が落ちるのを避けるため、不足分は有効値へ補いログに残す。
-        missing_behaviors = [
-            behavior
-            for behavior in [self.parameter.mrm_none_behavior]
-            + self.parameter.mrm_emergency_behaviors
-            if behavior not in self.parameter.mrm_valid_behaviors
-        ]
-        if missing_behaviors:
-            node.get_logger().error(
-                "mrm.valid_behaviors {} does not contain {}, add them automatically".format(
-                    self.parameter.mrm_valid_behaviors, missing_behaviors
-                )
-            )
-            self.parameter.mrm_valid_behaviors += missing_behaviors
 
         node.declare_parameter("announce.emergency", True)
         node.declare_parameter("announce.restart_engage", True)
