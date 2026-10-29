@@ -39,7 +39,10 @@ class SettingsStore:
         self._migrate_legacy_files()
 
     def _load(self):
-        return self._load_json(SETTINGS_PATH)
+        data = self._load_json(SETTINGS_PATH)
+        if data:
+            self._node.get_logger().info("loaded settings from {}".format(SETTINGS_PATH))
+        return data
 
     def _load_json(self, path):
         try:
@@ -48,6 +51,9 @@ class SettingsStore:
                     data = json.load(f)
                     if isinstance(data, dict):
                         return data
+                    self._node.get_logger().error(
+                        "not able to load settings {}, ERROR: not a JSON object".format(path)
+                    )
         except Exception as e:
             self._node.get_logger().error(
                 "not able to load settings {}, ERROR: {}".format(path, str(e))
@@ -56,8 +62,13 @@ class SettingsStore:
 
     def _save(self):
         os.makedirs(os.path.dirname(SETTINGS_PATH), exist_ok=True)
-        with open(SETTINGS_PATH, "w") as f:
+        # 一時ファイルへ書いてから置き換える (書き込み途中の電源断で壊れたファイルを残さないため)。
+        tmp_path = SETTINGS_PATH + ".tmp"
+        with open(tmp_path, "w") as f:
             json.dump(self._data, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, SETTINGS_PATH)
 
     def get(self, key, default=None):
         return self._data.get(key, default)
@@ -80,16 +91,20 @@ class SettingsStore:
     def _migrate_legacy_files(self):
         migrated = False
         legacy_settings = self._load_json(LEGACY_SETTINGS_PATH)
-        for key, read_legacy_file in (
-            (KEY_VOLUME, self._read_legacy_volume),
-            (KEY_STANDING_MODE, self._read_legacy_standing_mode),
+        for key, legacy_file_path, read_legacy_file in (
+            (KEY_VOLUME, LEGACY_VOLUME_PATH, self._read_legacy_volume),
+            (KEY_STANDING_MODE, LEGACY_STANDING_MODE_PATH, self._read_legacy_standing_mode),
         ):
             if key in self._data:
                 continue
+            source = LEGACY_SETTINGS_PATH
             value = legacy_settings.get(key)
             if value is None:
+                source = legacy_file_path
                 value = read_legacy_file()
             if value is not None:
+                # どの旧配置から引き継いだかを後から追えるよう警告で残す。
+                self._node.get_logger().warning("migrated settings {} from {}".format(key, source))
                 self._data[key] = value
                 migrated = True
 

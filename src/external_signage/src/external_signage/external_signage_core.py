@@ -27,10 +27,22 @@ SETTINGS_PATH = os.path.join(SETTINGS_DIR, "external_signage_settings.json")
 LEGACY_SETTINGS_PATH = os.path.expanduser("~/settings.json")
 
 # SYS-HMI-03: destination.point_id -> td5ファイル名prefix の紐付けを記載する外部ファイル。
-# リビルド不要で運用時に編集できる。存在しなければ旧配置のファイル、それも無ければ
-# パッケージ同梱テンプレート (config/destination_mapping.yaml) から生成する。
+# リビルド不要で運用時に編集できる。存在しなければパッケージ同梱テンプレート
+# (config/destination_mapping.yaml) から生成する。
+# 旧配置 (/opt/autoware/destination_mapping.yaml) は引き継がない。旧配置には実 point_id 判明前の
+# 仮ID (2567/2568/2569) のままの車両があり、引き継ぐと誤った対応表が新しい配置へ固定されるため。
 DESTINATION_MAPPING_PATH = os.path.join(SETTINGS_DIR, "destination_mapping.yaml")
-LEGACY_DESTINATION_MAPPING_PATH = "/opt/autoware/destination_mapping.yaml"
+
+
+def _write_atomic(path, text):
+    # 一時ファイルへ書いてから置き換える。書き込み途中の電源断で中途半端なファイルが残ると、
+    # 次回起動で壊れた設定を読む (対応表は種まきも走らなくなる) ため。
+    tmp_path = path + ".tmp"
+    with open(tmp_path, "w") as f:
+        f.write(text)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_path, path)
 
 
 @dataclass
@@ -283,7 +295,7 @@ class ExternalSignage:
 
     def _load_destination_mapping(self):
         # destination.point_id -> td5ファイル名prefix の紐付けを外部ファイル (/opt/autoware/signage) から読む。
-        # 無ければ旧配置のファイルかパッケージ同梱テンプレートから生成する。壊れている場合は空マッピングで
+        # 無ければパッケージ同梱テンプレートから生成する。壊れている場合は空マッピングで
         # 継続する (フォールバックで null 表示)。運用時はこの外部ファイルを編集すればリビルド不要で反映される。
         # point_id は整数だが YAML キーの引用有無で int/str が揺れるため、キーを str に正規化して保持する。
         path = DESTINATION_MAPPING_PATH
@@ -294,8 +306,11 @@ class ExternalSignage:
                 data = yaml.safe_load(f) or {}
             raw_mapping = data.get("destination_mapping", {}) or {}
             mapping = {str(k): v for k, v in raw_mapping.items()}
+            # 件数だけでは誤った対応表 (仮ID 等) に気付けないため、キーも出す。
             self.node.get_logger().info(
-                "loaded destination_mapping from {}: {} entries".format(path, len(mapping))
+                "loaded destination_mapping from {}: {} entries {}".format(
+                    path, len(mapping), sorted(mapping)
+                )
             )
             return mapping
         except Exception as e:
@@ -305,19 +320,15 @@ class ExternalSignage:
             return {}
 
     def _seed_destination_mapping(self):
-        # 初回のみ: 旧配置のファイル (運用で編集済みの可能性がある) を優先し、無ければパッケージ同梱
-        # テンプレートを新しい配置へコピーして初期化する。コピーに失敗した場合はコピー元を直接読む
-        # パスを返す (表示は継続し、次回起動で再試行する)。
-        if os.path.isfile(LEGACY_DESTINATION_MAPPING_PATH):
-            source = LEGACY_DESTINATION_MAPPING_PATH
-        else:
-            source = (
-                get_package_share_directory("external_signage") + "/config/destination_mapping.yaml"
-            )
+        # 初回のみ: パッケージ同梱テンプレートを新しい配置へコピーして初期化する。コピーに失敗した場合は
+        # テンプレートを直接読むパスを返す (表示は継続し、次回起動で再試行する)。
+        source = (
+            get_package_share_directory("external_signage") + "/config/destination_mapping.yaml"
+        )
         try:
             os.makedirs(os.path.dirname(DESTINATION_MAPPING_PATH), exist_ok=True)
-            with open(source, "r") as src, open(DESTINATION_MAPPING_PATH, "w") as dst:
-                dst.write(src.read())
+            with open(source, "r") as src:
+                _write_atomic(DESTINATION_MAPPING_PATH, src.read())
         except Exception as e:
             self.node.get_logger().warning(
                 "not able to seed destination_mapping to {}, read {} instead: {}".format(
@@ -494,23 +505,32 @@ class ExternalSignage:
             self.node.get_logger().error(str(e))
 
     def _load_settings(self):
+        # 新しい配置 -> 旧配置 -> 既定値 の順に採用する。どれが効いたかを後から追えるよう
+        # 採用元を必ずログに出し、新しい配置以外から読んだ場合は警告にする。
         for path in (SETTINGS_PATH, LEGACY_SETTINGS_PATH):
             try:
                 if os.path.isfile(path):
                     with open(path, "r") as f:
                         settings = json.load(f)
                     if isinstance(settings, dict):
+                        log = self.node.get_logger().info
+                        if path != SETTINGS_PATH:
+                            log = self.node.get_logger().warning
+                        log("loaded settings from {}".format(path))
                         return settings
+                    self.node.get_logger().error(
+                        "not able to load settings {}, ERROR: not a JSON object".format(path)
+                    )
             except Exception as e:
                 self.node.get_logger().error(
                     "not able to load settings {}, ERROR: {}".format(path, str(e))
                 )
+        self.node.get_logger().warning("no settings file found, use default settings")
         return {"in_experiment": True, "airport": False}
 
     def _save_settings(self):
         os.makedirs(SETTINGS_DIR, exist_ok=True)
-        with open(SETTINGS_PATH, "w") as f:
-            json.dump(self._settings, f, indent=4)
+        _write_atomic(SETTINGS_PATH, json.dumps(self._settings, indent=4))
 
     def set_display_enable(self, request, response):
         # 表示の ON/OFF。
@@ -546,8 +566,15 @@ class ExternalSignage:
 
     def _apply_display_mode(self, mode):
         # 表示モードを永続化し、そのモードの描画を即座に反映する。
+        # 永続化に失敗した場合はメモリ上のモードを旧値へ戻し、表示も変えずに例外を伝播する
+        # (サービスは失敗を返す)。戻さないと、表示器は旧モードのまま状態トピックだけ新モードを報告する。
+        previous = self._settings.get(display_mode.SETTINGS_KEY)
         self._settings[display_mode.SETTINGS_KEY] = mode
-        self._save_settings()
+        try:
+            self._save_settings()
+        except Exception:
+            self._settings[display_mode.SETTINGS_KEY] = previous
+            raise
         self.node.get_logger().info("display_mode -> {}".format(mode))
         if mode == display_mode.OFF:
             self.display_signage("null")
@@ -580,7 +607,7 @@ class ExternalSignage:
     def _resolve_destination(self, data):
         # 行先決定ロジック: doing[0] -> todo[0] -> 有効な行先なし。
         # 戻り値 (state_key, detail)。state_key は displays のデータキー (prefix / "kaiso" / "null")。
-        # 有効な行先が取れない状態 (スケジュール無し/未登録/全完了) は回送中 (kaiso) とする (SYS-HMI-08)。
+        # 有効な行先が取れない状態 (スケジュール無し/全完了) は回送中 (kaiso) とする (SYS-HMI-08)。
         # 行先表示モードでは走行中の自動運行中(auto)表示は行わない。
         if not data:
             # スケジュール無し/未受信 -> 回送中
@@ -590,7 +617,7 @@ class ExternalSignage:
         todo = [t for t in tasks if t.get("task_type") == "move" and t.get("status") == "todo"]
         task = doing[0] if doing else (todo[0] if todo else None)
         if task is None:
-            # doing/todo の move タスクなし = スケジュール完了/未登録 -> 回送中
+            # doing/todo の move タスクなし = スケジュール完了 -> 回送中
             return "kaiso", "schedule complete"
         dest = task.get("destination") or {}
         point_id = dest.get("point_id")

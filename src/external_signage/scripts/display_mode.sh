@@ -7,7 +7,7 @@
 #   ./display_mode.sh destination   # 行先表示   (active_schedule から行先td5を表示)
 #   ./display_mode.sh status        # 現在の設定・モード状態を確認
 #
-# モードは settings.json の display_mode 1 キーに永続化され、再起動しても保持される。
+# モードは /opt/autoware/signage/external_signage_settings.json の display_mode 1 キーに永続化され、再起動しても保持される。
 # どのモードへの切替も service 1 コールで完結する。
 #
 # 前提: ROS 2 環境と対象ワークスペースを source 済みで、external_signage ノードが
