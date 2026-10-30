@@ -184,9 +184,7 @@ class AutowareInterface:
             self.is_disconnected = True
         else:
             if self.is_disconnected:
-                self._node.get_logger().info(
-                    "Autoware reconnected: /api/system/heartbeat resumed"
-                )
+                self._node.get_logger().info("Autoware reconnected: /api/system/heartbeat resumed")
             self.is_disconnected = False
 
     def sub_operation_mode_callback(self, msg):
@@ -204,13 +202,10 @@ class AutowareInterface:
 
     def sub_mrm_callback(self, msg):
         try:
-            # 値域逸脱 (SYS2-ERR-01): state / behavior が想定値域外の場合は
+            # 値域逸脱 (SYS2-ERR-01): state が想定値域外の場合は
             # MRM 発生有無を不明として扱い、MRM 状態を非作動へリセットする。
-            # (有効値域は pilot-auto のバージョン差を吸収するため config で可変)
-            if (
-                msg.state not in self._parameter.mrm_valid_states
-                or msg.behavior not in self._parameter.mrm_valid_behaviors
-            ):
+            # behavior は車両プラグインごとに独自値 (X2 は 11/12/20/21 等) を取るため値域判定しない。
+            if msg.state not in self._parameter.mrm_valid_states:
                 # 値域外が継続する構成 (待機中に UNKNOWN を publish し続ける等) では
                 # トピックレートでログが流れるため throttle する。
                 self._node.get_logger().error(
@@ -220,7 +215,7 @@ class AutowareInterface:
                     throttle_duration_sec=5,
                 )
                 self.information.mrm_state = MrmState.NORMAL
-                self.information.mrm_behavior = self._parameter.mrm_none_behavior
+                self.information.mrm_behavior = MrmState.NONE
                 return
             self.information.mrm_state = msg.state
             self.information.mrm_behavior = msg.behavior
@@ -333,9 +328,7 @@ class AutowareInterface:
             )
             self._dimensions_future.add_done_callback(self.on_vehicle_dimensions_response)
         except Exception as e:
-            self._node.get_logger().error(
-                "Unable to request vehicle dimensions, ERROR: " + str(e)
-            )
+            self._node.get_logger().error("Unable to request vehicle dimensions, ERROR: " + str(e))
 
     def on_vehicle_dimensions_response(self, future):
         try:
