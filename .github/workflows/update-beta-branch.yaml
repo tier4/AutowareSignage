@@ -16,14 +16,14 @@ jobs:
         run: |
           echo "BASE_BRANCH=${{ github.ref_name }}" >> $GITHUB_ENV
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.7.0
         with:
           ref: ${{ env.BASE_BRANCH }}
           fetch-depth: 0
 
       - name: Generate token
         id: generate-token
-        uses: tibdex/github-app-token@v1
+        uses: tibdex/github-app-token@v1.9.0
         with:
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.PRIVATE_KEY }}
@@ -48,7 +48,7 @@ jobs:
         shell: bash
       - name: Create PR
         id: create-pr
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@v4.2.4
         with:
           token: ${{ steps.generate-token.outputs.token }}
           commit-message: "chore: update beta branch for ${{ env.BASE_BRANCH }}"

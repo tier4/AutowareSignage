@@ -12,10 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2.8.0
 
       - name: Prepare node
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v2.5.2
 
       - name: Install cspell
         run: |

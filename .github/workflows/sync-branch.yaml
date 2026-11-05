@@ -11,13 +11,13 @@ jobs:
     steps:
       - name: Generate token
         id: generate-token
-        uses: tibdex/github-app-token@v1
+        uses: tibdex/github-app-token@v1.9.0
         with:
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.PRIVATE_KEY }}
 
       - name: Run sync-branches
-        uses: autowarefoundation/autoware-github-actions/sync-branches@v1
+        uses: autowarefoundation/autoware-github-actions/sync-branches@v1.69.1
         with:
           token: ${{ steps.generate-token.outputs.token }}
           base-branch: isuzu_erga_ev

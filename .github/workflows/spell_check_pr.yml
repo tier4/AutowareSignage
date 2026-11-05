@@ -8,10 +8,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2.8.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v2.5.2
 
       - name: Install spell check dictionary
         run: npm install --ignore-scripts https://github.com/tier4/autoware-spell-check-dict
