@@ -27,3 +27,4 @@ signage:
       going_to_depart: true
       going_to_arrive: true
       will_stop: true
+      cancel: true

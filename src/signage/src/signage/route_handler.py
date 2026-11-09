@@ -483,13 +483,14 @@ class RouteHandler:
             self._node.get_logger().error("Error in getting calculate the time: " + str(e))
 
     def _update_v2x_signage_state(self):
-        """Track state/will_stop and play will_stop.wav on a stop-request transition."""
+        """Play will_stop.wav or cancel.wav for the next stop only."""
         msg = self._autoware.information.bus_stop_signage_info
         if msg is None:
             return
 
         (
             play_will_stop,
+            play_cancel,
             became_approaching,
             self._v2x_is_approaching,
             self._v2x_show_arriving,
@@ -500,6 +501,8 @@ class RouteHandler:
             self._v2x_became_approaching = True
         if play_will_stop:
             self._announce_interface.send_announce("will_stop")
+        if play_cancel:
+            self._announce_interface.send_announce("cancel")
         if became_stopping:
             self._announce_interface.announce_arrived()
 

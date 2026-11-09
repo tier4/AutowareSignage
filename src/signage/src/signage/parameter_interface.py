@@ -38,6 +38,7 @@ class AnnounceParameter:
     going_to_depart: bool = True
     going_to_arrive: bool = True
     will_stop: bool = True
+    cancel: bool = True
 
 
 class ParameterInterface:
@@ -121,6 +122,7 @@ class ParameterInterface:
         node.declare_parameter("announce.going_to_depart", True)
         node.declare_parameter("announce.going_to_arrive", True)
         node.declare_parameter("announce.will_stop", True)
+        node.declare_parameter("announce.cancel", True)
 
         announce_prefix = node.get_parameters_by_prefix("announce")
 

@@ -27,6 +27,7 @@ PRIORITY_DICT = {
     "going_to_depart": 1,
     "going_to_arrive": 1,
     "will_stop": 1,
+    "cancel": 1,
 }
 
 CURRENT_VOLUME_PATH = "/opt/autoware/volume.txt"
@@ -61,18 +62,42 @@ class AnnounceControllerProperty:
         self._node.create_service(SetVolume, "~/set/volume", self.set_volume)
         self._node.create_service(Trigger, "~/test/volume", self.test_volume)
 
+    def _enqueue_announce(self, message, front=False):
+        item = {
+            "message": message,
+            "requested_time": self._node.get_clock().now(),
+        }
+        # Same clip, so keep a single queued will_stop.
+        if message == "will_stop":
+            self._pending_announce_list = [
+                pending for pending in self._pending_announce_list if pending["message"] != message
+            ]
+        if front:
+            self._pending_announce_list.insert(0, item)
+        else:
+            self._pending_announce_list.append(item)
+
+    def _defer_will_stop(self):
+        """Replay will_stop after a higher-priority announce preempts it."""
+        if self._current_announce != "will_stop" or self._sound.isFinished():
+            return
+        self._enqueue_announce("will_stop", front=True)
+
+    def _play_pending(self, play_sound):
+        self.play_sound(play_sound["message"])
+        self._current_announce = play_sound["message"]
+        self._pending_announce_list.remove(play_sound)
+
     def process_pending_announce(self):
         try:
             for play_sound in self._pending_announce_list:
                 time_diff = self._node.get_clock().now() - play_sound["requested_time"]
                 if not self._parameter.signage_stand_alone and time_diff > Duration(seconds=5):
                     # delay the announce for going to depart when the signage is not stand alone
-                    self.play_sound(play_sound["message"])
-                    self._pending_announce_list.remove(play_sound)
+                    self._play_pending(play_sound)
                     break
                 elif self._parameter.signage_stand_alone and time_diff <= Duration(seconds=10):
-                    self.play_sound(play_sound["message"])
-                    self._pending_announce_list.remove(play_sound)
+                    self._play_pending(play_sound)
                     break
         except Exception as e:
             self._node.get_logger().error("not able to check the pending playing list: " + str(e))
@@ -104,26 +129,30 @@ class AnnounceControllerProperty:
         if not self.check_announce_or_not(message):
             return
 
+        played = False
         if priority == 3:
+            self._defer_will_stop()
             self._sound.stop()
             self.play_sound(message)
+            played = True
         elif priority == 2:
             if priority > previous_priority:
+                self._defer_will_stop()
                 self._sound.stop()
                 self.play_sound(message)
+                played = True
             elif priority == previous_priority:
                 self.play_sound(message)
+                played = True
         elif priority == 1:
             if not previous_priority:
                 self.play_sound(message)
-            elif previous_priority in [2, 1]:
-                self._pending_announce_list.append(
-                    {
-                        "message": message,
-                        "requested_time": self._node.get_clock().now(),
-                    }
-                )
-        self._current_announce = message
+                played = True
+            elif previous_priority in [2, 1] or message in ("will_stop", "cancel"):
+                # Play will_stop or cancel after a higher-priority clip such as engage.
+                self._enqueue_announce(message)
+        if played:
+            self._current_announce = message
 
     def announce_arrived(self):
         if self._parameter.signage_stand_alone:

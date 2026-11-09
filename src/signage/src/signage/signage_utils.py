@@ -255,13 +255,40 @@ def process_station_list_from_v2x(signage_infos):
     return previous_station, current_task, next_station_list, reach_final
 
 
+_NEXT_STOP_ID_KEY = "_next_stop_id"
+
+
+def _stop_status_fields(prev):
+    if not prev:
+        return None, None, False
+    pending = prev[2] if len(prev) > 2 else False
+    return prev[0], prev[1], pending
+
+
+def _is_stop_request_transition(prev_state, prev_will_stop, state, will_stop, bus_stop_state):
+    if prev_state == bus_stop_state.WILL_PASS and state == bus_stop_state.WILL_STOP:
+        return True
+    return not prev_will_stop and will_stop
+
+
+def _is_pass_transition(prev_state, prev_will_stop, state, will_stop, bus_stop_state):
+    if prev_state == bus_stop_state.WILL_STOP and state == bus_stop_state.WILL_PASS:
+        return True
+    return prev_will_stop and not will_stop
+
+
 def detect_v2x_signage_changes(signage_infos, prev_status):
     """
     Compare signage_infos with the previous snapshot.
 
-    prev_status: {stop_id: (normalized_state, will_stop)}
-    will_stop.wav plays when a stop changes 通過予定 -> 停車予定,
-    or its will_stop changes false -> true.
+    prev_status: {stop_id: (normalized_state, will_stop, pending_will_stop)}
+    will_stop.wav follows only the next stop, so the announcement identifies
+    that stop. A 通過予定 -> 停車予定 change, or will_stop false -> true,
+    plays immediately when it is the next stop. The same change on a later
+    stop is held and plays when that stop becomes the next one.
+    cancel.wav plays when that next stop changes 停車予定 -> 通過予定,
+    or its will_stop changes true -> false. Later stops are ignored.
+    A later change back to 通過予定 drops a held will_stop announcement.
     going_to_arrive plays only when the displayed next stop changes from
     停車予定 (WILL_STOP) to バス停直前 (APPROACHING) and will_stop is true.
     「間もなく到着します」 is shown only while that stop will actually stop.
@@ -272,6 +299,7 @@ def detect_v2x_signage_changes(signage_infos, prev_status):
 
     Returns (
         play_will_stop,
+        play_cancel,
         became_approaching,
         is_approaching,
         show_arriving,
@@ -281,28 +309,54 @@ def detect_v2x_signage_changes(signage_infos, prev_status):
     """
     from tier4_v2x_msgs.msg import BusStopState
 
-    current_status = {}
+    prev_status = prev_status or {}
+    prev_next_stop_id = prev_status.get(_NEXT_STOP_ID_KEY)
+    next_idx = find_next_bus_stop_index(signage_infos)
+    next_stop_id = signage_infos[next_idx].stop_id if next_idx is not None else None
+    became_next = (
+        prev_next_stop_id is not None
+        and next_stop_id is not None
+        and prev_next_stop_id != next_stop_id
+    )
+
+    current_status = {_NEXT_STOP_ID_KEY: next_stop_id}
     play_will_stop = False
+    play_cancel = False
     became_approaching = False
     is_approaching = False
     show_arriving = False
     became_stopping = False
 
-    for info in signage_infos:
+    for index, info in enumerate(signage_infos):
         state = normalize_bus_stop_state(info.state.value)
         will_stop = bool(info.will_stop)
-        current_status[info.stop_id] = (state, will_stop)
+        prev = prev_status.get(info.stop_id)
+        prev_state, prev_will_stop, pending = _stop_status_fields(prev)
+        requested = False
+        passed = False
+        if prev is not None:
+            requested = _is_stop_request_transition(
+                prev_state, prev_will_stop, state, will_stop, BusStopState
+            )
+            passed = _is_pass_transition(
+                prev_state, prev_will_stop, state, will_stop, BusStopState
+            )
+            if requested:
+                pending = True
+            elif passed:
+                pending = False
 
-        prev = prev_status.get(info.stop_id) if prev_status else None
-        if prev is None:
-            continue
-        prev_state, prev_will_stop = prev
-        if prev_state == BusStopState.WILL_PASS and state == BusStopState.WILL_STOP:
+        # Passed stops are no longer the subject of will_stop.
+        if next_idx is None or index < next_idx:
+            pending = False
+        elif index == next_idx and pending and (requested or became_next):
             play_will_stop = True
-        if not prev_will_stop and will_stop:
-            play_will_stop = True
+            pending = False
+        elif index == next_idx and passed:
+            play_cancel = True
 
-    next_idx = find_next_bus_stop_index(signage_infos)
+        current_status[info.stop_id] = (state, will_stop, pending)
+
     if next_idx is not None:
         info = signage_infos[next_idx]
         state = normalize_bus_stop_state(info.state.value)
@@ -321,6 +375,7 @@ def detect_v2x_signage_changes(signage_infos, prev_status):
 
     return (
         play_will_stop,
+        play_cancel,
         became_approaching,
         is_approaching,
         show_arriving,
