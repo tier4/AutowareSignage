@@ -3,6 +3,8 @@
 # This Python file uses the following encoding: utf-8
 
 import os
+import time
+import wave
 
 from PyQt5.QtMultimedia import QSound
 from rclpy.duration import Duration
@@ -43,6 +45,10 @@ class AnnounceControllerProperty:
         self._current_announce = ""
         self._pending_announce_list = []
         self._sound = QSound("")
+        # QSound.isFinished() stays false on some ECU images, which leaves
+        # priority-1 clips such as will_stop and cancel queued forever.
+        self._sound_started_monotonic = None
+        self._sound_duration = 0.0
         self._prev_depart_and_arrive_type = ""
         self._package_path = get_package_share_directory("signage") + "/resource/sound/"
         self._check_playing_timer = self._node.create_timer(1, self.check_playing_callback)
@@ -79,9 +85,39 @@ class AnnounceControllerProperty:
 
     def _defer_will_stop(self):
         """Replay will_stop after a higher-priority announce preempts it."""
-        if self._current_announce != "will_stop" or self._sound.isFinished():
+        if self._current_announce != "will_stop" or self._playback_finished():
             return
         self._enqueue_announce("will_stop", front=True)
+
+    def _resolve_sound_path(self, message):
+        filename = message + ".wav"
+        candidates = [
+            os.path.join(self._package_path, filename),
+            os.path.normpath(
+                os.path.join(os.path.dirname(__file__), "..", "..", "resource", "sound", filename)
+            ),
+        ]
+        for path in candidates:
+            if os.path.isfile(path):
+                return path
+        self._node.get_logger().error("sound file not found: " + candidates[0])
+        return candidates[0]
+
+    def _wav_duration_seconds(self, path):
+        try:
+            with wave.open(path) as wav_file:
+                rate = wav_file.getframerate()
+                if rate <= 0:
+                    return 0.0
+                return wav_file.getnframes() / float(rate)
+        except Exception:
+            return 0.0
+
+    def _playback_finished(self):
+        if self._sound_started_monotonic is None:
+            return True
+        elapsed = time.monotonic() - self._sound_started_monotonic
+        return elapsed >= (self._sound_duration + 0.2)
 
     def _play_pending(self, play_sound):
         self.play_sound(play_sound["message"])
@@ -92,11 +128,19 @@ class AnnounceControllerProperty:
         try:
             for play_sound in self._pending_announce_list:
                 time_diff = self._node.get_clock().now() - play_sound["requested_time"]
-                if not self._parameter.signage_stand_alone and time_diff > Duration(seconds=5):
+                message = play_sound["message"]
+                # will_stop / cancel must still play after engage, even if the
+                # request has been waiting longer than the usual announce window.
+                if message in ("will_stop", "cancel"):
+                    ready = True
+                elif not self._parameter.signage_stand_alone and time_diff > Duration(seconds=5):
                     # delay the announce for going to depart when the signage is not stand alone
-                    self._play_pending(play_sound)
-                    break
+                    ready = True
                 elif self._parameter.signage_stand_alone and time_diff <= Duration(seconds=10):
+                    ready = True
+                else:
+                    ready = False
+                if ready:
                     self._play_pending(play_sound)
                     break
         except Exception as e:
@@ -104,15 +148,18 @@ class AnnounceControllerProperty:
 
     def check_playing_callback(self):
         try:
-            if self._sound.isFinished():
+            if self._playback_finished():
                 self._current_announce = ""
                 self.process_pending_announce()
         except Exception as e:
             self._node.get_logger().error("not able to check the current playing: " + str(e))
 
     def play_sound(self, message):
-        self._sound = QSound(self._package_path + message + ".wav")
+        path = self._resolve_sound_path(message)
+        self._sound = QSound(path)
         self._sound.play()
+        self._sound_started_monotonic = time.monotonic()
+        self._sound_duration = self._wav_duration_seconds(path)
 
     # skip announce by setting
     def check_announce_or_not(self, message):
@@ -128,6 +175,9 @@ class AnnounceControllerProperty:
 
         if not self.check_announce_or_not(message):
             return
+
+        if self._playback_finished():
+            self._current_announce = ""
 
         played = False
         if priority == 3:
