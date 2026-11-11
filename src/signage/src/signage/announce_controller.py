@@ -34,6 +34,15 @@ PRIORITY_DICT = {
 
 CURRENT_VOLUME_PATH = "/opt/autoware/volume.txt"
 
+# Seconds added to the wav length before assuming playback ended without isFinished().
+PLAYBACK_FALLBACK_MARGIN = 1.5
+# Queued will_stop / cancel older than this are stale and dropped.
+QUEUED_ANNOUNCE_MAX_AGE = 30.0
+# Replay an interrupted will_stop only if less than this share was heard.
+WILL_STOP_REPLAY_MAX_PROGRESS = 0.7
+# Stop request messages that follow the next bus stop.
+STOP_REQUEST_MESSAGES = ("will_stop", "cancel")
+
 
 class AnnounceControllerProperty:
     def __init__(self, node, autoware_interface, parameter_interface):
@@ -73,10 +82,13 @@ class AnnounceControllerProperty:
             "message": message,
             "requested_time": self._node.get_clock().now(),
         }
-        # Same clip, so keep a single queued will_stop.
-        if message == "will_stop":
+        if message in STOP_REQUEST_MESSAGES:
+            # Keep one queued clip, and let the newest of will_stop / cancel win:
+            # the stop request it replaces no longer applies to the next stop.
             self._pending_announce_list = [
-                pending for pending in self._pending_announce_list if pending["message"] != message
+                pending
+                for pending in self._pending_announce_list
+                if pending["message"] not in STOP_REQUEST_MESSAGES
             ]
         if front:
             self._pending_announce_list.insert(0, item)
@@ -86,6 +98,14 @@ class AnnounceControllerProperty:
     def _defer_will_stop(self):
         """Replay will_stop after a higher-priority announce preempts it."""
         if self._current_announce != "will_stop" or self._playback_finished():
+            return
+        elapsed = self._playback_elapsed()
+        if (
+            elapsed is not None
+            and self._sound_duration > 0
+            and elapsed >= self._sound_duration * WILL_STOP_REPLAY_MAX_PROGRESS
+        ):
+            # Almost fully heard already; replaying would sound like a duplicate.
             return
         self._enqueue_announce("will_stop", front=True)
 
@@ -113,11 +133,21 @@ class AnnounceControllerProperty:
         except Exception:
             return 0.0
 
-    def _playback_finished(self):
+    def _playback_elapsed(self):
         if self._sound_started_monotonic is None:
+            return None
+        return time.monotonic() - self._sound_started_monotonic
+
+    def _playback_finished(self):
+        elapsed = self._playback_elapsed()
+        if elapsed is None:
             return True
-        elapsed = time.monotonic() - self._sound_started_monotonic
-        return elapsed >= (self._sound_duration + 0.2)
+        if self._sound.isFinished():
+            return True
+        # Fallback for ECUs where isFinished() never becomes true. The margin
+        # covers the asynchronous load before audio actually starts, so the next
+        # clip does not cut the current one.
+        return elapsed >= (self._sound_duration + PLAYBACK_FALLBACK_MARGIN)
 
     def _play_pending(self, play_sound):
         self.play_sound(play_sound["message"])
@@ -131,7 +161,10 @@ class AnnounceControllerProperty:
                 message = play_sound["message"]
                 # will_stop / cancel must still play after engage, even if the
                 # request has been waiting longer than the usual announce window.
-                if message in ("will_stop", "cancel"):
+                if message in STOP_REQUEST_MESSAGES:
+                    if time_diff > Duration(seconds=QUEUED_ANNOUNCE_MAX_AGE):
+                        self._pending_announce_list.remove(play_sound)
+                        break
                     ready = True
                 elif not self._parameter.signage_stand_alone and time_diff > Duration(seconds=5):
                     # delay the announce for going to depart when the signage is not stand alone
@@ -171,13 +204,18 @@ class AnnounceControllerProperty:
 
     def send_announce(self, message):
         priority = PRIORITY_DICT.get(message, 0)
-        previous_priority = PRIORITY_DICT.get(self._current_announce, 0)
 
         if not self.check_announce_or_not(message):
             return
 
+        # Clear a finished clip first, so a stale name does not block this announce.
         if self._playback_finished():
             self._current_announce = ""
+        previous_priority = PRIORITY_DICT.get(self._current_announce, 0)
+
+        if message in STOP_REQUEST_MESSAGES and self._current_announce == message:
+            # The same clip is already playing; do not repeat it.
+            return
 
         played = False
         if priority == 3:
@@ -198,7 +236,7 @@ class AnnounceControllerProperty:
             if not previous_priority:
                 self.play_sound(message)
                 played = True
-            elif previous_priority in [2, 1] or message in ("will_stop", "cancel"):
+            elif previous_priority in [2, 1] or message in STOP_REQUEST_MESSAGES:
                 # Play will_stop or cancel after a higher-priority clip such as engage.
                 self._enqueue_announce(message)
         if played:
