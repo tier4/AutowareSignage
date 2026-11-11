@@ -214,7 +214,14 @@ class AnnounceControllerProperty:
         previous_priority = PRIORITY_DICT.get(self._current_announce, 0)
 
         if message in STOP_REQUEST_MESSAGES and self._current_announce == message:
-            # The same clip is already playing; do not repeat it.
+            # This clip is already playing. A repeat means the queued stop request
+            # between the two (cancel -> will_stop -> cancel, or the reverse)
+            # no longer applies, so drop it and finish on the clip already playing.
+            self._pending_announce_list = [
+                pending
+                for pending in self._pending_announce_list
+                if pending["message"] not in STOP_REQUEST_MESSAGES
+            ]
             return
 
         played = False
