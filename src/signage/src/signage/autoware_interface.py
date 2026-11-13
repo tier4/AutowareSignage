@@ -1,8 +1,8 @@
 # !/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import math
 import rclpy
+from rclpy.time import Time
 from dataclasses import dataclass, field
 from autoware_adapi_v1_msgs.msg import (
     RouteState,
@@ -18,6 +18,7 @@ from autoware_adapi_v1_msgs.msg import (
 )
 from autoware_adapi_v1_msgs.srv import GetVehicleDimensions
 from std_msgs.msg import String
+from tier4_external_api_msgs.msg import RouteDistance
 import signage.signage_utils as utils
 from tier4_metric_msgs.msg import MetricArray
 
@@ -66,8 +67,8 @@ class AutowareInterface:
         self.information = AutowareInformation()
         self._parameter = parameter_interface.parameter
         self.is_disconnected = False
-        # 現在のルートのゴール座標 (map系)。ルート未設定時は None
-        self._goal_position = None
+        # 現在のルートの生成時刻。ルート未設定時は None (残り距離を受け付けない)
+        self._route_stamp = None
 
         sub_qos = rclpy.qos.QoSProfile(
             history=rclpy.qos.QoSHistoryPolicy.KEEP_LAST,
@@ -109,16 +110,22 @@ class AutowareInterface:
             self.sub_vehicle_door_callback,
             api_qos,
         )
-        # /autoware_api/utils/path_distance_calculator/distance が廃止予定のため、
-        # ゴール姿勢 (/api/routing/route) と自車位置 (/api/vehicle/kinematics) から
-        # ゴールまでの直線距離を算出して goal_distance を求める。
-        # ゴール直前がカーブ / 経路がゴール近傍を通過する場合は実際の経路長と乖離するが、
-        # ゴール近傍 (<100m) の到着判定用途としては許容範囲とする。
+        # ゴールまでの経路上の残り距離は /api/external/get/route_distance から取得する。
+        # 残り距離は path_distance_calculator が 1Hz で算出しており、ルート解除後も
+        # 直前ルートの距離を publish し続け、ルート切替直後は旧ルートの距離が届きうる。
+        # そのため /api/routing/route でルートの有無と生成時刻を保持し、
+        # ルート未設定中・現ルート生成前に算出された距離は無視する。
         self._sub_route = node.create_subscription(
             Route,
             "/api/routing/route",
             self.sub_route_callback,
             api_qos,
+        )
+        self._sub_route_distance = node.create_subscription(
+            RouteDistance,
+            "/api/external/get/route_distance",
+            self.sub_route_distance_callback,
+            sub_qos,
         )
         self._sub_kinematics = node.create_subscription(
             VehicleKinematics,
@@ -244,15 +251,27 @@ class AutowareInterface:
             self._node.get_logger().error("Unable to get the vehicle door status, ERROR: " + str(e))
 
     def sub_route_callback(self, msg):
+        # ルートが変わったら旧ルートの残り距離を引き継がないようデフォルトへ戻し、
+        # 新ルートで算出された距離が届くまで到着判定させない。
         try:
+            self.information.goal_distance = 1000.0
             if msg.data:
-                self._goal_position = msg.data[0].goal.position
+                self._route_stamp = Time.from_msg(msg.header.stamp)
             else:
-                # ルートがクリアされた場合はゴール距離をデフォルトへ戻す
-                self._goal_position = None
-                self.information.goal_distance = 1000.0
+                self._route_stamp = None
         except Exception as e:
-            self._node.get_logger().error("Unable to get the route goal, ERROR: " + str(e))
+            self._node.get_logger().error("Unable to get the route, ERROR: " + str(e))
+
+    def sub_route_distance_callback(self, msg):
+        try:
+            if self._route_stamp is None:
+                return
+            # 現ルート生成前の姿勢で算出された距離 (旧ルート分) は破棄する
+            if Time.from_msg(msg.stamp) < self._route_stamp:
+                return
+            self.information.goal_distance = msg.remaining_distance
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the goal distance, ERROR: " + str(e))
 
     def sub_kinematics_callback(self, msg):
         # 縦速度 [m/s] を保持する (横ジャーク計算 v^2 * steering_rate / wheel_base に使用)
@@ -260,16 +279,6 @@ class AutowareInterface:
             self.information.velocity = msg.twist.twist.twist.linear.x
         except Exception as e:
             self._node.get_logger().error("Unable to get the vehicle velocity, ERROR: " + str(e))
-        # ゴールまでの直線距離を算出する (UC-05 到着判定用)
-        try:
-            if self._goal_position is None:
-                return
-            ego = msg.pose.pose.pose.position
-            self.information.goal_distance = math.hypot(
-                self._goal_position.x - ego.x, self._goal_position.y - ego.y
-            )
-        except Exception as e:
-            self._node.get_logger().error("Unable to get the goal distance, ERROR: " + str(e))
 
     def sub_motion_state_callback(self, msg):
         try:
