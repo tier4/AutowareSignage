@@ -294,6 +294,10 @@ def detect_v2x_signage_changes(signage_infos, prev_status):
     「間もなく到着します」 is shown only while that stop will actually stop.
     A 通過予定 stop does not play going_to_arrive or show the phrase,
     including when it becomes バス停直前 with will_stop still false.
+    passing.wav plays when that next stop changes to バス停直前 (APPROACHING)
+    from another known state while will_stop is false, i.e. the bus will
+    pass it. A will_stop true -> false change while already APPROACHING
+    plays cancel.wav instead.
     thank_you plays when that stop then changes to 停車 (STOPPING=4).
     OR_* states are normalized before comparison.
 
@@ -304,6 +308,7 @@ def detect_v2x_signage_changes(signage_infos, prev_status):
         is_approaching,
         show_arriving,
         became_stopping,
+        play_passing,
         current_status,
     )
     """
@@ -326,6 +331,7 @@ def detect_v2x_signage_changes(signage_infos, prev_status):
     is_approaching = False
     show_arriving = False
     became_stopping = False
+    play_passing = False
 
     for index, info in enumerate(signage_infos):
         state = normalize_bus_stop_state(info.state.value)
@@ -370,6 +376,9 @@ def detect_v2x_signage_changes(signage_infos, prev_status):
                 show_arriving = True
                 if prev_state == BusStopState.WILL_STOP:
                     became_approaching = True
+            elif prev_state not in (None, BusStopState.APPROACHING):
+                # 通過する停留所が直前に入ったときは passing.wav で知らせる
+                play_passing = True
         elif state == BusStopState.STOPPING and prev_state not in (None, BusStopState.STOPPING):
             became_stopping = True
 
@@ -380,5 +389,6 @@ def detect_v2x_signage_changes(signage_infos, prev_status):
         is_approaching,
         show_arriving,
         became_stopping,
+        play_passing,
         current_status,
     )

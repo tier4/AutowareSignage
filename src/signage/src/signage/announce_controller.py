@@ -30,6 +30,7 @@ PRIORITY_DICT = {
     "going_to_arrive": 1,
     "will_stop": 1,
     "cancel": 1,
+    "passing": 1,
 }
 
 CURRENT_VOLUME_PATH = "/opt/autoware/volume.txt"
