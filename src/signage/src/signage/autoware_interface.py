@@ -18,10 +18,25 @@ from autoware_adapi_v1_msgs.msg import (
 )
 from autoware_adapi_v1_msgs.srv import GetVehicleDimensions
 from std_msgs.msg import String
+from tier4_external_api_msgs.msg import RouteDistance
 import signage.signage_utils as utils
 from tier4_metric_msgs.msg import MetricArray
 
 DISCONNECT_THRESHOLD = 2
+
+# ゴールまでの残り距離が不明なときの既定値 [m] (到着判定が成立しない十分大きな値)
+DEFAULT_GOAL_DISTANCE = 1000.0
+# ルート受信後、この時間 [s] は /api/external/get/route_distance を採用しない。
+# 残り距離の算出元 (path_distance_calculator) は 1Hz で、最後に受信した behavior path と
+# 自車位置から距離を出す。距離の stamp は自車位置の時刻であり、ルートの stamp も
+# ルート設定リクエスト由来でどちらも「新ルートで算出された距離か」の判定には使えない。
+# そのため calculator 1 周期 + planner の新 path 出力遅延を見込んだ猶予期間で旧ルート分を捨てる。
+ROUTE_DISTANCE_SETTLE_SEC = 2.0
+# ルート設定後この時間 [s] 経っても残り距離を 1 度も受信できなければ warning を出す
+ROUTE_DISTANCE_MISSING_WARN_SEC = 10.0
+# 新旧ルートのゴール位置の差がこれ以下 [m] なら同じ目的地への reroute
+# (goal_planner のゴール修正等) とみなし、猶予期間中も直前の残り距離を保持する
+SAME_GOAL_THRESHOLD = 20.0
 
 # /control/control_evaluator/metrics の metric名 -> AutowareInformation の属性名
 # (UC-03: 急減速・急操舵判定に使用)
@@ -44,7 +59,7 @@ class AutowareInformation:
     mrm_behavior: int = 1  # MrmState.NONE
     route_state: int = 0
     door_status: int = 0
-    goal_distance: float = 1000.0
+    goal_distance: float = DEFAULT_GOAL_DISTANCE
     motion_state: int = 0
     localization_init_state: int = 0
     active_schedule: str = ""
@@ -66,8 +81,12 @@ class AutowareInterface:
         self.information = AutowareInformation()
         self._parameter = parameter_interface.parameter
         self.is_disconnected = False
-        # 現在のルートのゴール座標 (map系)。ルート未設定時は None
+        # 現在のルートを受信した時刻 [s] (signage ノードの時計)。ルート未設定時は None
+        self._route_received_sec = None
+        # 現在のルートのゴール位置 (map系)。ルート未設定時は None
         self._goal_position = None
+        # 現在のルートで残り距離を採用済みか (未受信 warning 用)
+        self._route_distance_received = False
 
         sub_qos = rclpy.qos.QoSProfile(
             history=rclpy.qos.QoSHistoryPolicy.KEEP_LAST,
@@ -109,16 +128,26 @@ class AutowareInterface:
             self.sub_vehicle_door_callback,
             api_qos,
         )
-        # /autoware_api/utils/path_distance_calculator/distance が廃止予定のため、
-        # ゴール姿勢 (/api/routing/route) と自車位置 (/api/vehicle/kinematics) から
-        # ゴールまでの直線距離を算出して goal_distance を求める。
-        # ゴール直前がカーブ / 経路がゴール近傍を通過する場合は実際の経路長と乖離するが、
-        # ゴール近傍 (<100m) の到着判定用途としては許容範囲とする。
+        # ゴールまでの経路上の残り距離は /api/external/get/route_distance から取得する。
+        # 残り距離は path_distance_calculator が 1Hz で算出しており、ルート解除後も
+        # 直前ルートの距離を publish し続け、ルート切替直後は旧ルートの距離が届きうる。
+        # そのため /api/routing/route でルートの有無と受信時刻を保持し、
+        # ルート未設定中・ルート受信から ROUTE_DISTANCE_SETTLE_SEC 以内の距離は無視する。
+        # 更新は 1Hz のため、到着接近 (arriving_distance) の判定は最大 1 周期分遅れうる (許容)。
         self._sub_route = node.create_subscription(
             Route,
             "/api/routing/route",
             self.sub_route_callback,
             api_qos,
+        )
+        self._sub_route_distance = node.create_subscription(
+            RouteDistance,
+            "/api/external/get/route_distance",
+            self.sub_route_distance_callback,
+            sub_qos,
+        )
+        self._route_distance_check_timer = node.create_timer(
+            1.0, self.check_route_distance_received
         )
         self._sub_kinematics = node.create_subscription(
             VehicleKinematics,
@@ -243,16 +272,59 @@ class AutowareInterface:
         except Exception as e:
             self._node.get_logger().error("Unable to get the vehicle door status, ERROR: " + str(e))
 
+    def _now_sec(self):
+        return self._node.get_clock().now().nanoseconds * 1e-9
+
     def sub_route_callback(self, msg):
         try:
-            if msg.data:
-                self._goal_position = msg.data[0].goal.position
-            else:
-                # ルートがクリアされた場合はゴール距離をデフォルトへ戻す
+            if not msg.data:
+                self._route_received_sec = None
                 self._goal_position = None
-                self.information.goal_distance = 1000.0
+                self.information.goal_distance = DEFAULT_GOAL_DISTANCE
+                return
+
+            goal = msg.data[0].goal.position
+            # 別の目的地へのルートに変わったときは旧ルートの残り距離を引き継がないよう
+            # 既定値へ戻し、新ルートの距離が届くまで到着判定させない。
+            # 同じ目的地への reroute では表示がちらつかないよう直前の値を保持する。
+            if self._goal_position is None or (
+                math.hypot(goal.x - self._goal_position.x, goal.y - self._goal_position.y)
+                > SAME_GOAL_THRESHOLD
+            ):
+                self.information.goal_distance = DEFAULT_GOAL_DISTANCE
+            self._goal_position = goal
+            self._route_received_sec = self._now_sec()
+            self._route_distance_received = False
         except Exception as e:
-            self._node.get_logger().error("Unable to get the route goal, ERROR: " + str(e))
+            self._node.get_logger().error("Unable to get the route, ERROR: " + str(e))
+
+    def sub_route_distance_callback(self, msg):
+        try:
+            if self._route_received_sec is None:
+                return
+            # ルート受信直後は旧ルートの path で算出された距離が届きうるため破棄する
+            if self._now_sec() - self._route_received_sec < ROUTE_DISTANCE_SETTLE_SEC:
+                return
+            self.information.goal_distance = msg.remaining_distance
+            self._route_distance_received = True
+        except Exception as e:
+            self._node.get_logger().error("Unable to get the goal distance, ERROR: " + str(e))
+
+    def check_route_distance_received(self):
+        # 残り距離が届かない構成 (tier4_autoware_api_extension 未起動等) では
+        # goal_distance が既定値のまま到着判定が働かないため、気付けるよう警告する
+        try:
+            if self._route_received_sec is None or self._route_distance_received:
+                return
+            if self._now_sec() - self._route_received_sec < ROUTE_DISTANCE_MISSING_WARN_SEC:
+                return
+            self._node.get_logger().warning(
+                "No route distance received from /api/external/get/route_distance "
+                "after the route was set. Arrival detection is disabled.",
+                throttle_duration_sec=10,
+            )
+        except Exception as e:
+            self._node.get_logger().error("Unable to check the route distance, ERROR: " + str(e))
 
     def sub_kinematics_callback(self, msg):
         # 縦速度 [m/s] を保持する (横ジャーク計算 v^2 * steering_rate / wheel_base に使用)
@@ -260,16 +332,6 @@ class AutowareInterface:
             self.information.velocity = msg.twist.twist.twist.linear.x
         except Exception as e:
             self._node.get_logger().error("Unable to get the vehicle velocity, ERROR: " + str(e))
-        # ゴールまでの直線距離を算出する (UC-05 到着判定用)
-        try:
-            if self._goal_position is None:
-                return
-            ego = msg.pose.pose.pose.position
-            self.information.goal_distance = math.hypot(
-                self._goal_position.x - ego.x, self._goal_position.y - ego.y
-            )
-        except Exception as e:
-            self._node.get_logger().error("Unable to get the goal distance, ERROR: " + str(e))
 
     def sub_motion_state_callback(self, msg):
         try:
