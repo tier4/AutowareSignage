@@ -405,9 +405,12 @@ class RouteHandler:
                     # UC-02: バス停発車 (STOP->AUTONOMOUS) のタイミング。
                     # 立席モードON時は standing_depart (発進します+転倒防止の注意) のみ再生し、
                     # engage との「発進します」二重発話を避ける。
-                    # 立席モードOFF、またはクールダウン等で standing_depart を再生しなかった
-                    # 場合は通常の engage (発進します) を再生する。
-                    if not self.trigger_depart_warning():
+                    # インターバル中の再発車では standing_depart をスキップし、engage にも
+                    # 切り替えない (SYS2-UC02-05)。standing_depart は interval より長く、
+                    # 前回の発話が再生中のため。立席モードOFF時は通常の engage を再生する。
+                    if self._standing_mode.is_standing_mode:
+                        self.trigger_depart_warning()
+                    else:
                         self._announce_interface.send_announce("engage")
                     self._service_interface.trigger_external_signage(True)
                     self._trigger_external_signage = True
@@ -543,18 +546,14 @@ class RouteHandler:
             self._node.get_logger().error("Error in getting calculate the time: " + str(e))
 
     def trigger_depart_warning(self):
-        # standing_depart を再生したら True を返す (発進アナウンスを兼ねるため呼び出し側で利用)
-        # 立席運用モードOFF時は提供しない (SYS2-UC02-02)
-        if not self._standing_mode.is_standing_mode:
-            return False
-        # SYS2-UC02-05: インターバル(5s)中の再発車はスキップ (キューに積まない)
+        # 立席運用モードON時のみ呼ばれる (OFF時は提供しない SYS2-UC02-02)
+        # SYS2-UC02-05: インターバル(10s)中の再発車はスキップ (キューに積まない)
         # スキップ分はログに残さず、実際に発話するときのみ記録する (UC-03 と方針統一)
         if self._announce_interface.in_interval("standing_depart"):
-            return False
+            return
         self._announce_interface.set_timeout("standing_depart")
         # 提供結果 (played/queued/failed 等) は send_announce 側で記録される
         self._announce_interface.send_announce("standing_depart")
-        return True
 
     def trigger_sudden_warning(self, warning_type, reasons):
         # SYS2-UC03-06: インターバル(10s)中の同種イベントはスキップ (キューに積まない)

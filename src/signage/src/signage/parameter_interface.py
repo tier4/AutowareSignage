@@ -65,7 +65,7 @@ class AnnounceIntervalParameter:
     stop_reason: float = 20.0  # UC-04 停止案内 (SYS-HMI-04/05/06)
     arrived: float = 5.0  # UC-05 到着表示の表示秒数 (SYS-HMI-07)
     # standing_sudden は急減速/急操舵/複合の3種で共有する (VVAS の turn_signal と同様)。
-    standing_depart: float = 5.0  # UC-02 発車警告 (SYS2-UC02-01)
+    standing_depart: float = 10.0  # UC-02 発車警告 (SYS2-UC02-05)
     standing_sudden: float = 10.0  # UC-03 急減速・急操舵警告 (SYS2-UC03-06)
 
 
@@ -203,7 +203,7 @@ class ParameterInterface:
 
         node.declare_parameter("announce_interval.stop_reason", 20.0)
         node.declare_parameter("announce_interval.arrived", 5.0)
-        node.declare_parameter("announce_interval.standing_depart", 5.0)
+        node.declare_parameter("announce_interval.standing_depart", 10.0)
         node.declare_parameter("announce_interval.standing_sudden", 10.0)
 
         announce_interval_prefix = node.get_parameters_by_prefix("announce_interval")
