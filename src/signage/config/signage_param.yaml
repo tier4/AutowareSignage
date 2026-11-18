@@ -41,5 +41,5 @@ signage:
     announce_interval: # 発話後にその期間だけ再発話を抑止する秒数 (表示時間も連動)
       stop_reason: 20.0 # second (UC-04 停止案内 SYS-HMI-04/05/06)
       arrived: 5.0 # second (UC-05 到着表示の表示秒数 SYS-HMI-07)
-      standing_depart: 5.0 # second (UC-02 発車警告 SYS2-UC02-01)
+      standing_depart: 10.0 # second (UC-02 発車警告 SYS2-UC02-05)
       standing_sudden: 10.0 # second (UC-03 急減速・急操舵警告 SYS2-UC03-06)
