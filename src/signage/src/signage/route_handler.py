@@ -696,6 +696,12 @@ class RouteHandler:
                 # UC-05 (SYS-HMI-07): 到着直後 announce_interval.arrived 秒間は
                 # 「‹停留所名›に到着しました」を専用画面で表示する (stopping より優先)
                 view_mode = "arrived"
+            elif self._reach_final and self._is_stopping:
+                # 終点到着後は FMS でスケジュール完了が反映されるのを待たずに即「回送中」を表示する。
+                # stopping (BusStopView) に落とすと、終点では display_phrase が空のため
+                # TimeRemaining 枠が空白画面になる。
+                view_mode = "out_of_service"
+                self._announced_depart = False
             elif self._is_stopping and self._current_task_details.departure_station != ["", ""]:
                 view_mode = "stopping"
             elif self._is_driving and self._current_task_details.arrival_station != ["", ""]:
